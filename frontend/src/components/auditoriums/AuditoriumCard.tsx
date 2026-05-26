@@ -50,7 +50,7 @@ export function AuditoriumCard({ auditorium, hideActions }: AuditoriumCardProps)
           <Users size={16} style={{ color: "var(--primary)" }} />
           <span>{auditorium.capacity} seats</span>
         </div>
-        <p className="clamped">{auditorium.description}</p>
+        <p className="line-clamp-2">{auditorium.description}</p>
         <div className="amenities">
           {auditorium.amenities.slice(0, 3).map((amenity) => (
             <span key={amenity}>{amenity}</span>
