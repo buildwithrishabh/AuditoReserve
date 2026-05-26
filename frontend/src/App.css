@@ -1009,13 +1009,7 @@ p {
   font-weight: 500;
 }
 
-.clamped {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  font-size: 14px;
-}
+
 
 .amenities {
   display: flex;
@@ -2096,26 +2090,6 @@ td {
     gap: 24px;
   }
 
-  .sidebar {
-    position: relative;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    padding: 20px;
-  }
-
-  .admin-brand {
-    margin-bottom: 16px;
-  }
-
-  .side-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .admin-main {
-    padding: 24px 20px 60px;
-  }
 }
 
 /* ===== Responsive: <= 620px ===== */
@@ -2410,6 +2384,12 @@ td {
   .sidebar {
     transform: none !important;
     opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .sidebar-footer {
+    opacity: 1 !important;
+    transform: none !important;
     pointer-events: auto !important;
   }
 }
