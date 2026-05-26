@@ -2405,6 +2405,15 @@ td {
   }
 }
 
+/* ===== Admin sidebar desktop override ===== */
+@media (min-width: 901px) {
+  .sidebar {
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
 /* ===== Responsive: Admin mobile <= 900px ===== */
 @media (max-width: 900px) {
   .admin-mobile-bar {
