@@ -1,4 +1,5 @@
 const Auditorium = require("../models/auditorium");
+const { getOrSetCache, delPattern, del } = require("../utils/cache");
 
 // ========================================
 // CREATE AUDITORIUM
@@ -8,7 +9,7 @@ exports.createAuditorium = async (req, res, next) => {
     const { name, capacity, amenities, basePrice, description } = req.body;
 
     // Get uploaded image URLs from Cloudinary
-    const imageUrls = req.files.map((file) => file.path);
+    const imageUrls = req.files?.map((file) => file.path) || [];
 
     // Convert amenities string into array
     const amenitiesArray =
@@ -25,6 +26,8 @@ exports.createAuditorium = async (req, res, next) => {
       description,
     });
 
+    await delPattern("auditoriums:all");
+
     res.status(201).json({
       success: true,
       message: "Auditorium created successfully",
@@ -40,9 +43,15 @@ exports.createAuditorium = async (req, res, next) => {
 // ========================================
 exports.getAllAuditoriums = async (req, res, next) => {
   try {
-    const auditoriums = await Auditorium.find().sort({
-      createdAt: -1,
-    });
+    const auditoriums = await getOrSetCache(
+      "auditoriums:all",
+      async () => {
+        return await Auditorium.find().sort({
+          createdAt: -1,
+        });
+      },
+      300,
+    );
 
     res.status(200).json({
       success: true,
@@ -59,7 +68,13 @@ exports.getAllAuditoriums = async (req, res, next) => {
 // ========================================
 exports.getSingleAuditorium = async (req, res, next) => {
   try {
-    const auditorium = await Auditorium.findById(req.params.id);
+    const auditorium = await getOrSetCache(
+      `auditorium:${req.params.id}`,
+      async () => {
+        return await Auditorium.findById(req.params.id);
+      },
+      300,
+    );
 
     if (!auditorium) {
       return res.status(404).json({
@@ -115,6 +130,8 @@ exports.updateAuditorium = async (req, res, next) => {
     auditorium.images = imageUrls;
 
     await auditorium.save();
+    await delPattern("auditoriums:all");
+    await del(`auditorium:${req.params.id}`);
 
     res.status(200).json({
       success: true,
@@ -141,6 +158,9 @@ exports.deleteAuditorium = async (req, res, next) => {
     }
 
     await auditorium.deleteOne();
+
+    await delPattern("auditoriums:all");
+    await del(`auditorium:${req.params.id}`);
 
     res.status(200).json({
       success: true,

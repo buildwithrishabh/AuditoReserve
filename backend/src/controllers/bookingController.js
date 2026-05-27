@@ -4,7 +4,7 @@ const User = require("../models/User");
 const sendEmail = require("../service/email");
 const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 
-exports.createBooking = async (req, res) => {
+exports.createBooking = async (req, res, next) => {
   try {
     const { auditoriumId, bookingDate, startTime, endTime, purpose } = req.body;
 
@@ -160,19 +160,14 @@ exports.createBooking = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // ===============================
 // Get Logged In User Bookings
 // ===============================
-exports.getUserBookings = async (req, res) => {
+exports.getUserBookings = async (req, res, next) => {
   try {
     const bookings = await Booking.find({
       user: req.user.id,
@@ -187,19 +182,14 @@ exports.getUserBookings = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // ===============================
 // Get All Bookings (Admin)
 // ===============================
-exports.getAllBookings = async (req, res) => {
+exports.getAllBookings = async (req, res, next) => {
   try {
     const bookings = await Booking.find()
       .populate("user", "name email")
@@ -213,19 +203,14 @@ exports.getAllBookings = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // ===============================
 // Update Booking Status (Admin)
 // ===============================
-exports.updateBookingStatus = async (req, res) => {
+exports.updateBookingStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
 
@@ -299,19 +284,14 @@ exports.updateBookingStatus = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // ===============================
 // Cancel User Booking
 // ===============================
-exports.cancelBooking = async (req, res) => {
+exports.cancelBooking = async (req, res, next) => {
   try {
     const booking = await Booking.findById(req.params.id);
 
@@ -349,11 +329,6 @@ exports.cancelBooking = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message,
-    });
+    next(error);
   }
 };
