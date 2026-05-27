@@ -52,6 +52,23 @@ AudiToReserve is a comprehensive auditorium booking platform designed for educat
 - **Email Notifications**: Nodemailer for verification, booking confirmations, password resets
 - **Search & Filter**: Filter auditoriums by capacity, amenities, price range
 
+### Caching Strategy (Redis)
+Fast data access with a **cache-aside** pattern backed by Redis:
+
+| Strategy | Detail |
+|----------|--------|
+| **Pattern** | Lazy loading — check Redis first, fall back to MongoDB on miss, then populate cache |
+| **TTL** | 300 seconds (5 min) for auditorium list & detail caches |
+| **Invalidation** | Cache cleared on create / update / delete via key patterns (`auditoriums:*`) |
+| **Resilience** | Automatic fallback to MongoDB if Redis is unreachable (no crash) |
+| **Library** | `ioredis` with auto-reconnection & retry backoff |
+
+```
+GET /auditoriums  →  Redis hit?  →  return cached JSON
+                   →  Redis miss? →  query MongoDB →  store in Redis (TTL: 300s) →  return
+PUT /auditoriums   →  update DB   →  delete Redis keys
+```
+
 ---
 
 ## Tech Stack
@@ -70,6 +87,7 @@ AudiToReserve is a comprehensive auditorium booking platform designed for educat
 | **Helmet** | Security headers |
 | **CORS** | Cross-origin resource sharing |
 | **express-rate-limit** | Rate limiting |
+| **ioredis + Redis** | Caching layer (auditorium listings, cache-aside pattern) |
 | **morgan** | HTTP request logging |
 
 ### Frontend
@@ -107,7 +125,8 @@ Auditorium Booking System/
 │   ├── src/
 │   │   ├── config/
 │   │   │   ├── db.js              # MongoDB connection
-│   │   │   └── cloudinary.js      # Cloudinary config
+│   │   │   ├── cloudinary.js      # Cloudinary config
+│   │   │   └── redis.js           # Redis client connection
 │   │   ├── controllers/
 │   │   │   ├── authController.js  # Register, login, verify email, reset password
 │   │   │   ├── auditoriumController.js
@@ -126,6 +145,7 @@ Auditorium Booking System/
 │   │   ├── service/
 │   │   │   └── email.js           # Nodemailer transporter
 │   │   ├── utils/
+│   │   │   ├── cache.js           # Redis cache helpers (getOrSetCache, invalidation)
 │   │   │   ├── EmailOptions.js    # Email templates
 │   │   │   └── jwt.js             # Token helpers
 │   │   ├── app.js                 # Express app setup
@@ -172,6 +192,7 @@ Auditorium Booking System/
 ### Prerequisites
 - Node.js (v18+ recommended)
 - MongoDB (local or Atlas URI)
+- Redis (local via `choco install redis` / `brew install redis`, or cloud: Redis Labs / Upstash)
 - Cloudinary account (for image uploads)
 - Email service (Gmail with App Password, or any SMTP)
 
@@ -234,6 +255,9 @@ The app will be available at:
 | `PORT` | Backend port | `5000` |
 | `MONGODB_URI` | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/audibook` |
 | `NODE_ENV` | Environment mode | `development` or `production` |
+| `REDIS_HOST` | Redis server host | `localhost` or `redis-xxxx.upstash.io` |
+| `REDIS_PORT` | Redis server port | `6379` |
+| `REDIS_PASSWORD` | Redis password | `your-redis-password` |
 | `UNIVERSITY_DOMAIN` | Restrict email registrations | `tmu.ac.in` |
 | `JWT_ACCESS_SECRET` | Access token secret | `your-random-secret-key` |
 | `JWT_REFRESH_SECRET` | Refresh token secret | `another-random-secret` |
@@ -352,26 +376,14 @@ The app will be available at:
 
 ## Future Enhancements Roadmap
 
-### Phase 1: Performance Optimization (Redis Integration)
+### Phase 1: Performance Optimization
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Caching Layer** | Implement Redis for caching frequently accessed data | 🔴 High |
-| - Auditorium List Cache | Cache `/viewAllAuditoriums` response with TTL | 🔴 High |
-| - Auditorium Detail Cache | Cache individual auditorium data | 🔴 High |
-| - Session Store | Store refresh tokens in Redis instead of MongoDB | 🟡 Medium |
-
-**Implementation Plan:**
-```javascript
-// Packages needed: ioredis or redis
-npm install redis
-
-// Use cases:
-// 1. Cache auditorium listings (expire every 5-10 mins)
-// 2. Cache booking availability checks
-// 3. Rate limiting data store
-// 4. Blacklist revoked tokens (instead of DB lookup)
-```
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Caching Layer** | Redis caching for frequently accessed data | ✅ Completed |
+| - Auditorium List Cache | Cache `/viewAllAuditoriums` response with TTL | ✅ Completed |
+| - Auditorium Detail Cache | Cache individual auditorium data | ✅ Completed |
+| - Session Store | Store refresh tokens in Redis instead of MongoDB | 🟡 Planned |
 
 ---
 
@@ -452,11 +464,10 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 
 ### Immediate Next Steps (Recommended)
 
-1. **Add Redis Caching** - Dramatically improves read performance for auditorium listings
-2. **Add Input Validation** - Use Joi/Zod on backend for all request bodies
-3. **Add Swagger Docs** - Auto-generated API documentation
-4. **Add Tests** - Unit tests for controllers, integration tests for API endpoints
-5. **Payment Integration** - Razorpay is most commonly used in India
+1. **Add Input Validation** - Use Joi/Zod on backend for all request bodies
+2. **Add Swagger Docs** - Auto-generated API documentation
+3. **Add Tests** - Unit tests for controllers, integration tests for API endpoints
+4. **Payment Integration** - Razorpay is most commonly used in India
 
 ---
 
