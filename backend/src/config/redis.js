@@ -25,4 +25,4 @@ exports.redisConnect = async () => {
   }
 };
 
-module.exports = redisClient;
+module.exports = { redisClient, redisConnect };
