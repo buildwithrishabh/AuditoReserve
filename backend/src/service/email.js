@@ -1,5 +1,5 @@
-const nodemailer = require('nodemailer');
-const https = require('https');
+const nodemailer = require("nodemailer");
+const https = require("https");
 
 /**
  * Send an email using Brevo HTTP API.
@@ -7,9 +7,9 @@ const https = require('https');
 const sendViaBrevoAPI = (options) => {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
-      sender: { 
-        name: process.env.FROM_NAME || 'AudiBook System', 
-        email: process.env.FROM_EMAIL 
+      sender: {
+        name: process.env.FROM_NAME || "AuditoReserve",
+        email: process.env.FROM_EMAIL,
       },
       to: [{ email: options.to }],
       subject: options.subject,
@@ -18,24 +18,24 @@ const sendViaBrevoAPI = (options) => {
     });
 
     const reqOptions = {
-      hostname: 'api.brevo.com',
+      hostname: "api.brevo.com",
       port: 443,
-      path: '/v3/smtp/email',
-      method: 'POST',
+      path: "/v3/smtp/email",
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY || process.env.SMTP_PASS,
-        'Content-Length': Buffer.byteLength(data),
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY || process.env.SMTP_PASS,
+        "Content-Length": Buffer.byteLength(data),
       },
     };
 
     const req = https.request(reqOptions, (res) => {
-      let body = '';
-      res.on('data', (chunk) => {
+      let body = "";
+      res.on("data", (chunk) => {
         body += chunk;
       });
-      res.on('end', () => {
+      res.on("end", () => {
         let result;
         try {
           result = JSON.parse(body);
@@ -50,7 +50,7 @@ const sendViaBrevoAPI = (options) => {
       });
     });
 
-    req.on('error', (error) => {
+    req.on("error", (error) => {
       reject(error);
     });
 
@@ -65,14 +65,14 @@ const sendViaBrevoAPI = (options) => {
  */
 const sendEmail = async (options) => {
   // If SMTP host is Brevo, use their HTTP API to bypass Render's SMTP port block
-  if (process.env.SMTP_HOST === 'smtp-relay.brevo.com') {
+  if (process.env.SMTP_HOST === "smtp-relay.brevo.com") {
     try {
       const info = await sendViaBrevoAPI(options);
-      console.log('Email sent via Brevo HTTP API:', info.messageId || info);
+      console.log("Email sent via Brevo HTTP API:", info.messageId || info);
       return info;
     } catch (error) {
-      console.error('Error sending email via Brevo HTTP API:', error.message);
-      throw new Error('Email could not be sent');
+      console.error("Error sending email via Brevo HTTP API:", error.message);
+      throw new Error("Email could not be sent");
     }
   }
 
@@ -81,8 +81,8 @@ const sendEmail = async (options) => {
   if (process.env.SMTP_HOST) {
     config = {
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+      port: parseInt(process.env.SMTP_PORT || "587", 10),
+      secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -91,7 +91,7 @@ const sendEmail = async (options) => {
   } else {
     // Fallback to gmail service
     config = {
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -103,7 +103,7 @@ const sendEmail = async (options) => {
 
   // Define email options
   const mailOptions = {
-    from: `${process.env.FROM_NAME || 'AudiBook System'} <${process.env.FROM_EMAIL}>`,
+    from: `${process.env.FROM_NAME || "AudiBook System"} <${process.env.FROM_EMAIL}>`,
     to: options.to,
     subject: options.subject,
     text: options.text,
@@ -113,11 +113,11 @@ const sendEmail = async (options) => {
   // Send email
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
+    console.log("Email sent: %s", info.messageId);
     return info;
   } catch (error) {
-    console.error('Error sending email:', error.message);
-    throw new Error('Email could not be sent');
+    console.error("Error sending email:", error.message);
+    throw new Error("Email could not be sent");
   }
 };
 
