@@ -7,7 +7,7 @@ exports.getOrSetCache = async (key, callback, ttl = 300) => {
     if (cachedData) return JSON.parse(cachedData);
 
     const freshData = await callback();
-    await redisClient.setEx(key, ttl, JSON.stringify(freshData));
+    await redisClient.set(key, JSON.stringify(freshData), "EX", ttl);
 
     return freshData;
   } catch (error) {
@@ -19,7 +19,7 @@ exports.getOrSetCache = async (key, callback, ttl = 300) => {
 exports.delPattern = async (pattern) => {
   try {
     const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) await redisClient.del(keys);
+    if (keys.length > 0) await redisClient.del(...keys);
   } catch (error) {
     console.log("Redis Error:", error.message);
   }
