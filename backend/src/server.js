@@ -1,10 +1,8 @@
 const app = require("./app");
 const connectDB = require("./config/db");
-const { redisConnect } = require("./config/redis");
 
 // Connect to database
 connectDB();
-redisConnect();
 
 const PORT = process.env.PORT || 5000;
 
