@@ -1,4 +1,4 @@
-# AudiToReserve - Auditorium Booking System
+# AudiReserve - Auditorium Booking System
 
 A full-stack web application for booking university auditoriums with role-based access, real-time availability checking, and automated email notifications.
 
