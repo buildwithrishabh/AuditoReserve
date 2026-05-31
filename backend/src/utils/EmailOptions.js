@@ -216,9 +216,9 @@ exports.generateResetPasswordEmail = async (user, resetToken) => {
 
 exports.bookingUpdatedEmail = async (user, bookingId, status) => {
   const bookingStatus = {
-    booked: "Booked",
+    pending: "Pending",
+    confirmed: "Confirmed",
     cancelled: "Cancelled",
-    completed: "Completed",
   };
 
   return {
