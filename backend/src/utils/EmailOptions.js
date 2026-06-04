@@ -240,8 +240,8 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
           Your booking ${bookingId} has been ${bookingStatus[status]}.
         </p>
       `,
-      link: `${process.env.FRONTEND_URL}/booking/${bookingId}`,
-      linkText: "View Booking",
+      link: `${process.env.FRONTEND_URL}/bookings`,
+      linkText: "View Bookings",
     }),
   };
 };

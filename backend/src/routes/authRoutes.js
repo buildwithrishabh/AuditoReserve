@@ -11,6 +11,7 @@ const {
   forgetPass,
   resetPassword,
   getMe,
+  resendVerificationEmail,
 } = require("../controllers/authController");
 
 const {
@@ -19,6 +20,7 @@ const {
 
 authroutes.post("/register", register);
 authroutes.get("/verify-email", verifyEmail);
+authroutes.post("/resend-verification", resendVerificationEmail);
 authroutes.post("/login", login);
 authroutes.post("/refresh", refresh);
 authroutes.post("/logout", logout);

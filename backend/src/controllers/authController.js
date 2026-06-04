@@ -413,6 +413,69 @@ exports.resetPassword = async (req, res, next) => {
   }
 };
 
+// Resend verification email
+exports.resendVerificationEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide an email address",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "This email address is already verified",
+      });
+    }
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+
+    // Save token to user
+    user.verificationToken = hashedToken;
+    user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    await user.save();
+
+    try {
+      const mailOptions = await generateVerificationEmail(
+        user,
+        verificationToken,
+      );
+      await sendEmail(mailOptions);
+    } catch (error) {
+      console.log("Email sending failed", error.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Verification email sent successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ================= GET ME =================
 exports.getMe = async (req, res, next) => {
   try {

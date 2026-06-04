@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
-import { login } from "../../api/auth";
+import { login, resendVerification } from "../../api/auth";
 import { getErrorMessage } from "../../api/client";
 import { AuthCard } from "../../components/auth/AuthCard";
 import { TextField, FormError } from "../../components/common/FormControls";
@@ -28,15 +28,36 @@ export function LoginPage() {
   const registeredEmail = searchParams.get("email");
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const {
     register: field,
     handleSubmit,
     formState: { errors, isSubmitting },
+    watch,
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: registeredEmail || "" },
   });
+
+  const emailVal = watch("email");
+
+  async function handleResend() {
+    const emailToResend = emailVal || registeredEmail;
+    if (!emailToResend) {
+      showToast("Please enter your email address first.", "error");
+      return;
+    }
+    setIsResending(true);
+    try {
+      const response = await resendVerification(emailToResend);
+      showToast(response.message || "Verification email sent!", "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   async function onSubmit(values: LoginFormValues) {
     setServerError("");
@@ -64,7 +85,27 @@ export function LoginPage() {
         {registeredEmail && (
           <motion.div variants={cardItem} className="success-box" style={{ marginBottom: "4px" }}>
             <CheckCircle2 size={16} />
-            <span>Account created! Verify your email before logging in.</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <span>Account created! Verify your email before logging in.</span>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isResending}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  color: "var(--accent)",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  textAlign: "left",
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                }}
+              >
+                {isResending ? "Resending..." : "Didn't receive email? Resend verification link"}
+              </button>
+            </div>
           </motion.div>
         )}
         <motion.div variants={cardItem}>
@@ -127,6 +168,28 @@ export function LoginPage() {
         
         <motion.div variants={cardItem}>
           <FormError message={serverError} />
+          {serverError.toLowerCase().includes("verify your email") && (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "4px 0",
+                color: "var(--accent)",
+                fontWeight: 700,
+                fontSize: "13px",
+                textAlign: "left",
+                textDecoration: "underline",
+                cursor: "pointer",
+                marginTop: "4px",
+                display: "block",
+              }}
+            >
+              {isResending ? "Resending..." : "Resend verification link"}
+            </button>
+          )}
         </motion.div>
         
         <motion.button
