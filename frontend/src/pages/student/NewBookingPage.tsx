@@ -38,6 +38,30 @@ const bookingSchema = z
       message: "Booking date cannot be in the past",
       path: ["bookingDate"],
     }
+  )
+  .refine(
+    (data) => {
+      const selectedDate = new Date(data.bookingDate);
+      const today = new Date();
+      
+      const currentHours = today.getHours();
+      const currentMinutes = today.getMinutes();
+      
+      today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      // If booking is today, verify the start time is in the future
+      if (selectedDate.getTime() === today.getTime()) {
+        const currentTimeString = `${String(currentHours).padStart(2, "0")}:${String(currentMinutes).padStart(2, "0")}`;
+        return data.startTime > currentTimeString;
+      }
+      
+      return true;
+    },
+    {
+      message: "Start time must be in the future for today's bookings",
+      path: ["startTime"],
+    }
   );
 
 type BookingFormValues = z.infer<typeof bookingSchema>;

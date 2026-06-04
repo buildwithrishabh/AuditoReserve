@@ -59,19 +59,46 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // ===============================
-    // Check Future Booking Date
+    // Validate Booking Date & Time
     // ===============================
 
-    const today = new Date();
+    const now = new Date();
+
     const selectedDate = new Date(bookingDate);
 
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
 
-    if (selectedDate < today) {
+    const bookingDay = new Date(selectedDate);
+    bookingDay.setHours(0, 0, 0, 0);
+
+    // Prevent past dates
+    if (bookingDay < today) {
       return res.status(400).json({
         success: false,
         message: "Booking date must be today or future",
+      });
+    }
+
+    // Build booking start datetime
+    const [startHour, startMinute] = formattedStartTime
+      .split(":")
+      .map(Number);
+
+    const bookingStartDateTime = new Date(selectedDate);
+
+    bookingStartDateTime.setHours(
+      startHour,
+      startMinute,
+      0,
+      0
+    );
+
+    // Prevent booking past time slots
+    if (bookingStartDateTime <= now) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot book a past time slot",
       });
     }
 
@@ -94,7 +121,7 @@ exports.createBooking = async (req, res, next) => {
 
     const overlappingBooking = await Booking.findOne({
       auditorium: auditoriumId,
-      bookingDate: selectedDate,
+      bookingDate: bookingDay,
 
       status: {
         $in: ["pending", "confirmed"],
@@ -109,7 +136,6 @@ exports.createBooking = async (req, res, next) => {
       },
     });
 
-    // If slot already booked
     if (overlappingBooking) {
       return res.status(400).json({
         success: false,
@@ -122,7 +148,6 @@ exports.createBooking = async (req, res, next) => {
     // ===============================
 
     const [startH, startM] = formattedStartTime.split(":").map(Number);
-
     const [endH, endM] = formattedEndTime.split(":").map(Number);
 
     const totalMinutes = endH * 60 + endM - (startH * 60 + startM);
@@ -138,9 +163,8 @@ exports.createBooking = async (req, res, next) => {
     const booking = await Booking.create({
       user: userId,
       auditorium: auditoriumId,
-      bookingDate: selectedDate,
+      bookingDate: bookingDay,
 
-      // Save normalized times
       startTime: formattedStartTime,
       endTime: formattedEndTime,
 

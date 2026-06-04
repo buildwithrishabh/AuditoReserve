@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -41,7 +40,7 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordExpires: {
     type: Date,
-    default: "",
+    default: null,
   },
   createdAt: {
     type: Date,
