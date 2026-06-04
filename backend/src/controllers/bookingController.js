@@ -6,14 +6,17 @@ const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 
 exports.createBooking = async (req, res, next) => {
   try {
+    // Extract request body inputs
     const { auditoriumId, bookingDate, startTime, endTime, purpose } = req.body;
 
+    // Retrieve user ID from req.user (typically populated by Auth middleware)
     const userId = req.user.id;
 
     // ===============================
     // Validation
     // ===============================
 
+    // Ensure all mandatory fields are provided in the request body
     if (!auditoriumId || !bookingDate || !startTime || !endTime || !purpose) {
       return res.status(400).json({
         success: false,
@@ -25,8 +28,10 @@ exports.createBooking = async (req, res, next) => {
     // Validate Time Format
     // ===============================
 
+    // Regex pattern matching 24-hour time format: H:MM or HH:MM (e.g. 09:30 or 23:59)
     const timePattern = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
 
+    // Validate both start and end time formats
     if (!timePattern.test(startTime) || !timePattern.test(endTime)) {
       return res.status(400).json({
         success: false,
@@ -38,6 +43,8 @@ exports.createBooking = async (req, res, next) => {
     // Normalize Time
     // ===============================
 
+    // Function to add leading zero for single digit hours (e.g. "9:30" -> "09:30")
+    // This allows accurate alphabetical string comparisons
     const normalizeTime = (timeStr) => {
       const [hours, minutes] = timeStr.split(":");
 
@@ -51,6 +58,7 @@ exports.createBooking = async (req, res, next) => {
     // Validate Start & End Time
     // ===============================
 
+    // Ensure start time is strictly before end time
     if (formattedStartTime >= formattedEndTime) {
       return res.status(400).json({
         success: false,
@@ -66,13 +74,15 @@ exports.createBooking = async (req, res, next) => {
 
     const selectedDate = new Date(bookingDate);
 
+    // Normalize today's date to midnight (00:00:00) for a clean date comparison
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
+    // Normalize requested booking date to midnight (00:00:00)
     const bookingDay = new Date(selectedDate);
     bookingDay.setHours(0, 0, 0, 0);
 
-    // Prevent past dates
+    // Prevent bookings on dates in the past
     if (bookingDay < today) {
       return res.status(400).json({
         success: false,
@@ -80,7 +90,7 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // Build booking start datetime
+    // Parse the start hours and minutes to build the precise start datetime
     const [startHour, startMinute] = formattedStartTime
       .split(":")
       .map(Number);
@@ -94,7 +104,7 @@ exports.createBooking = async (req, res, next) => {
       0
     );
 
-    // Prevent booking past time slots
+    // Prevent booking slots that have already passed today
     if (bookingStartDateTime <= now) {
       return res.status(400).json({
         success: false,
@@ -106,6 +116,7 @@ exports.createBooking = async (req, res, next) => {
     // Find Auditorium
     // ===============================
 
+    // Verify if the requested auditorium exists in the database
     const auditorium = await Auditorium.findById(auditoriumId);
 
     if (!auditorium) {
@@ -119,18 +130,24 @@ exports.createBooking = async (req, res, next) => {
     // Check Overlapping Bookings
     // ===============================
 
+    // Query for any existing booking in the same auditorium, same day,
+    // that overlaps with the requested time range.
+    // Interval overlap logic: Start_A < End_B AND End_A > Start_B
     const overlappingBooking = await Booking.findOne({
       auditorium: auditoriumId,
       bookingDate: bookingDay,
 
+      // Only check active (pending or confirmed) bookings
       status: {
         $in: ["pending", "confirmed"],
       },
 
+      // Conflicted if existing booking starts before the new booking ends
       startTime: {
         $lt: formattedEndTime,
       },
 
+      // Conflicted if existing booking ends after the new booking starts
       endTime: {
         $gt: formattedStartTime,
       },
@@ -147,19 +164,23 @@ exports.createBooking = async (req, res, next) => {
     // Calculate Total Price
     // ===============================
 
+    // Calculate booking duration in minutes
     const [startH, startM] = formattedStartTime.split(":").map(Number);
     const [endH, endM] = formattedEndTime.split(":").map(Number);
 
     const totalMinutes = endH * 60 + endM - (startH * 60 + startM);
 
+    // Convert duration to hours
     const totalHours = totalMinutes / 60;
 
+    // Multiply hours by auditorium's hourly rate and round to the nearest whole number
     const totalPrice = Math.round(totalHours * auditorium.basePrice);
 
     // ===============================
     // Create Booking
     // ===============================
 
+    // Save the new booking document with 'pending' status
     const booking = await Booking.create({
       user: userId,
       auditorium: auditoriumId,
@@ -177,12 +198,14 @@ exports.createBooking = async (req, res, next) => {
     // Response
     // ===============================
 
+    // Return the created booking response to the user
     res.status(201).json({
       success: true,
       message: "Booking created successfully",
       booking,
     });
   } catch (error) {
+    // Log the error and hand over to the global error middleware
     console.log(error);
     next(error);
   }
