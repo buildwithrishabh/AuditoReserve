@@ -63,6 +63,21 @@ app.use("/api/bookings", bookingRoutes);
 // Global error handler (does not leak error details in production)
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
+
+  // Catch Multer limit / field errors
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      success: false,
+      message: "File size exceeds the 5MB limit",
+    });
+  }
+  if (err.code === "LIMIT_UNEXPECTED_FILE") {
+    return res.status(400).json({
+      success: false,
+      message: "Too many files uploaded. Maximum allowed is 5.",
+    });
+  }
+
   res.status(err.status || 500).json({
     success: false,
     message:

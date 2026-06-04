@@ -18,12 +18,32 @@ exports.getOrSetCache = async (key, callback, ttl = 300) => {
 
 exports.delPattern = async (pattern) => {
   try {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) await redisClient.del(...keys);
+    const stream = redisClient.scanStream({
+      match: pattern,
+      count: 100,
+    });
+
+    stream.on("data", async (keys) => {
+      if (keys.length > 0) {
+        stream.pause();
+        try {
+          await redisClient.del(...keys);
+        } catch (err) {
+          console.log("Redis Delete Error:", err.message);
+        }
+        stream.resume();
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      stream.on("end", resolve);
+      stream.on("error", reject);
+    });
   } catch (error) {
     console.log("Redis Error:", error.message);
   }
 };
+
 
 exports.del = async (key) => {
   try {

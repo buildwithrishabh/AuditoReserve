@@ -1,5 +1,6 @@
 const Auditorium = require("../models/auditorium");
 const { getOrSetCache, delPattern, del } = require("../utils/cache");
+const { deleteMultipleImagesFromCloudinary } = require("../utils/cloudinaryHelper");
 
 // ========================================
 // CREATE AUDITORIUM
@@ -114,11 +115,14 @@ exports.updateAuditorium = async (req, res, next) => {
         ? amenities.split(",").map((item) => item.trim())
         : amenities;
 
-    // Keep old images if no new image uploaded
+    // Keep old images if no new image uploaded, but clean them up from Cloudinary if replacing
     let imageUrls = auditorium.images;
 
     // If new images uploaded
     if (req.files && req.files.length > 0) {
+      if (auditorium.images && auditorium.images.length > 0) {
+        await deleteMultipleImagesFromCloudinary(auditorium.images);
+      }
       imageUrls = req.files.map((file) => file.path);
     }
 
@@ -155,6 +159,11 @@ exports.deleteAuditorium = async (req, res, next) => {
         success: false,
         message: "Auditorium not found",
       });
+    }
+
+    // Delete associated images from Cloudinary before database deletion
+    if (auditorium.images && auditorium.images.length > 0) {
+      await deleteMultipleImagesFromCloudinary(auditorium.images);
     }
 
     await auditorium.deleteOne();
