@@ -49,7 +49,7 @@ exports.createPaymentOrder = async (req, res, next) => {
     let payment = await Payment.findById(booking.paymentId);
 
     if (!payment) {
-      const receipt = `booking_${booking._id}_${Date.now()}`;
+      const receipt = `bk_${booking._id.toString().slice(-16)}_${Date.now()}`;
       const razorpayOrder = await razorpayClient.orders.create({
         amount: booking.totalPrice * 100,
         currency: "INR",
