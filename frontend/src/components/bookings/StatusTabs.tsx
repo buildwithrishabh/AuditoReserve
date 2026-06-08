@@ -12,8 +12,8 @@ export function StatusTabs({
   includeAll = false,
 }: StatusTabsProps) {
   const tabs: Array<BookingStatus | "all"> = includeAll
-    ? ["all", "pending", "confirmed", "cancelled"]
-    : ["pending", "confirmed", "cancelled"];
+    ? ["all", "pending", "approved", "confirmed", "cancelled"]
+    : ["pending", "approved", "confirmed", "cancelled"];
 
   return (
     <div className="tabs">

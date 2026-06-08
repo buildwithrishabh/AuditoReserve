@@ -2,7 +2,13 @@ const Booking = require("../models/booking");
 const Auditorium = require("../models/auditorium");
 const User = require("../models/User");
 const sendEmail = require("../service/email");
-const { bookingUpdatedEmail } = require("../utils/EmailOptions");
+const {
+  bookingUpdatedEmail,
+  paymentRequestEmail,
+} = require("../utils/EmailOptions");
+const crypto = require("crypto");
+const Payment = require("../models/payment");
+const razorpayClient = require("../config/razorPay");
 
 exports.createBooking = async (req, res, next) => {
   try {
@@ -91,18 +97,11 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Parse the start hours and minutes to build the precise start datetime
-    const [startHour, startMinute] = formattedStartTime
-      .split(":")
-      .map(Number);
+    const [startHour, startMinute] = formattedStartTime.split(":").map(Number);
 
     const bookingStartDateTime = new Date(selectedDate);
 
-    bookingStartDateTime.setHours(
-      startHour,
-      startMinute,
-      0,
-      0
-    );
+    bookingStartDateTime.setHours(startHour, startMinute, 0, 0);
 
     // Prevent booking slots that have already passed today
     if (bookingStartDateTime <= now) {
@@ -137,9 +136,9 @@ exports.createBooking = async (req, res, next) => {
       auditorium: auditoriumId,
       bookingDate: bookingDay,
 
-      // Only check active (pending or confirmed) bookings
+      // Only check active bookings
       status: {
-        $in: ["pending", "confirmed"],
+        $in: ["pending", "approved", "confirmed"],
       },
 
       // Conflicted if existing booking starts before the new booking ends
@@ -262,7 +261,7 @@ exports.updateBookingStatus = async (req, res, next) => {
     const { status } = req.body;
 
     // Allowed status
-    const allowedStatus = ["pending", "confirmed", "cancelled"];
+    const allowedStatus = ["approved", "cancelled"];
 
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
@@ -280,43 +279,111 @@ exports.updateBookingStatus = async (req, res, next) => {
       });
     }
 
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be approved or cancelled",
+      });
+    }
+
+    if (status === "cancelled") {
+      booking.status = "cancelled";
+
+      await booking.save();
+
+      try {
+        const user = await User.findById(booking.user);
+
+        if (user) {
+          const emailData = await bookingUpdatedEmail(
+            user,
+            booking._id,
+            "cancelled",
+          );
+
+          await sendEmail(emailData);
+        }
+      } catch (error) {
+        console.log("Email sending failed:", error.message);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Booking request cancelled successfully.",
+        booking,
+      });
+    }
+
     // ===============================================================
     // Concurrency Check: Prevent double-booking on Admin Confirmation
     // ===============================================================
-    if (status === "confirmed") {
-      const overlappingConfirmed = await Booking.findOne({
-        _id: { $ne: booking._id }, // Exclude this booking itself from the search
-        auditorium: booking.auditorium,
-        bookingDate: booking.bookingDate,
-        status: "confirmed",
-        startTime: {
-          $lt: booking.endTime,
-        },
-        endTime: {
-          $gt: booking.startTime,
-        },
-      });
+    const overlappingConfirmed = await Booking.findOne({
+      _id: { $ne: booking._id }, // Exclude this booking itself from the search
+      auditorium: booking.auditorium,
+      bookingDate: booking.bookingDate,
+      status: {
+        $in: ["approved", "confirmed"],
+      },
+      startTime: {
+        $lt: booking.endTime,
+      },
+      endTime: {
+        $gt: booking.startTime,
+      },
+    });
 
-      if (overlappingConfirmed) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Cannot confirm. This time slot conflicts with an already confirmed booking.",
-        });
-      }
+    if (overlappingConfirmed) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot confirm. This time slot conflicts with an already confirmed booking.",
+      });
     }
 
-    booking.status = status;
+    const approvedAt = new Date();
+    const paymentDeadline = new Date(
+      approvedAt.getTime() + 12 * 60 * 60 * 1000,
+    ); // 12 hours in milliseconds
+
+    const receipt = `booking_${booking._id}_${Date.now()}`;
+
+    const razorpayOrder = await razorpayClient.orders.create({
+      amount: booking.totalPrice * 100, // Razorpay accepts amount in paise
+      currency: "INR",
+      receipt,
+      notes: {
+        bookingId: booking._id.toString(),
+        userId: booking.user.toString(),
+      },
+    });
+
+    const payment = await Payment.create({
+      user: booking.user,
+      booking: booking._id,
+      amount: booking.totalPrice,
+      currency: "INR",
+      gatewayOrderId: razorpayOrder.id,
+      receipt,
+      status: "created",
+      expiresAt: paymentDeadline,
+    });
+
+    booking.status = "approved";
+    booking.approvedAt = approvedAt;
+    booking.paymentDeadline = paymentDeadline;
+    booking.paymentId = payment._id;
 
     await booking.save();
 
     try {
       const user = await User.findById(booking.user);
+      const auditorium = await Auditorium.findById(booking.auditorium);
 
-      const emailData = await bookingUpdatedEmail(
+      const emailData = await paymentRequestEmail(
         user,
-        booking.id,
-        booking.status,
+        booking,
+        auditorium,
+        payment,
       );
 
       await sendEmail(emailData);
@@ -326,7 +393,7 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Booking ${booking.status} successfully`,
+      message: "Booking approved. Payment email sent to student.",
       booking,
     });
   } catch (error) {

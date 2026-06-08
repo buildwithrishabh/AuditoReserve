@@ -54,9 +54,11 @@ export function AdminBookingsPage() {
   const handleAdminActionClick = (bookingId: string, nextStatus: BookingStatus, bookingTitle: string) => {
     setPendingAction({ bookingId, nextStatus });
     
-    if (nextStatus === "confirmed") {
+    if (nextStatus === "approved") {
       setConfirmTitle("Approve Booking Request?");
-      setConfirmMessage(`Are you sure you want to approve the booking request for "${bookingTitle}"?`);
+      setConfirmMessage(
+        `This will approve "${bookingTitle}" and email the student a payment link. The student must pay within 12 hours.`,
+      );
     } else {
       setConfirmTitle("Cancel / Reject Booking?");
       setConfirmMessage(`Are you sure you want to cancel or reject the booking request for "${bookingTitle}"?`);

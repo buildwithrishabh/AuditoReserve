@@ -36,7 +36,7 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
+      enum: ["pending", "approved", "confirmed", "cancelled"],
       default: "pending",
     },
 
@@ -47,7 +47,16 @@ const bookingSchema = new mongoose.Schema(
     },
 
     paymentId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+
+    approvedAt: {
+      type: Date,
+    },
+
+    paymentDeadline: {
+      type: Date,
     },
   },
   {
@@ -58,6 +67,8 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({
   auditorium: 1,
   bookingDate: 1,
+  paymentDeadline: 1,
+  status: 1,
 });
 
 module.exports = mongoose.model("Booking", bookingSchema);

@@ -1386,6 +1386,12 @@ p {
   border-color: rgba(75, 139, 255, 0.25);
 }
 
+.status.approved {
+  color: #f6c453;
+  background: rgba(246, 196, 83, 0.12);
+  border-color: rgba(246, 196, 83, 0.28);
+}
+
 .status.cancelled {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.12);

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getUserBookings, cancelBooking } from "../../api/bookings";
+import { createPaymentOrder, verifyPayment } from "../../api/payments";
+import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
@@ -37,6 +39,55 @@ export function StudentBookingsPage() {
       showToast(error instanceof Error ? error.message : "Failed to cancel booking.", "error");
     },
   });
+
+  const handlePayNow = async (bookingId: string) => {
+    const loaded = await loadRazorpayScript();
+
+    if (!loaded || !window.Razorpay) {
+      showToast("Could not load Razorpay checkout.", "error");
+      return;
+    }
+
+    try {
+      const paymentData = await createPaymentOrder(bookingId);
+
+      const options = {
+        key: paymentData.key,
+        amount: paymentData.order.amount,
+        currency: paymentData.order.currency,
+        name: "AuditoReserve",
+        description: "Auditorium booking payment",
+        order_id: paymentData.order.id,
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            const result = await verifyPayment({
+              bookingId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            showToast(result.message || "Payment successful.", "success");
+            void queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+          } catch (error) {
+            showToast(error instanceof Error ? error.message : "Payment verification failed.", "error");
+          }
+        },
+        theme: {
+          color: "#7c73e6",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to create payment order.", "error");
+    }
+  };
 
   const bookings = data.filter((b) => status === "all" || b.status === status);
 
@@ -89,19 +140,28 @@ export function StudentBookingsPage() {
           initial="hidden"
           animate="visible"
         >
-          {bookings.map((booking) => (
-            <motion.div key={booking._id} variants={listItem}>
-              <BookingRow
-                booking={booking}
-                onCancel={
-                  booking.status === "pending"
-                    ? () => handleCancelClick(booking._id)
-                    : undefined
-                }
-                isSubmittingAction={cancelMutation.isPending}
-              />
-            </motion.div>
-          ))}
+          {bookings.map((booking) => {
+            const isPaymentExpired =
+              booking.paymentDeadline && new Date(booking.paymentDeadline) < new Date();
+            return (
+              <motion.div key={booking._id} variants={listItem}>
+                <BookingRow
+                  booking={booking}
+                  onPay={
+                    booking.status === "approved" && !isPaymentExpired
+                      ? () => void handlePayNow(booking._id)
+                      : undefined
+                  }
+                  onCancel={
+                    booking.status === "pending"
+                      ? () => handleCancelClick(booking._id)
+                      : undefined
+                  }
+                  isSubmittingAction={cancelMutation.isPending}
+                />
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
 

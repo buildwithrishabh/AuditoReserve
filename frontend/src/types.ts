@@ -17,7 +17,7 @@ export type Auditorium = {
   updatedAt?: string;
 };
 
-export type BookingStatus = "pending" | "confirmed" | "cancelled";
+export type BookingStatus = "pending" | "approved" | "confirmed" | "cancelled";
 
 export type Booking = {
   _id: string;
@@ -30,6 +30,8 @@ export type Booking = {
   status: BookingStatus;
   totalPrice: number;
   paymentId?: string;
+  approvedAt?: string;
+  paymentDeadline?: string;
   createdAt?: string;
   updatedAt?: string;
 };

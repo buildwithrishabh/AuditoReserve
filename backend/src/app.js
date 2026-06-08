@@ -37,7 +37,18 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      if (req.originalUrl === "api/payments/webhook") {
+        req.rawbody = buf;
+      }
+    },
+  }),
+);
+
+
 app.use(cookieParser());
 
 if (process.env.NODE_ENV === "production") {
@@ -55,10 +66,12 @@ app.get("/api/health", (req, res) => {
 const authroutes = require("./routes/authRoutes");
 const auditoriumRoutes = require("./routes/auditoriumRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const paymentRouter = require("./routes/paymentRoutes");
 
 app.use("/api/auth", authLimiter, authroutes);
 app.use("/api/auditoriums", auditoriumRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRouter);
 
 // Global error handler (does not leak error details in production)
 app.use((err, req, res, next) => {

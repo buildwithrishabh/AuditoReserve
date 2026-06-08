@@ -217,6 +217,7 @@ exports.generateResetPasswordEmail = async (user, resetToken) => {
 exports.bookingUpdatedEmail = async (user, bookingId, status) => {
   const bookingStatus = {
     pending: "Pending",
+    approved: "Approved",
     confirmed: "Confirmed",
     cancelled: "Cancelled",
   };
@@ -242,6 +243,47 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
       `,
       link: `${process.env.FRONTEND_URL}/bookings`,
       linkText: "View Bookings",
+    }),
+  };
+};
+
+
+exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
+  const paymentLink = `${process.env.FRONTEND_URL}/bookings?pay=${booking._id}`;
+  const deadlineText = new Date(payment.expiresAt).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  return {
+    from: {
+      name: process.env.FROM_NAME,
+      address: process.env.FROM_EMAIL,
+    },
+    to: user.email,
+    subject: "Payment required to confirm booking - AuditoReserve",
+    text: `Hi ${user.name}, your booking has been approved. Pay before ${deadlineText}: ${paymentLink}`,
+    html: emailLayout({
+      badge: "Payment required",
+      heading: "Complete payment to confirm booking",
+      body: `
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
+          Hi <strong style="color:#e8e8ed;font-weight:700;">${user.name}</strong>,
+        </p>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
+          Your booking request for <strong style="color:#e8e8ed;">${auditorium.name}</strong>
+          has been approved by the admin.
+        </p>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
+          Amount: <strong style="color:#e8e8ed;">INR ${booking.totalPrice}</strong><br/>
+          Payment deadline: <strong style="color:#e8e8ed;">${deadlineText}</strong>
+        </p>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
+          Please complete payment within 12 hours. Your booking will be confirmed only after successful payment.
+        </p>
+      `,
+      link: paymentLink,
+      linkText: "Pay Now",
     }),
   };
 };

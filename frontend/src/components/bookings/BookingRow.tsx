@@ -6,6 +6,7 @@ import { StatusBadge } from "../common/StatusBadge";
 export type BookingRowProps = {
   booking: Booking;
   onCancel?: () => void;
+  onPay?: () => void;
   adminActions?: (status: BookingStatus) => void;
   isSubmittingAction?: boolean;
 };
@@ -13,6 +14,7 @@ export type BookingRowProps = {
 export function BookingRow({
   booking,
   onCancel,
+  onPay,
   adminActions,
   isSubmittingAction = false,
 }: BookingRowProps) {
@@ -28,6 +30,14 @@ export function BookingRow({
     return format(date, "dd MMM yyyy");
   };
 
+  const formatDeadline = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return format(date, "dd MMM yyyy, hh:mm a");
+  };
+
   return (
     <article className="booking-row">
       <div className="booking-main">
@@ -39,6 +49,11 @@ export function BookingRow({
           </p>
         )}
         <p style={{ color: "var(--text-muted)" }}>{booking.purpose}</p>
+        {booking.status === "approved" && booking.paymentDeadline && (
+          <p className="booking-deadline" style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>
+            Payment deadline: {formatDeadline(booking.paymentDeadline)}
+          </p>
+        )}
       </div>
       <div className="booking-meta">
         <span>
@@ -62,12 +77,22 @@ export function BookingRow({
             Cancel
           </button>
         )}
+        {onPay && (
+          <button
+            className="button primary"
+            type="button"
+            onClick={onPay}
+            disabled={isSubmittingAction}
+          >
+            Pay Now
+          </button>
+        )}
         {adminActions && (
           <>
             <button
               className="icon-button success-icon"
               type="button"
-              onClick={() => adminActions("confirmed")}
+              onClick={() => adminActions("approved")}
               disabled={isSubmittingAction}
               aria-label="Approve booking request"
               title="Approve booking request"
