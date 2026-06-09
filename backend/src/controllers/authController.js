@@ -6,7 +6,8 @@ const crypto = require("crypto");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const { hashToken } = require("../utils/jwt");
 
-const sendEmail = require("../service/email");
+const emailQueue = require("../queue/emailQueue");
+
 const {
   generateVerificationEmail,
   generateResetPasswordEmail,
@@ -68,11 +69,8 @@ exports.register = async (req, res, next) => {
     await user.save();
 
     try {
-      const mailOptions = await generateVerificationEmail(
-        user,
-        verificationToken,
-      );
-      await sendEmail(mailOptions);
+      const mailOptions = await generateVerificationEmail(user, verificationToken);
+      await emailQueue.add("send-verification-email", { options: mailOptions });
     } catch (error) {
       console.log("Email sending failed", error.message);
     }
@@ -352,7 +350,7 @@ exports.forgetPass = async (req, res, next) => {
 
     try {
       const mailOptions = await generateResetPasswordEmail(user, resetToken);
-      await sendEmail(mailOptions);
+      await emailQueue.add("send-reset-password-email" , {options: mailOptions})
     } catch (error) {
       console.log("Email sending failed", error.message);
     }
@@ -458,7 +456,7 @@ exports.resendVerificationEmail = async (req, res, next) => {
         user,
         verificationToken,
       );
-      await sendEmail(mailOptions);
+      await emailQueue.add("send-verification-email" , {options: mailOptions})
     } catch (error) {
       console.log("Email sending failed", error.message);
       return res.status(500).json({

@@ -1,9 +1,7 @@
 const nodemailer = require("nodemailer");
 const https = require("https");
 
-/**
- * Send an email using Brevo HTTP API.
- */
+
 const sendViaBrevoAPI = (options) => {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
@@ -59,11 +57,10 @@ const sendViaBrevoAPI = (options) => {
   });
 };
 
-/**
- * Send an email using SMTP transport or API.
- * @param {Object} options - Email options (to, subject, text, html)
- */
+
 const sendEmail = async (options) => {
+
+
   // If SMTP host is Brevo, use their HTTP API to bypass Render's SMTP port block
   if (process.env.SMTP_HOST === "smtp-relay.brevo.com") {
     try {
@@ -103,7 +100,7 @@ const sendEmail = async (options) => {
 
   // Define email options
   const mailOptions = {
-    from: `${process.env.FROM_NAME || "AudiBook System"} <${process.env.FROM_EMAIL}>`,
+    from: `${process.env.FROM_NAME || "AuditoReserve"} <${process.env.FROM_EMAIL}>`,
     to: options.to,
     subject: options.subject,
     text: options.text,

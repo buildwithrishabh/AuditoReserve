@@ -1,7 +1,9 @@
 const Booking = require("../models/booking");
 const Auditorium = require("../models/auditorium");
 const User = require("../models/User");
-const sendEmail = require("../service/email");
+
+const emailQueue = require("../queue/emailQueue");
+
 const {
   bookingUpdatedEmail,
   paymentRequestEmail,
@@ -9,6 +11,8 @@ const {
 const crypto = require("crypto");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
+
+const bookingExpiryQueue = require("../queue/bookingExpiryQueue");
 
 exports.createBooking = async (req, res, next) => {
   try {
@@ -301,7 +305,7 @@ exports.updateBookingStatus = async (req, res, next) => {
             "cancelled",
           );
 
-          await sendEmail(emailData);
+          await emailQueue.add("booking-cancelled-email", { options: emailData });
         }
       } catch (error) {
         console.log("Email sending failed:", error.message);
@@ -375,6 +379,14 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     await booking.save();
 
+    const delayMs = 12 * 60 * 60 * 1000;
+
+    await bookingExpiryQueue.add(
+      `expire_${booking._id}`,
+      { bookingId: booking._id },
+      { delay: delayMs },
+    );
+
     try {
       const user = await User.findById(booking.user);
       const auditorium = await Auditorium.findById(booking.auditorium);
@@ -386,7 +398,7 @@ exports.updateBookingStatus = async (req, res, next) => {
         payment,
       );
 
-      await sendEmail(emailData);
+      await emailQueue.add("payment-request-email", { options: emailData });
     } catch (error) {
       console.log("Email sending failed:", error.message);
     }

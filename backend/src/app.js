@@ -37,17 +37,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(
-  express.json({
-    limit: "10mb",
-    verify: (req, res, buf) => {
-      if (req.originalUrl === "api/payments/webhook") {
-        req.rawbody = buf;
-      }
-    },
-  }),
-);
-
+app.use(express.json({limit: "10mb"}));
 
 app.use(cookieParser());
 

@@ -67,8 +67,9 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({
   auditorium: 1,
   bookingDate: 1,
-  paymentDeadline: 1,
   status: 1,
+  paymentDeadline: 1,
 });
+
 
 module.exports = mongoose.model("Booking", bookingSchema);
