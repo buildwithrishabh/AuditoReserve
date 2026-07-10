@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
-const cookie = require("cookie");
+const { parseCookie } = require("cookie");
 const logger = require("./logger");
 
 let io;
@@ -23,7 +23,7 @@ const initSocket = (server) => {
   io.use((socket, next) => {
     try {
       const cookieHeader = socket.handshake.headers.cookie || "";
-      const cookies = cookie.parse(cookieHeader);
+      const cookies = parseCookie(cookieHeader);
       const token = cookies.accessToken || socket.handshake.auth?.token;
 
       if (!token) {
