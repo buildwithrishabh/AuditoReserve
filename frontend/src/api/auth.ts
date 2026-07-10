@@ -4,6 +4,7 @@ import type { User } from "../types";
 type UserResponse = {
   message?: string;
   success?: boolean;
+  accessToken?: string;
   user: User;
 };
 
@@ -28,7 +29,7 @@ export async function register(input: RegisterInput) {
 
 export async function getMe() {
   const { data } = await api.get<UserResponse>("/auth/me");
-  return data.user;
+  return data;
 }
 
 export async function logout() {

@@ -39,8 +39,19 @@ api.interceptors.response.use(
             _skipAuthRefresh: true,
           } as AxiosRequestConfig);
 
-        await refreshPromise;
+        const refreshResponse = (await refreshPromise) as { data: { user: any; accessToken: string } };
         refreshPromise = null;
+
+        // Notify useAuth to update local state/context with new token and user
+        window.dispatchEvent(
+          new CustomEvent("auth:refreshed", {
+            detail: {
+              user: refreshResponse.data.user,
+              accessToken: refreshResponse.data.accessToken,
+            },
+          })
+        );
+
         return api(originalRequest);
       } catch (refreshError) {
         refreshPromise = null;

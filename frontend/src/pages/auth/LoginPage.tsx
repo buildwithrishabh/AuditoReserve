@@ -63,7 +63,7 @@ export function LoginPage() {
     setServerError("");
     try {
       const response = await login(values);
-      setUser(response.user);
+      setUser(response.user, response.accessToken);
       showToast(`Welcome back, ${response.user.name}!`, "success");
       navigate(response.user.role === "admin" ? "/admin" : "/", { replace: true });
     } catch (error) {

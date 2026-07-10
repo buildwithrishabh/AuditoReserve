@@ -16,7 +16,8 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  setUser: (user: User | null) => void;
+  token: string | null;
+  setUser: (user: User | null, token?: string | null) => void;
   logout: () => Promise<void>;
 };
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [manualUser, setManualUser] = useState<User | null>(null);
+  const [manualToken, setManualToken] = useState<string | null>(null);
 
   const { data, isError, isLoading } = useQuery({
     queryKey: ["auth", "me"],
@@ -34,8 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
   });
 
+  const setUser = useCallback((user: User | null, token: string | null = null) => {
+    setManualUser(user);
+    setManualToken(token);
+  }, []);
+
   const logout = useCallback(async () => {
     setManualUser(null);
+    setManualToken(null);
     queryClient.setQueryData(["auth", "me"], null);
     try {
       await logoutRequest();
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleExpired = () => {
       setManualUser(null);
+      setManualToken(null);
       queryClient.clear();
     };
 
@@ -55,17 +64,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("auth:expired", handleExpired);
   }, [queryClient]);
 
-  const user = manualUser || (!isError ? data || null : null);
+  useEffect(() => {
+    const handleRefreshed = (e: Event) => {
+      const customEvent = e as CustomEvent<{ user: User; accessToken: string }>;
+      const { user, accessToken } = customEvent.detail;
+      setManualUser(user);
+      setManualToken(accessToken);
+      queryClient.setQueryData(["auth", "me"], { user, accessToken });
+    };
+
+    window.addEventListener("auth:refreshed", handleRefreshed);
+    return () => window.removeEventListener("auth:refreshed", handleRefreshed);
+  }, [queryClient]);
+
+  const user = manualUser || (!isError ? data?.user || null : null);
+  const token = manualToken || (!isError ? data?.accessToken || null : null);
 
   const value = useMemo(
     () => ({
       user,
       isLoading,
       isAuthenticated: Boolean(user),
-      setUser: setManualUser,
+      token,
+      setUser,
       logout,
     }),
-    [isLoading, logout, user],
+    [isLoading, logout, user, token, setUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

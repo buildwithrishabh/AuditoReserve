@@ -33,7 +33,7 @@ type NotificationContextValue = {
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const { showToast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -119,6 +119,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       .replace(/\/api$/, "");
 
     const socket: Socket = io(socketBaseUrl, {
+      auth: {
+        token: token || undefined,
+      },
       withCredentials: true,
       transports: ["polling", "websocket"],
     });
@@ -139,7 +142,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       socket.disconnect();
     };
-  }, [isAuthenticated, user, showToast]);
+  }, [isAuthenticated, user, token, showToast]);
 
   const contextValue = useMemo(
     () => ({

@@ -147,6 +147,7 @@ exports.login = async (req, res, next) => {
 
     res.status(200).json({
       message: "Login successful",
+      accessToken,
       user: {
         id: user._id,
         name: user.name,
@@ -217,6 +218,7 @@ exports.refresh = async (req, res, next) => {
 
     res.status(200).json({
       message: "Refresh token successful",
+      accessToken: newaccessToken,
       user: {
         id: user._id,
         name: user.name,
@@ -480,6 +482,7 @@ exports.getMe = async (req, res, next) => {
     const user = await User.findById(req.user.id).select("-password");
     res.status(200).json({
       success: true,
+      accessToken: req.cookies.accessToken,
       user: {
         id: user._id,
         name: user.name,
