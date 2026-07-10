@@ -57,11 +57,13 @@ const authroutes = require("./routes/authRoutes");
 const auditoriumRoutes = require("./routes/auditoriumRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
+const notificationRouter = require("./routes/notificationRoutes");
 
 app.use("/api/auth", authLimiter, authroutes);
 app.use("/api/auditoriums", auditoriumRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRouter);
+app.use("/api/notifications" , notificationRouter);
 
 // Global error handler (does not leak error details in production)
 app.use((err, req, res, next) => {

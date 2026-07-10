@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { Footer } from "./Footer";
 import { pageTransition } from "../../lib/animations";
+import { NotificationCenter } from "./NotificationCenter";
 
 const navItems = [
   { label: "Home", to: "/" },
@@ -63,6 +64,7 @@ export function AppLayout() {
         <div className="topbar-actions">
           {user ? (
             <>
+              <NotificationCenter />
               <Link to="/account" className="user-pill">
                 <User size={14} />
                 <span className="user-name">{user.name}</span>
@@ -80,9 +82,12 @@ export function AppLayout() {
           )}
         </div>
 
-        <button className="mobile-menu-btn" type="button" aria-label="Toggle menu" onClick={() => setMenuOpen((o) => !o)}>
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="mobile-header-actions">
+          {user && <NotificationCenter />}
+          <button className="mobile-menu-btn" type="button" aria-label="Toggle menu" onClick={() => setMenuOpen((o) => !o)}>
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
 
         {/* Mobile dropdown */}
         <AnimatePresence>

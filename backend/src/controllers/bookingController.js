@@ -1,14 +1,13 @@
 const Booking = require("../models/booking");
 const Auditorium = require("../models/auditorium");
 const User = require("../models/User");
-
+const { createNotification } = require("../service/notificationService");
 const emailQueue = require("../queue/emailQueue");
 
 const {
   bookingUpdatedEmail,
   paymentRequestEmail,
 } = require("../utils/EmailOptions");
-const crypto = require("crypto");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
 
@@ -197,9 +196,13 @@ exports.createBooking = async (req, res, next) => {
       status: "pending",
     });
 
-    // ===============================
-    // Response
-    // ===============================
+    await createNotification({
+      recipient: userId,
+      type: "BOOKING_PENDING",
+      title: "Booking Request Pending",
+      message: `Your booking request for ${auditorium.name} on ${bookingDate} is pending approval.`,
+      data: { bookingId: booking._id },
+    });
 
     // Return the created booking response to the user
     res.status(201).json({
@@ -305,8 +308,18 @@ exports.updateBookingStatus = async (req, res, next) => {
             "cancelled",
           );
 
-          await emailQueue.add("booking-cancelled-email", { options: emailData });
+          await emailQueue.add("booking-cancelled-email", {
+            options: emailData,
+          });
         }
+
+        await createNotification({
+          recipient: booking.user,
+          type: "BOOKING_CANCELLED",
+          title: "Booking Request Declined",
+          message: `Your booking request has been cancelled by the admin.`,
+          data: { bookingId: booking._id },
+        });
       } catch (error) {
         console.log("Email sending failed:", error.message);
       }
@@ -403,6 +416,14 @@ exports.updateBookingStatus = async (req, res, next) => {
       console.log("Email sending failed:", error.message);
     }
 
+    await createNotification({
+      recipient: booking.user,
+      type: "PAYMENT_REQUEST",
+      title: "Booking Approved - Action Required",
+      message: `Your booking for auditorium has been approved. Please make a payment of Rs. ${booking.totalPrice} within 12 hours.`,
+      data: { bookingId: booking._id, paymentId: payment._id },
+    });
+
     res.status(200).json({
       success: true,
       message: "Booking approved. Payment email sent to student.",
@@ -447,6 +468,14 @@ exports.cancelBooking = async (req, res, next) => {
     booking.status = "cancelled";
 
     await booking.save();
+
+    await createNotification({
+      recipient: booking.user,
+      type: "BOOKING_CANCELLED",
+      title: "Booking Cancelled",
+      message: `You have successfully cancelled your booking request`,
+      data: { bookingId: booking._id },
+    });
 
     res.status(200).json({
       success: true,

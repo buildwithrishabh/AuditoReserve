@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const Booking = require("../models/booking");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
+const { createNotification } = require("../service/notificationService");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -164,6 +165,14 @@ exports.verifyPayment = async (req, res, next) => {
     booking.paymentId = payment._id;
     await booking.save();
 
+    await createNotification({
+      recipient: booking.user,
+      type: "BOOKING_CONFIRMED",
+      title: "Booking Confirmed 🎉",
+      message: `Payment successful! Your booking is now confirmed.`,
+      data: { bookingId: booking._id, paymentId: payment._id },
+    });
+
     res.status(200).json({
       success: true,
       message: "Payment successful. Booking confirmed.",
@@ -174,4 +183,3 @@ exports.verifyPayment = async (req, res, next) => {
     next(error);
   }
 };
-

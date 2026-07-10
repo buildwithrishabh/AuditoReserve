@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthProvider } from "./hooks/useAuth";
 import { ToastProvider } from "./hooks/ToastProvider";
+import { NotificationProvider } from "./hooks/useNotifications";
 
 // Layouts
 import { AppLayout } from "./components/layout/AppLayout";
@@ -78,7 +79,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
-          <BrowserRouter>
+          <NotificationProvider>
+            <BrowserRouter>
             <Routes>
               {/* Public & Student Routes */}
               <Route element={<AppLayout />}>
@@ -140,7 +142,8 @@ function App() {
               {/* 404 Route */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-          </BrowserRouter>
+            </BrowserRouter>
+          </NotificationProvider>
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

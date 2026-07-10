@@ -4,6 +4,7 @@ import { CalendarDays, LayoutDashboard, LogOut, MapPin, Menu, X } from "lucide-r
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { pageTransition } from "../../lib/animations";
+import { NotificationCenter } from "./NotificationCenter";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -28,16 +29,19 @@ export function AdminLayout() {
           <span className="brand-mark">AR</span>
           <span>Admin console</span>
         </Link>
-        <button
-          className="mobile-menu-button admin-menu-button"
-          type="button"
-          aria-label={isMenuOpen ? "Close admin navigation" : "Open admin navigation"}
-          aria-expanded={isMenuOpen}
-          aria-controls="admin-navigation"
-          onClick={() => setIsMenuOpen((open) => !open)}
-        >
-          {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
+          {user && <NotificationCenter />}
+          <button
+            className="mobile-menu-button admin-menu-button"
+            type="button"
+            aria-label={isMenuOpen ? "Close admin navigation" : "Open admin navigation"}
+            aria-expanded={isMenuOpen}
+            aria-controls="admin-navigation"
+            onClick={() => setIsMenuOpen((open) => !open)}
+          >
+            {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </header>
 
       <motion.aside

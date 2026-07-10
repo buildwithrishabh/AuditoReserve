@@ -5,11 +5,12 @@ const Payment = require("../models/payment");
 const emailQueue = require("../queue/emailQueue");
 const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 const User = require("../models/User");
+const { createNotification } = require("../service/notificationService");
 
 const worker = new Worker(
   "booking-expiry",
   async (job) => {
-    const {bookingId} = job.data;
+    const { bookingId } = job.data;
 
     console.log(`[Expiry Worker] Checking expiration for booking ${bookingId}`);
 
@@ -30,6 +31,14 @@ const worker = new Worker(
     booking.status = "cancelled";
     await booking.save();
 
+    await createNotification({
+      recipient: booking.user,
+      type: "BOOKING_CANCELLED",
+      title: "Booking Expired",
+      message: `Your booking request was cancelled because the payment deadline expired.`,
+      data: { bookingId: booking._id },
+    });
+
     if (booking.paymentId) {
       await Payment.findByIdAndUpdate(booking.paymentId, {
         status: "expired",
@@ -41,7 +50,11 @@ const worker = new Worker(
       const user = await User.findById(booking.user);
 
       if (user) {
-        const emailData = await bookingUpdatedEmail(user, booking._id, "cancelled");
+        const emailData = await bookingUpdatedEmail(
+          user,
+          booking._id,
+          "cancelled",
+        );
         await emailQueue.add("booking-cancelled-email", { options: emailData });
         console.log(`[Expiry Worker] Sent cancellation email to ${user.email}`);
       }
@@ -50,7 +63,6 @@ const worker = new Worker(
         `[Expiry Worker] Failed to send cancellation email: ${error}`,
       );
     }
-
     console.log(`[Expiry worker] Successfully expired booking ${bookingId}`);
   },
   {
@@ -63,6 +75,5 @@ worker.on("completed", (job) => {
 worker.on("failed", (job, err) => {
   console.error(`[Expiry Worker] Job ${job?.id} failed: ${err.message}`);
 });
-
 
 module.exports = worker;

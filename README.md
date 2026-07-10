@@ -1,6 +1,6 @@
 # AudiReserve - Auditorium Booking System
 
-AudiReserve is a modern, high-performance, full-stack web application designed for educational institutions to streamline auditorium reservations. It features role-based workflows, real-time availability checking, secure payment processing, a resilient Redis-backed caching layer, and an asynchronous background queue system for emails and automated booking expiries.
+AudiReserve is a modern, high-performance, full-stack web application designed for educational institutions to streamline auditorium reservations. It features role-based workflows, real-time availability checking, secure payment processing, a resilient Redis-backed caching layer, and an asynchronous background queue system for emails, automated booking expiries, and real-time in-app notifications.
 
 ---
 
@@ -11,6 +11,7 @@ AudiReserve is a modern, high-performance, full-stack web application designed f
   - [1. Resilient Caching (Redis Cache-Aside)](#1-resilient-caching-redis-cache-aside)
   - [2. Asynchronous Queue Architecture (BullMQ)](#2-asynchronous-queue-architecture-bullmq)
   - [3. Payment Processing & Auto-Expiry](#3-payment-processing--auto-expiry)
+  - [4. Real-time In-App Notification Center (Socket.io)](#4-real-time-in-app-notification-center-socketio)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -27,21 +28,23 @@ AudiReserve is a modern, high-performance, full-stack web application designed f
 [Student] Registers & Verifies Email
    │
    ▼
-[Student] Requests a Booking Slot (Time conflict check performed)
+[Student] Requests a Booking Slot (Conflict check performed) ──► Real-time In-App Alert
    │
    ▼
 [Admin] Reviews & Approves Booking
    │
    ├─► [System] Generates Razorpay Order & Payment Intent
    ├─► [System] Triggers delayed job (12 hours) in Expiry Queue
-   └─► [System] Dispatches payment request email to student
+   ├─► [System] Dispatches payment request email to student
+   └─► [System] Pushes real-time Payment Request notification to student's dashboard
    │
    ├───► Paid within 12 hours?
    │        │
    │        ├───► [YES] ──► Booking confirmed. Confirmation email sent.
+   │        │               Push notification: "Booking Confirmed 🎉"
    │        │
    │        └───► [NO]  ──► Expiry worker cancels booking and payment order.
-   │                        Cancellation email sent automatically.
+   │                        Cancellation email sent. Push notification: "Booking Expired".
 ```
 
 ---
@@ -66,6 +69,13 @@ For heavyweight background processes, AudiReserve implements **BullMQ** coupled 
 - If the student completes the payment through the frontend, the payment status transitions to `paid` and the booking status is set to `confirmed`.
 - If the 12-hour window lapses and the status remains `approved`, the `bookingExpiryWorker` automatically resets the booking status to `cancelled`, voids the payment intent, and notifies the student.
 
+### 4. Real-time In-App Notification Center (Socket.io)
+AudiReserve implements a real-time push layer paired with persistent storage for in-app notifications.
+- **Persistent Storage**: All notifications (pending bookings, payment requests, approvals, expiries, cancellations, and confirmations) are saved to a MongoDB collection. This allows users to view their notification history when logging in from any device.
+- **Real-Time Push**: WebSockets (using **Socket.io**) deliver instantaneous alerts directly to the user interface when they have the application open.
+- **Connection Tracker**: Keeps a map of user IDs to socket connections. It supports multi-device/multi-tab connection tracking, ensuring real-time notifications are pushed to all active sessions of a user.
+- **Graceful Disconnection**: Automatically cleans up socket instances upon client disconnection to prevent memory leaks.
+
 ---
 
 ## Tech Stack
@@ -75,9 +85,11 @@ For heavyweight background processes, AudiReserve implements **BullMQ** coupled 
 * **MongoDB** & **Mongoose** — Document-based database & Object Data Modeling.
 * **Redis** (`ioredis`) — Caching database and message broker for BullMQ.
 * **BullMQ** — Enterprise-grade message queue and background job scheduler.
+* **Socket.io** — Real-time bidirectional event-based communication.
 * **Razorpay Node SDK** — Payment gateway processing.
 * **Nodemailer** — Verification, payment request, and receipt email dispatches (supports SMTP/Brevo HTTP API).
 * **Cloudinary & Multer** — Multi-file image uploading and Content Delivery Network (CDN) hosting.
+* **Cookie** & **Cookie-Parser** — Safe HTTP cookie parsing and header tokens management.
 * **Helmet** & **CORS** — HTTP headers security policy and Cross-Origin request security.
 * **Express Rate Limit** — Brute-force and DDoS mitigation on auth endpoints.
 
@@ -88,6 +100,7 @@ For heavyweight background processes, AudiReserve implements **BullMQ** coupled 
 * **TanStack React Query** — Caching, synchronizing, and updating server state in React.
 * **Framer Motion** — Fluid micro-interactions and transitions.
 * **React Hook Form** & **Zod** — Schema-driven validation and form management.
+* **Socket.io Client** — Real-time event listener integration.
 
 ---
 
@@ -102,20 +115,23 @@ Auditorium Booking System/
 │   │   │   ├── cloudinary.js        # Cloudinary client config
 │   │   │   ├── redis.js             # Standalone Redis connection for caching
 │   │   │   ├── razorPay.js          # Razorpay client instance
-│   │   │   └── queueConnection.js   # Redis connection config shared by BullMQ Queues/Workers
+│   │   │   ├── queueConnection.js   # Redis connection config shared by BullMQ Queues/Workers
+│   │   │   └── socket.js            # Socket.io server instance, cookies auth, & socket registry
 │   │   ├── controllers/
 │   │   │   ├── authController.js    # Register, login, verification, and reset password logic
 │   │   │   ├── auditoriumController.js # CRUD handlers for Auditoriums with cache invalidation
 │   │   │   ├── bookingController.js  # Booking requests, approval logic, and expiry queue triggering
-│   │   │   └── paymentController.js  # Razorpay order creation and webhook/signature validation
+│   │   │   ├── paymentController.js  # Razorpay order creation and webhook/signature validation
+│   │   │   └── notificationController.js # In-app notification API handlers (read, get, delete)
 │   │   ├── middlewares/
 │   │   │   ├── authMiddleware.js    # JWT protection, role checks (Student/Admin), and verification filters
 │   │   │   └── uploadMiddleware.js  # Multer integration with Cloudinary
 │   │   ├── models/
 │   │   │   ├── User.js
-│   │   │   ├── Auditorium.js
-│   │   │   ├── Booking.js           # Includes approvedAt, paymentDeadline, and status states
-│   │   │   └── payment.js           # Tracks transaction amounts, gateways, orders, and signatures
+│   │   │   ├── auditorium.js
+│   │   │   ├── booking.js           # Includes approvedAt, paymentDeadline, and status states
+│   │   │   ├── payment.js           # Tracks transaction amounts, gateways, orders, and signatures
+│   │   │   └── notification.js      # Persistent storage schema for in-app user notifications
 │   │   ├── queue/
 │   │   │   ├── emailQueue.js        # BullMQ email queue wrapper
 │   │   │   └── bookingExpiryQueue.js # BullMQ booking expiry queue wrapper
@@ -126,15 +142,17 @@ Auditorium Booking System/
 │   │   │   ├── authRoutes.js
 │   │   │   ├── auditoriumRoutes.js
 │   │   │   ├── bookingRoutes.js
-│   │   │   └── paymentRoutes.js
+│   │   │   ├── paymentRoutes.js
+│   │   │   └── notificationRoutes.js # Secured API routes for notifications
 │   │   ├── service/
-│   │   │   └── email.js             # Transporter selection (Nodemailer vs Brevo API)
+│   │   │   ├── email.js             # Transporter selection (Nodemailer vs Brevo API)
+│   │   │   └── notificationService.js # Business service to write and dispatch in-app notifications
 │   │   ├── utils/
 │   │   │   ├── cache.js             # Redis cache wrapping layers
 │   │   │   ├── EmailOptions.js      # Custom dynamic HTML templates for user notifications
 │   │   │   └── jwt.js               # Access/Refresh token creation and hashing utilities
 │   │   ├── app.js                   # Express application setup and global error handlers
-│   │   └── server.js                # Main server entrypoint (Initializes database, workers, and handles shutdowns)
+│   │   └── server.js                # Main server entrypoint (Initializes HTTP server, database, Socket.io, & workers)
 │   ├── package.json
 │   └── .env.example
 │
@@ -272,6 +290,13 @@ Auditorium Booking System/
 * `POST /create-order/:bookingId` — Generates a Razorpay order invoice. (Student)
 * `POST /verify` — Validates signature parameters to complete reservations. (Student)
 
+### Notifications Module (`/api/notifications`)
+* `GET /` — Get user's notification history (paginated). (Authenticated)
+* `GET /unread-count` — Get count of unread notifications. (Authenticated)
+* `PATCH /read-all` — Mark all notifications of the user as read. (Authenticated)
+* `PATCH /:id` — Mark a specific notification as read. (Authenticated)
+* `DELETE /:id` — Delete a notification record. (Authenticated)
+
 ---
 
 ## Data Models
@@ -340,6 +365,23 @@ Auditorium Booking System/
 }
 ```
 
+### Notification Schema
+```javascript
+{
+  recipient: ObjectId,               // Reference to User (Required, Indexed)
+  sender: ObjectId,                  // Reference to User (Optional, e.g., admin or null)
+  type: String,                      // 'BOOKING_PENDING', 'BOOKING_APPROVED', 'BOOKING_CANCELLED', 'BOOKING_CONFIRMED', 'PAYMENT_REQUEST', 'PAYMENT_SUCCESS', 'SYSTEM'
+  title: String,                     // Required
+  message: String,                   // Required
+  isRead: Boolean,                   // Default: false (Indexed)
+  data: {
+    bookingId: ObjectId,             // Reference to Booking
+    paymentId: ObjectId              // Reference to Payment
+  },
+  createdAt: Date                    // Default: Date.now
+}
+```
+
 ---
 
 ## Security Features
@@ -347,9 +389,10 @@ Auditorium Booking System/
 1. **Password Safety**: Hashed using `bcryptjs` with a cost factor of 10.
 2. **Access Control**: Role-based access control (RBAC) checks on every endpoint, ensuring students cannot access admin control panels.
 3. **Session Cookies**: Access tokens and Refresh tokens are secured in HTTP-only cookies to avoid Cross-Site Scripting (XSS) extraction.
-4. **Rate Limiter**: Requests are capped on `/api/auth` endpoints to limit brute force logins.
-5. **Secure Headers**: Integrated `helmet` middleware to hide headers and prevent content injection attacks.
-6. **Input Validation**: Normalized time slot format checking and database integrity checks to prevent double booking.
+4. **WebSocket Security**: Socket.io middleware parses connection cookies to authorize WebSocket handshakes with JWT, preventing anonymous listener connections.
+5. **Rate Limiter**: Requests are capped on `/api/auth` endpoints to limit brute force logins.
+6. **Secure Headers**: Integrated `helmet` middleware to hide headers and prevent content injection attacks.
+7. **Input Validation**: Normalized time slot format checking and database integrity checks to prevent double booking.
 
 ---
 

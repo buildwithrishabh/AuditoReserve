@@ -1,9 +1,12 @@
 const mongoose = require("mongoose");
+const http = require("http");
+const { initSocket } = require("./config/socket");
 const app = require("./app");
 const connectDB = require("./config/db");
 const redisClient = require("./config/redis");
 const emailQueue = require("./queue/emailQueue");
 const bookingExpiryQueue = require("./queue/bookingExpiryQueue");
+
 
 // Connect to database
 connectDB();
@@ -14,9 +17,13 @@ const bookingExpiryWorker = require("./worker/bookingExpiryWorker");
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+const httpServer = http.createServer(app);
+
+initSocket(httpServer);
+
+const server = httpServer.listen(PORT , () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+})
 
 
 

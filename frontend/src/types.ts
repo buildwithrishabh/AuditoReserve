@@ -41,3 +41,27 @@ export type ApiErrorBody = {
   error?: string;
   success?: boolean;
 };
+
+export type NotificationType =
+  | "BOOKING_PENDING"
+  | "BOOKING_APPROVED"
+  | "BOOKING_CANCELLED"
+  | "BOOKING_CONFIRMED"
+  | "PAYMENT_REQUEST"
+  | "PAYMENT_SUCCESS"
+  | "SYSTEM";
+
+export type Notification = {
+  _id: string;
+  recipient: string;
+  sender?: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  data?: {
+    bookingId?: string;
+    paymentId?: string;
+  };
+  createdAt: string;
+};
