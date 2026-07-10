@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const cookie = require("cookie");
+const logger = require("./logger");
 
 let io;
 
@@ -14,7 +15,9 @@ const initSocket = (server) => {
         "",
       ),
       credentials: true,
-    },
+    }, 
+    pingInterval: 10000,
+    pingTimeout: 5000
   });
 
   io.use((socket, next) => {
@@ -31,14 +34,14 @@ const initSocket = (server) => {
       socket.userId = decoded.id; // Attaching user Id to socket;
       next();
     } catch (error) {
-      console.error("Socket authentication failed:", error);
+      logger.error("Socket authentication failed:", error);
       next(new Error("Authentication error: Invalid credentials"));
     }
   });
 
   io.on("connection", (socket) => {
     const userId = socket.userId;
-    console.log(`[socket] User connected: ${userId} (socket Id ${socket.id})`);
+    logger.info(`[socket] User connected: ${userId} (socket Id ${socket.id})`);
 
     if (!userSockets.has(userId)) {
       userSockets.set(userId, new Set());
@@ -46,7 +49,7 @@ const initSocket = (server) => {
     userSockets.get(userId).add(socket.id);
 
     socket.on("disconnect", () => {
-      console.log(
+      logger.info(
         `[Socket] User disconnected: ${userId} (Socket ID: ${socket.id})`,
       );
       const activeSockets = userSockets.get(userId);
@@ -67,7 +70,7 @@ const sendRealTimeNotification = (userId, notification) => {
     activeSockets.forEach((socketId) => {
       io.to(socketId).emit("notification", notification);
     });
-    console.log(`[Socket] Real-time notification sent to user ${userId}`)
+    logger.info(`[Socket] Real-time notification sent to user ${userId}`);
   }
 };
 

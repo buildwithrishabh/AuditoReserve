@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const http = require("http");
+const logger = require("./config/logger");
 const { initSocket } = require("./config/socket");
 const app = require("./app");
 const connectDB = require("./config/db");
@@ -22,7 +23,7 @@ const httpServer = http.createServer(app);
 initSocket(httpServer);
 
 const server = httpServer.listen(PORT , () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 })
 
 
@@ -30,54 +31,54 @@ const server = httpServer.listen(PORT , () => {
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {
-  console.log(`\n🛑 ${signal} received. Starting graceful shutdown...`);
+  logger.info(`${signal} received. Starting graceful shutdown...`);
 
   // Force exit after a timeout if cleanup takes too long (e.g. 10 seconds)
   const forceExitTimeout = setTimeout(() => {
-    console.error("☠ Forced shutdown: cleanup took too long.");
+    logger.error("Forced shutdown: cleanup took too long.");
     process.exit(1);
   }, 10000);
 
   server.close(async (err) => {
     if (err) {
-      console.error("Error closing HTTP server:", err);
+      logger.error("Error closing HTTP server:", err);
       clearTimeout(forceExitTimeout);
       process.exit(1);
     }
-    console.log("✔ HTTP server closed.");
+    logger.info("HTTP server closed.");
 
     try {
       // Close BullMQ workers (waits for active jobs to complete)
-      console.log("Closing BullMQ workers...");
+      logger.info("Closing BullMQ workers...");
       await Promise.all([
         emailWorker.close(),
         bookingExpiryWorker.close()
       ]);
-      console.log("✔ BullMQ workers closed.");
+      logger.info("BullMQ workers closed.");
 
       // Close BullMQ Queues
-      console.log("Closing BullMQ queues...");
+      logger.info("Closing BullMQ queues...");
       await Promise.all([
         emailQueue.close(),
         bookingExpiryQueue.close()
       ]);
-      console.log("✔ BullMQ queues closed.");
+      logger.info("BullMQ queues closed.");
 
       // Close standalone Redis client
-      console.log("Closing Redis connection...");
+      logger.info("Closing Redis connection...");
       await redisClient.quit();
-      console.log("✔ Redis connection closed.");
+      logger.info("Redis connection closed.");
 
       // Close MongoDB connection
-      console.log("Closing MongoDB connection...");
+      logger.info("Closing MongoDB connection...");
       await mongoose.connection.close();
-      console.log("✔ MongoDB connection closed.");
+      logger.info("MongoDB connection closed.");
 
       clearTimeout(forceExitTimeout);
-      console.log("👋 Graceful shutdown complete. Exiting.");
+      logger.info("Graceful shutdown complete. Exiting.");
       process.exit(0);
     } catch (error) {
-      console.error("❌ Error during graceful shutdown:", error);
+      logger.error("Error during graceful shutdown:", error);
       clearTimeout(forceExitTimeout);
       process.exit(1);
     }

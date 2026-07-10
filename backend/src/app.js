@@ -9,6 +9,8 @@ const rateLimit = require("express-rate-limit");
 // Load env vars
 dotenv.config();
 
+const logger = require("./config/logger");
+
 const app = express();
 
 // Trust proxy (required behind reverse proxies like nginx, Cloudflare, etc.)
@@ -42,9 +44,9 @@ app.use(express.json({limit: "10mb"}));
 app.use(cookieParser());
 
 if (process.env.NODE_ENV === "production") {
-  app.use(morgan("combined"));
+  app.use(morgan("combined", { stream: logger.stream }));
 } else {
-  app.use(morgan("dev"));
+  app.use(morgan("dev", { stream: logger.stream }));
 }
 
 // Health check endpoint
@@ -67,7 +69,7 @@ app.use("/api/notifications" , notificationRouter);
 
 // Global error handler (does not leak error details in production)
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
+  logger.error("Unhandled error:", err);
 
   // Catch Multer limit / field errors
   if (err.code === "LIMIT_FILE_SIZE") {
