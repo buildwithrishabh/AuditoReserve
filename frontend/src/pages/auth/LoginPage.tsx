@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
@@ -33,14 +33,14 @@ export function LoginPage() {
   const {
     register: field,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: registeredEmail || "" },
   });
 
-  const emailVal = watch("email");
+  const emailVal = useWatch({ control, name: "email" });
 
   async function handleResend() {
     const emailToResend = emailVal || registeredEmail;

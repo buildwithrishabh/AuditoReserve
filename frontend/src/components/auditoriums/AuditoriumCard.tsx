@@ -13,7 +13,7 @@ export function ImageFrame({ src, alt, large }: ImageFrameProps) {
   return (
     <div className={`image-frame ${large ? "large" : ""}`}>
       {src ? (
-        <img src={src} alt={alt} loading="lazy" />
+        <img src={src} alt={alt} loading="lazy" decoding="async" />
       ) : (
         <span style={{ fontSize: large ? "24px" : "14px" }}>
           {alt.slice(0, 2).toUpperCase()}

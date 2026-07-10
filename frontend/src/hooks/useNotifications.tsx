@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./useToast";
@@ -31,7 +40,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Helper to fetch history & unread counts
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!isAuthenticated) return;
     setIsLoading(true);
     try {
@@ -44,9 +53,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = useCallback(async (id: string) => {
     try {
       await apiMarkAsRead(id);
       setNotifications((prev) =>
@@ -56,9 +65,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await apiMarkAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -66,9 +75,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Failed to mark all as read:", err);
     }
-  };
+  }, []);
 
-  const deleteNotification = async (id: string) => {
+  const deleteNotification = useCallback(async (id: string) => {
     try {
       const target = notifications.find((n) => n._id === id);
       await apiDeleteNotification(id);
@@ -79,19 +88,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Failed to delete notification:", err);
     }
-  };
+  }, [notifications]);
 
   // Fetch initial logs on login
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchHistory();
-    } else {
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-  }, [isAuthenticated]);
+    let cancelled = false;
 
-  // WebSocket Live Updates Setup
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+
+      if (isAuthenticated) {
+        void fetchHistory();
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [fetchHistory, isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
@@ -99,14 +118,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const socketBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:5000/api")
       .replace(/\/api$/, "");
 
-    console.log(`[Socket] Connecting to server at ${socketBaseUrl}`);
     const socket: Socket = io(socketBaseUrl, {
       withCredentials: true,
-      transports: ["websocket", "polling"],
-    });
-
-    socket.on("connect", () => {
-      console.log("[Socket] Connected successfully with ID:", socket.id);
+      transports: ["polling", "websocket"],
     });
 
     socket.on("connect_error", (err) => {
@@ -115,7 +129,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // Handle incoming real-time notifications
     socket.on("notification", (newNotification: Notification) => {
-      console.log("[Socket] Live notification received:", newNotification);
       setNotifications((prev) => [newNotification, ...prev.slice(0, 9)]); // keep latest 10
       setUnreadCount((c) => c + 1);
 
@@ -124,23 +137,33 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      console.log("[Socket] Disconnecting socket client");
       socket.disconnect();
     };
   }, [isAuthenticated, user, showToast]);
 
+  const contextValue = useMemo(
+    () => ({
+      notifications,
+      unreadCount,
+      isLoading,
+      markAsRead,
+      markAllAsRead,
+      deleteNotification,
+      fetchHistory,
+    }),
+    [
+      deleteNotification,
+      fetchHistory,
+      isLoading,
+      markAllAsRead,
+      markAsRead,
+      notifications,
+      unreadCount,
+    ],
+  );
+
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        isLoading,
-        markAsRead,
-        markAllAsRead,
-        deleteNotification,
-        fetchHistory,
-      }}
-    >
+    <NotificationContext.Provider value={contextValue}>
       {children}
     </NotificationContext.Provider>
   );

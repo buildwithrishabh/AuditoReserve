@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
@@ -87,12 +87,14 @@ export function NewBookingPage() {
   const {
     register: field,
     handleSubmit,
+    control,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
   });
+  const startTime = useWatch({ control, name: "startTime" });
+  const endTime = useWatch({ control, name: "endTime" });
 
   async function onSubmit(values: BookingFormValues) {
     setServerError("");
@@ -163,13 +165,13 @@ export function NewBookingPage() {
         <motion.div variants={cardItem} className="form-row">
           <TimePicker
             label="Start Time"
-            value={watch("startTime")}
+            value={startTime}
             onChange={(v) => setValue("startTime", v, { shouldValidate: true })}
             error={errors.startTime?.message}
           />
           <TimePicker
             label="End Time"
-            value={watch("endTime")}
+            value={endTime}
             onChange={(v) => setValue("endTime", v, { shouldValidate: true })}
             error={errors.endTime?.message}
           />

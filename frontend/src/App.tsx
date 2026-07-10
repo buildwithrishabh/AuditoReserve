@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,21 +12,21 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { ProtectedRoute, RoleRoute } from "./components/layout/ProtectedRoute";
 
 // Pages
-import { HomePage } from "./pages/public/HomePage";
-import { CatalogPage } from "./pages/public/CatalogPage";
-import { AuditoriumDetailPage } from "./pages/public/AuditoriumDetailPage";
-import { LoginPage } from "./pages/auth/LoginPage";
-import { RegisterPage } from "./pages/auth/RegisterPage";
-import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
-import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
-import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
-import { StudentBookingsPage } from "./pages/student/StudentBookingsPage";
-import { NewBookingPage } from "./pages/student/NewBookingPage";
-import { AccountPage } from "./pages/student/AccountPage";
-import { AdminDashboard } from "./pages/admin/AdminDashboard";
-import { AdminAuditoriumsPage } from "./pages/admin/AdminAuditoriumsPage";
-import { AuditoriumFormPage } from "./pages/admin/AuditoriumFormPage";
-import { AdminBookingsPage } from "./pages/admin/AdminBookingsPage";
+const HomePage = lazy(() => import("./pages/public/HomePage"));
+const CatalogPage = lazy(() => import("./pages/public/CatalogPage"));
+const AuditoriumDetailPage = lazy(() => import("./pages/public/AuditoriumDetailPage"));
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("./pages/auth/VerifyEmailPage"));
+const StudentBookingsPage = lazy(() => import("./pages/student/StudentBookingsPage"));
+const NewBookingPage = lazy(() => import("./pages/student/NewBookingPage"));
+const AccountPage = lazy(() => import("./pages/student/AccountPage"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAuditoriumsPage = lazy(() => import("./pages/admin/AdminAuditoriumsPage"));
+const AuditoriumFormPage = lazy(() => import("./pages/admin/AuditoriumFormPage"));
+const AdminBookingsPage = lazy(() => import("./pages/admin/AdminBookingsPage"));
 
 // Styles
 import "./App.css";
@@ -38,6 +39,15 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function RouteFallback() {
+  return (
+    <div className="full-state route-fallback" role="status" aria-live="polite">
+      <div className="route-loader" />
+      <p>Loading page...</p>
+    </div>
+  );
+}
 
 function NotFoundPage() {
   return (
@@ -81,67 +91,69 @@ function App() {
         <ToastProvider>
           <NotificationProvider>
             <BrowserRouter>
-            <Routes>
-              {/* Public & Student Routes */}
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/about" element={<Navigate to="/#about" replace />} />
-                <Route path="/auditoriums" element={<CatalogPage />} />
-                <Route path="/auditoriums/:id" element={<AuditoriumDetailPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                
-                {/* Protected Student Routes */}
-                <Route
-                  path="/bookings"
-                  element={
-                    <RoleRoute role="student">
-                      <StudentBookingsPage />
-                    </RoleRoute>
-                  }
-                />
-                <Route
-                  path="/bookings/new/:auditoriumId"
-                  element={
-                    <RoleRoute role="student">
-                      <NewBookingPage />
-                    </RoleRoute>
-                  }
-                />
-                
-                {/* Generic Protected Route */}
-                <Route
-                  path="/account"
-                  element={
-                    <ProtectedRoute>
-                      <AccountPage />
-                    </ProtectedRoute>
-                  }
-                />
-              </Route>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  {/* Public & Student Routes */}
+                  <Route element={<AppLayout />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/about" element={<Navigate to="/#about" replace />} />
+                    <Route path="/auditoriums" element={<CatalogPage />} />
+                    <Route path="/auditoriums/:id" element={<AuditoriumDetailPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
+                    
+                    {/* Protected Student Routes */}
+                    <Route
+                      path="/bookings"
+                      element={
+                        <RoleRoute role="student">
+                          <StudentBookingsPage />
+                        </RoleRoute>
+                      }
+                    />
+                    <Route
+                      path="/bookings/new/:auditoriumId"
+                      element={
+                        <RoleRoute role="student">
+                          <NewBookingPage />
+                        </RoleRoute>
+                      }
+                    />
+                    
+                    {/* Generic Protected Route */}
+                    <Route
+                      path="/account"
+                      element={
+                        <ProtectedRoute>
+                          <AccountPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
 
-              {/* Protected Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <RoleRoute role="admin">
-                    <AdminLayout />
-                  </RoleRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="auditoriums" element={<AdminAuditoriumsPage />} />
-                <Route path="auditoriums/new" element={<AuditoriumFormPage mode="create" />} />
-                <Route path="auditoriums/:id/edit" element={<AuditoriumFormPage mode="edit" />} />
-                <Route path="bookings" element={<AdminBookingsPage />} />
-              </Route>
+                  {/* Protected Admin Routes */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <RoleRoute role="admin">
+                        <AdminLayout />
+                      </RoleRoute>
+                    }
+                  >
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="auditoriums" element={<AdminAuditoriumsPage />} />
+                    <Route path="auditoriums/new" element={<AuditoriumFormPage mode="create" />} />
+                    <Route path="auditoriums/:id/edit" element={<AuditoriumFormPage mode="edit" />} />
+                    <Route path="bookings" element={<AdminBookingsPage />} />
+                  </Route>
 
-              {/* 404 Route */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+                  {/* 404 Route */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </NotificationProvider>
         </ToastProvider>

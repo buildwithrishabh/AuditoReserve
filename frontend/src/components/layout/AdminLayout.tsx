@@ -13,7 +13,11 @@ export function AdminLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
-    setIsMenuOpen(false);
+    const timer = window.setTimeout(() => {
+      setIsMenuOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [location.pathname]);
 
   const handleLogout = async () => {

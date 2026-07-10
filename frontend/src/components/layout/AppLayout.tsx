@@ -32,7 +32,11 @@ export function AppLayout() {
   }, [location.hash, location.pathname]);
 
   useEffect(() => {
-    setMenuOpen(false);
+    const timer = window.setTimeout(() => {
+      setMenuOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [location.pathname, location.hash]);
 
   const handleLogout = async () => {
