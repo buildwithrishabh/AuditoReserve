@@ -10,6 +10,7 @@ import { getSingleAuditorium } from "../../api/auditoriums";
 import { createBooking } from "../../api/bookings";
 import { useToast } from "../../hooks/useToast";
 import { getErrorMessage } from "../../api/client";
+import { AuditoriumCard } from "../../components/auditoriums/AuditoriumCard";
 import { TextField, FormError } from "../../components/common/FormControls";
 import { TimePicker } from "../../components/common/TimePicker";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -156,38 +157,7 @@ export function NewBookingPage() {
           </p>
         </div>
         
-        {/* Custom Mini Horizontal Auditorium Card */}
-        <motion.div 
-          variants={fadeIn} 
-          className="panel" 
-          style={{ 
-            padding: "16px", 
-            display: "flex", 
-            gap: "16px", 
-            alignItems: "center", 
-            marginTop: "24px" 
-          }}
-        >
-          <div style={{ width: "100px", height: "70px", borderRadius: "var(--radius-md)", overflow: "hidden", flexShrink: 0 }}>
-            <img 
-              src={auditorium.images?.[0] || ""} 
-              alt={auditorium.name} 
-              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: "18px", margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {auditorium.name}
-            </h2>
-            <p className="line-clamp-2" style={{ color: "var(--text-muted)", fontSize: "12px", margin: "0 0 6px", lineHeight: "1.4" }}>
-              {auditorium.description}
-            </p>
-            <div style={{ display: "flex", gap: "12px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
-              <span>👥 {auditorium.capacity} seats</span>
-              <span style={{ color: "var(--accent)" }}>₹{auditorium.basePrice}/hr</span>
-            </div>
-          </div>
-        </motion.div>
+        <AuditoriumCard auditorium={auditorium} hideActions />
       </motion.div>
 
       <motion.form

@@ -91,7 +91,7 @@ export function CalendarView({
             title="Previous Month"
             aria-label="Previous Month"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={compact ? 14 : 18} />
           </button>
           <span style={{ fontWeight: 700, minWidth: "120px", textAlign: "center", fontSize: "14px" }}>
             {format(currentMonth, "MMMM yyyy")}
@@ -103,7 +103,7 @@ export function CalendarView({
             title="Next Month"
             aria-label="Next Month"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={compact ? 14 : 18} />
           </button>
         </div>
       </div>

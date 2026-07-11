@@ -3168,6 +3168,14 @@ td {
   font-size: 14px;
 }
 
+.calendar-card.compact .icon-button {
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+
 .calendar-card.compact .calendar-grid-weekdays {
   margin-bottom: 8px;
 }
