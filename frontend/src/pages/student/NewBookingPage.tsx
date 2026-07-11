@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
@@ -9,7 +10,6 @@ import { getSingleAuditorium } from "../../api/auditoriums";
 import { createBooking } from "../../api/bookings";
 import { useToast } from "../../hooks/useToast";
 import { getErrorMessage } from "../../api/client";
-import { AuditoriumCard } from "../../components/auditoriums/AuditoriumCard";
 import { TextField, FormError } from "../../components/common/FormControls";
 import { TimePicker } from "../../components/common/TimePicker";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -96,6 +96,15 @@ export function NewBookingPage() {
   });
   const startTime = useWatch({ control, name: "startTime" });
   const endTime = useWatch({ control, name: "endTime" });
+  const bookingDate = useWatch({ control, name: "bookingDate" });
+
+  const parseLocalDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const [year, month, day] = dateStr.split("-").map(Number);
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+  const selectedDateVal = parseLocalDate(bookingDate);
 
   async function onSubmit(values: BookingFormValues) {
     setServerError("");
@@ -146,9 +155,38 @@ export function NewBookingPage() {
             review the request.
           </p>
         </div>
-        <AuditoriumCard auditorium={auditorium} hideActions />
-        <motion.div style={{ marginTop: "32px" }} variants={fadeIn}>
-          <CalendarView auditoriumId={auditorium._id} />
+        
+        {/* Custom Mini Horizontal Auditorium Card */}
+        <motion.div 
+          variants={fadeIn} 
+          className="panel" 
+          style={{ 
+            padding: "16px", 
+            display: "flex", 
+            gap: "16px", 
+            alignItems: "center", 
+            marginTop: "24px" 
+          }}
+        >
+          <div style={{ width: "100px", height: "70px", borderRadius: "var(--radius-md)", overflow: "hidden", flexShrink: 0 }}>
+            <img 
+              src={auditorium.images?.[0] || ""} 
+              alt={auditorium.name} 
+              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: "18px", margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {auditorium.name}
+            </h2>
+            <p className="line-clamp-2" style={{ color: "var(--text-muted)", fontSize: "12px", margin: "0 0 6px", lineHeight: "1.4" }}>
+              {auditorium.description}
+            </p>
+            <div style={{ display: "flex", gap: "12px", fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
+              <span>👥 {auditorium.capacity} seats</span>
+              <span style={{ color: "var(--accent)" }}>₹{auditorium.basePrice}/hr</span>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
 
@@ -157,6 +195,21 @@ export function NewBookingPage() {
         variants={slideLeft}
         onSubmit={(e) => void handleSubmit(onSubmit)(e)}
       >
+        {/* Synced Compact Calendar at the top of the form */}
+        <motion.div variants={cardItem} style={{ marginBottom: "20px" }}>
+          <label className="field">
+            <span style={{ marginBottom: "8px", display: "block" }}>Select Date & Check Availability</span>
+            <CalendarView 
+              auditoriumId={auditoriumId} 
+              compact={true}
+              selectedDate={selectedDateVal}
+              onDateSelect={(date) => {
+                setValue("bookingDate", format(date, "yyyy-MM-dd"), { shouldValidate: true });
+              }}
+            />
+          </label>
+        </motion.div>
+
         <motion.div variants={cardItem}>
           <TextField
             label="Booking Date"

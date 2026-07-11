@@ -10,6 +10,7 @@ import {
 } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
+import { useToast } from "./useToast";
 import {
   getNotifications,
   getUnreadCount,
@@ -33,6 +34,7 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, token } = useAuth();
+  const { showToast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,12 +134,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     socket.on("notification", (newNotification: Notification) => {
       setNotifications((prev) => [newNotification, ...prev.slice(0, 9)]); // keep latest 10
       setUnreadCount((c) => c + 1);
+
+      // Trigger user-facing floating toast alert
+      showToast(newNotification.message, "info");
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [isAuthenticated, user, token]);
+  }, [isAuthenticated, user, token, showToast]);
 
   const contextValue = useMemo(
     () => ({

@@ -3150,3 +3150,82 @@ td {
   min-height: 34px;
   font-size: 12.5px;
 }
+
+/* ===== Compact Calendar Overrides ===== */
+.calendar-card.compact {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.calendar-card.compact .calendar-header {
+  margin-bottom: 12px;
+}
+
+.calendar-card.compact .calendar-header h3 {
+  font-size: 14px;
+}
+
+.calendar-card.compact .calendar-grid-weekdays {
+  margin-bottom: 8px;
+}
+
+.calendar-card.compact .calendar-grid-weekdays div {
+  font-size: 11px !important;
+}
+
+.calendar-card.compact .calendar-day-btn {
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.calendar-card.compact .calendar-day-btn span {
+  font-size: 12px !important;
+}
+
+.calendar-card.compact .booking-indicator {
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+}
+
+.calendar-card.compact .timeline-panel {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+}
+
+.calendar-card.compact .timeline-panel h4 {
+  font-size: 13px;
+}
+
+.calendar-card.compact .timeline-booking-item {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.calendar-card.compact .timeline-booking-time {
+  font-size: 12px;
+}
+
+.calendar-card.compact .timeline-booking-purpose {
+  font-size: 11px;
+}
+
+.calendar-card.compact .timeline-empty-state {
+  padding: 16px 12px;
+}
+
+.calendar-card.compact .timeline-empty-text {
+  font-size: 12px;
+}
+
+.calendar-card.compact .timeline-empty-subtext {
+  font-size: 10px;
+}
+
+.calendar-card.compact .calendar-loader-container {
+  min-height: 120px;
+}

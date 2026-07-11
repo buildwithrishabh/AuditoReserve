@@ -16,13 +16,31 @@ import type { Booking } from "../../types";
 
 type CalendarViewProps = {
   auditoriumId: string;
+  compact?: boolean;
+  selectedDate?: Date | null;
+  onDateSelect?: (date: Date) => void;
 };
 
-export function CalendarView({ auditoriumId }: CalendarViewProps) {
+export function CalendarView({ 
+  auditoriumId, 
+  compact = false, 
+  selectedDate: selectedDateProp, 
+  onDateSelect 
+}: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sync selected date from parent
+  useEffect(() => {
+    if (selectedDateProp !== undefined) {
+      setSelectedDate(selectedDateProp);
+      if (selectedDateProp) {
+        setCurrentMonth(selectedDateProp);
+      }
+    }
+  }, [selectedDateProp]);
 
   // Fetch bookings whenever month or auditorium changes
   useEffect(() => {
@@ -53,8 +71,15 @@ export function CalendarView({ auditoriumId }: CalendarViewProps) {
 
   const selectedDayBookings = selectedDate ? getBookingsForDay(selectedDate) : [];
 
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    if (onDateSelect) {
+      onDateSelect(date);
+    }
+  };
+
   return (
-    <div className="calendar-card">
+    <div className={`calendar-card ${compact ? "compact" : ""}`}>
       {/* Month Selector Header */}
       <div className="calendar-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3>Availability Calendar</h3>
@@ -111,7 +136,7 @@ export function CalendarView({ auditoriumId }: CalendarViewProps) {
               <button
                 key={day.toString()}
                 type="button"
-                onClick={() => setSelectedDate(day)}
+                onClick={() => handleDateClick(day)}
                 className={`calendar-day-btn ${isSelected ? "selected" : ""} ${hasBookings ? "has-bookings" : ""}`}
               >
                 <span style={{ fontSize: "14px", fontWeight: 600 }}>{format(day, "d")}</span>
