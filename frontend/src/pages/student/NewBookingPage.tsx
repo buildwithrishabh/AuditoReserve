@@ -14,6 +14,7 @@ import { TextField, FormError } from "../../components/common/FormControls";
 import { TimePicker } from "../../components/common/TimePicker";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState } from "../../components/common/ErrorState";
+import { CalendarView } from "../../components/bookings/CalendarView";
 import { fadeIn, slideLeft, slideRight, staggerContainerFast, cardItem } from "../../lib/animations";
 
 const bookingSchema = z
@@ -146,6 +147,9 @@ export function NewBookingPage() {
           </p>
         </div>
         <AuditoriumCard auditorium={auditorium} hideActions />
+        <motion.div style={{ marginTop: "32px" }} variants={fadeIn}>
+          <CalendarView auditoriumId={auditorium._id} />
+        </motion.div>
       </motion.div>
 
       <motion.form

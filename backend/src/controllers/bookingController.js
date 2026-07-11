@@ -487,3 +487,52 @@ exports.cancelBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+
+
+// ===============================
+// Get Bookings for Calendar
+// ===============================
+exports.getCalendarBooking = async (req, res, next) => {
+  try {
+    const { auditoriumId, month } = req.query;
+
+    if (!auditoriumId || !month) {
+      return res.status(400).json({
+        success: false,
+        message: "Auuditorium ID and month (YYY-MM) are required",
+      });
+    }
+
+    const startDate = new Date(`${month}-01T00:00:00.000Z`);
+    const endDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      999,
+    );
+
+    const bookings = await Booking.find({
+      auditorium: auditoriumId,
+      status: { $in: ["approved", "confirmed"] },
+      bookingDate: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    })
+      .select("bookingDate startTime endTime purpose status")
+      .sort({ startTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: bookings.length,
+      bookings,
+    });
+
+
+  } catch (error) {
+    next(error);
+  }
+};

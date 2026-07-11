@@ -8,6 +8,7 @@ const {
   getAllBookings,
   updateBookingStatus,
   cancelBooking,
+  getCalendarBooking,
 } = require("../controllers/bookingController");
 
 const { protect, authorizeRole, isverified } = require("../middlewares/authMiddleware");
@@ -15,6 +16,9 @@ const { protect, authorizeRole, isverified } = require("../middlewares/authMiddl
 // ======================================
 // Student Routes
 // ======================================
+
+// Get Calendar Bookings (for availability checks)
+router.get("/calendar", protect, isverified, getCalendarBooking);
 
 // Create Booking
 router.post("/createBooking", protect, isverified, authorizeRole("student"), createBooking);

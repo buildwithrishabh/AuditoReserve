@@ -158,6 +158,7 @@ export function StudentBookingsPage() {
                       : undefined
                   }
                   isSubmittingAction={cancelMutation.isPending}
+                  showSyncActions={true}
                 />
               </motion.div>
             );

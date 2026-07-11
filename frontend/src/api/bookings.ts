@@ -42,3 +42,13 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
   });
   return data;
 }
+
+export async function getCalendarBookings(auditoriumId: string, month: string) {
+  const { data } = await api.get<{ success: boolean; count: number; bookings: Booking[] }>(
+    "/bookings/calendar",
+    {
+      params: { auditoriumId, month },
+    }
+  );
+  return data.bookings;
+}
