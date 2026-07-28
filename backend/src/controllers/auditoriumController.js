@@ -1,6 +1,8 @@
 const Auditorium = require("../models/auditorium");
 const { getOrSetCache, delPattern, del } = require("../utils/cache");
-const { deleteMultipleImagesFromCloudinary } = require("../utils/cloudinaryHelper");
+const {
+  deleteMultipleImagesFromCloudinary,
+} = require("../utils/cloudinaryHelper");
 
 // ========================================
 // CREATE AUDITORIUM
