@@ -8,7 +8,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { ImageFrame } from "../../components/auditoriums/AuditoriumCard";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState } from "../../components/common/ErrorState";
-import { CalendarView } from "../../components/bookings/CalendarView";
 import { slideLeft, slideRight, staggerContainerFast, cardItem, fadeIn } from "../../lib/animations";
 
 export function AuditoriumDetailPage() {
@@ -90,13 +89,6 @@ export function AuditoriumDetailPage() {
               ))}
             </motion.div>
           )}
-          
-          <motion.div 
-            style={{ marginTop: "32px" }}
-            variants={fadeIn}
-          >
-            <CalendarView auditoriumId={auditorium._id} />
-          </motion.div>
         </motion.div>
         
         <motion.aside

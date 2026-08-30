@@ -363,24 +363,15 @@ exports.updateBookingStatus = async (req, res, next) => {
       approvedAt.getTime() + 12 * 60 * 60 * 1000,
     ); // 12 hours in milliseconds
 
-    const receipt = `bk_${booking._id.toString().slice(-16)}_${Date.now()}`;
-
-    const razorpayOrder = await razorpayClient.orders.create(
-      {
-        amount: booking.totalPrice * 100, // Razorpay accepts amount in paise
-        currency: "INR",
-        receipt,
-        notes: {
-          bookingId: booking._id.toString(),
-          userId: booking.user.toString(),
-        },
+    const razorpayOrder = await razorpayClient.orders.create({
+      amount: booking.totalPrice * 100, // Razorpay accepts amount in paise
+      currency: "INR",
+      receipt,
+      notes: {
+        bookingId: booking._id.toString(),
+        userId: booking.user.toString(),
       },
-      {
-        headers: {
-          "x-idempotency-key": `order_init_${booking._id.toString()}`,
-        },
-      },
-    );
+    });
 
     const payment = await Payment.create({
       user: booking.user,

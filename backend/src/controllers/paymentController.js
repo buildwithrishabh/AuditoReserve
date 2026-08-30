@@ -61,10 +61,6 @@ exports.createPaymentOrder = async (req, res, next) => {
           bookingId: booking._id.toString(),
           userId: req.user.id,
         },
-      } , {
-        headers: {
-          "x-idempotency-key": `order_init_${booking._id.toString()}`,
-        }
       });
 
       payment = await Payment.create({
