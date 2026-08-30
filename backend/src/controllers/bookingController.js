@@ -364,15 +364,22 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     const receipt = `bk_${booking._id.toString().slice(-16)}_${Date.now()}`;
 
-    const razorpayOrder = await razorpayClient.orders.create({
-      amount: booking.totalPrice * 100, // Razorpay accepts amount in paise
-      currency: "INR",
-      receipt,
-      notes: {
-        bookingId: booking._id.toString(),
-        userId: booking.user.toString(),
+    const razorpayOrder = await razorpayClient.orders.create(
+      {
+        amount: booking.totalPrice * 100, // Razorpay accepts amount in paise
+        currency: "INR",
+        receipt,
+        notes: {
+          bookingId: booking._id.toString(),
+          userId: booking.user.toString(),
+        },
       },
-    });
+      {
+        headers: {
+          "x-idempotency-key": `order_init_${booking._id.toString()}`,
+        },
+      },
+    );
 
     const payment = await Payment.create({
       user: booking.user,
@@ -397,7 +404,10 @@ exports.updateBookingStatus = async (req, res, next) => {
     await bookingExpiryQueue.add(
       `expire_${booking._id}`,
       { bookingId: booking._id },
-      { delay: delayMs },
+      {
+        delay: delayMs,
+        jobId: `booking_expire_${booking._id}`,
+      },
     );
 
     try {
@@ -488,8 +498,6 @@ exports.cancelBooking = async (req, res, next) => {
   }
 };
 
-
-
 // ===============================
 // Get Bookings for Calendar
 // ===============================
@@ -530,8 +538,6 @@ exports.getCalendarBooking = async (req, res, next) => {
       count: bookings.length,
       bookings,
     });
-
-
   } catch (error) {
     next(error);
   }

@@ -23,6 +23,7 @@
 
 ## 📌 Table of Contents
 
+- [📚 In-Depth Feature Guides](./docs/features/README.md)
 - [✨ Key Features](#-key-features)
   - [👤 Student Experience](#-student-experience)
   - [🔑 Admin Management](#-admin-management)

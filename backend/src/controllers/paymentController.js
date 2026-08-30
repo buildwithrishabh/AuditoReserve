@@ -3,6 +3,7 @@ const Booking = require("../models/booking");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
 const { createNotification } = require("../service/notificationService");
+const bookingExpiryQueue = require("../queue/bookingExpiryQueue");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -59,6 +60,10 @@ exports.createPaymentOrder = async (req, res, next) => {
           bookingId: booking._id.toString(),
           userId: req.user.id,
         },
+      } , {
+        headers: {
+          "x-idempotency-key": `order_init_${booking._id.toString()}`,
+        }
       });
 
       payment = await Payment.create({
@@ -115,7 +120,21 @@ exports.verifyPayment = async (req, res, next) => {
         message: "You are not allowed to verify this payment",
       });
     }
-    if (booking.status !== "approved") {
+    
+    // Idempotency check: if already confirmed and paid, return success directly
+    if (booking.status === "confirmed"){
+      const existingPayment = await Payment.findById(booking.paymentId);
+      if (existingPayment && existingPayment.status === "paid"){
+        return res.status(200).json({
+          success: true,
+          message: "Payment verified successfully (idempotent retry).",
+          booking,
+          payment: existingPayment,
+        })
+      }
+    }
+
+    if (booking.status !== "approved"){
       return res.status(400).json({
         success: false,
         message: "This booking is not awaiting payment",
@@ -164,6 +183,18 @@ exports.verifyPayment = async (req, res, next) => {
     booking.status = "confirmed";
     booking.paymentId = payment._id;
     await booking.save();
+
+    // successfull payment -> remove the schedule job from the queue
+    try {
+      const jobId = `booking_expire_${booking._id}`;
+      const job = await bookingExpiryQueue.getJob(jobId);
+      if (job) {
+        await job.remove();
+        console.log(`[Payment] Expiry Job ${jobId} successfully removed from queue`);
+      }
+    } catch (queueError) {
+      console.error(`[Payment] Failed to remove expiry job : ${queueError.message}`);
+    }
 
     await createNotification({
       recipient: booking.user,
