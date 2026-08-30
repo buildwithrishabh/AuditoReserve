@@ -3,6 +3,7 @@ const Auditorium = require("../models/auditorium");
 const User = require("../models/User");
 const { createNotification } = require("../service/notificationService");
 const emailQueue = require("../queue/emailQueue");
+const logger = require("../config/logger");
 
 const {
   bookingUpdatedEmail,
@@ -212,7 +213,7 @@ exports.createBooking = async (req, res, next) => {
     });
   } catch (error) {
     // Log the error and hand over to the global error middleware
-    console.log(error);
+    logger.error("Error creating booking:", error);
     next(error);
   }
 };
@@ -234,7 +235,7 @@ exports.getUserBookings = async (req, res, next) => {
       bookings,
     });
   } catch (error) {
-    console.log(error);
+    logger.error("Error fetching user bookings:", error);
     next(error);
   }
 };
@@ -255,7 +256,7 @@ exports.getAllBookings = async (req, res, next) => {
       bookings,
     });
   } catch (error) {
-    console.log(error);
+    logger.error("Error fetching all bookings for admin:", error);
     next(error);
   }
 };
@@ -321,7 +322,7 @@ exports.updateBookingStatus = async (req, res, next) => {
           data: { bookingId: booking._id },
         });
       } catch (error) {
-        console.log("Email sending failed:", error.message);
+        logger.error("Email sending failed for cancellation:", error);
       }
 
       return res.status(200).json({
@@ -423,7 +424,7 @@ exports.updateBookingStatus = async (req, res, next) => {
 
       await emailQueue.add("payment-request-email", { options: emailData });
     } catch (error) {
-      console.log("Email sending failed:", error.message);
+      logger.error("Email sending failed for payment request:", error);
     }
 
     await createNotification({
@@ -440,7 +441,7 @@ exports.updateBookingStatus = async (req, res, next) => {
       booking,
     });
   } catch (error) {
-    console.log(error);
+    logger.error("Error updating booking status:", error);
     next(error);
   }
 };
@@ -493,7 +494,7 @@ exports.cancelBooking = async (req, res, next) => {
       booking,
     });
   } catch (error) {
-    console.log(error);
+    logger.error("Error cancelling booking:", error);
     next(error);
   }
 };
@@ -508,7 +509,7 @@ exports.getCalendarBooking = async (req, res, next) => {
     if (!auditoriumId || !month) {
       return res.status(400).json({
         success: false,
-        message: "Auuditorium ID and month (YYY-MM) are required",
+        message: "Auditorium ID and month (YYY-MM) are required",
       });
     }
 

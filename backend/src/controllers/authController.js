@@ -2,6 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const logger = require("../config/logger");
 
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const { hashToken } = require("../utils/jwt");
@@ -72,7 +73,7 @@ exports.register = async (req, res, next) => {
       const mailOptions = await generateVerificationEmail(user, verificationToken);
       await emailQueue.add("send-verification-email", { options: mailOptions });
     } catch (error) {
-      console.log("Email sending failed", error.message);
+      logger.error("Email sending failed:", error);
     }
 
     res.status(201).json({
@@ -354,7 +355,7 @@ exports.forgetPass = async (req, res, next) => {
       const mailOptions = await generateResetPasswordEmail(user, resetToken);
       await emailQueue.add("send-reset-password-email" , {options: mailOptions})
     } catch (error) {
-      console.log("Email sending failed", error.message);
+      logger.error("Email sending failed:", error);
     }
 
     res.status(200).json({
@@ -460,7 +461,7 @@ exports.resendVerificationEmail = async (req, res, next) => {
       );
       await emailQueue.add("send-verification-email" , {options: mailOptions})
     } catch (error) {
-      console.log("Email sending failed", error.message);
+      logger.error("Email sending failed:", error);
       return res.status(500).json({
         success: false,
         message: "Failed to send verification email. Please try again.",

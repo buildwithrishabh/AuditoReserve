@@ -1,5 +1,6 @@
 const { Queue } = require("bullmq");
 const queueconnection = require("../config/queueConnection");
+const logger = require("../config/logger");
 
 const emailQueue = new Queue("email-queue" , {
     connection: queueconnection,
@@ -14,7 +15,7 @@ const emailQueue = new Queue("email-queue" , {
 });
 
 emailQueue.on("error" , (err)=> {
-    console.error("BullMQ email queue error:" , err);
+    logger.error("BullMQ email queue error:", err);
 })
 
 

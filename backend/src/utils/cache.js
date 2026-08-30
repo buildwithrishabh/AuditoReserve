@@ -1,4 +1,5 @@
 const redisClient = require("../config/redis");
+const logger = require("../config/logger");
 
 exports.getOrSetCache = async (key, callback, ttl = 300) => {
   try {
@@ -11,7 +12,7 @@ exports.getOrSetCache = async (key, callback, ttl = 300) => {
 
     return freshData;
   } catch (error) {
-    console.log("Redis Error:", error.message);
+    logger.error("Redis Error:", error);
     return callback();
   }
 };
@@ -29,7 +30,7 @@ exports.delPattern = async (pattern) => {
         try {
           await redisClient.del(...keys);
         } catch (err) {
-          console.log("Redis Delete Error:", err.message);
+          logger.error("Redis Delete Error:", err);
         }
         stream.resume();
       }
@@ -40,7 +41,7 @@ exports.delPattern = async (pattern) => {
       stream.on("error", reject);
     });
   } catch (error) {
-    console.log("Redis Error:", error.message);
+    logger.error("Redis Error:", error);
   }
 };
 
@@ -49,6 +50,6 @@ exports.del = async (key) => {
   try {
     await redisClient.del(key);
   } catch (error) {
-    console.log(error.message);
+    logger.error("Redis Delete Error:", error);
   }
 };

@@ -1,5 +1,6 @@
 const { Queue } = require("bullmq");
 const queueconnection = require("../config/queueConnection");
+const logger = require("../config/logger");
 
 const bookingExpiryQueue = new Queue("booking-expiry", {
     connection : queueconnection,
@@ -15,7 +16,7 @@ const bookingExpiryQueue = new Queue("booking-expiry", {
 
 });
 bookingExpiryQueue.on("error" , (err)=> {
-    console.error("BullMQ booking-expiry queue error:" , err);
+    logger.error("BullMQ booking-expiry queue error:", err);
 })
 
 module.exports = bookingExpiryQueue;

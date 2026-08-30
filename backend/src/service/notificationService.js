@@ -1,5 +1,6 @@
 const Notification = require("../models/notification");
 const { sendRealTimeNotification } = require("../config/socket");
+const logger = require("../config/logger");
 
 exports.createNotification = async ({
   recipient,
@@ -23,6 +24,6 @@ exports.createNotification = async ({
 
     return notification;
   } catch (error) {
-    console.error("Error creating/sending in-app notification: ", error);
+    logger.error("Error creating/sending in-app notification:", error);
   }
 };

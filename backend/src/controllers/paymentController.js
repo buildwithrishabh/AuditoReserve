@@ -4,6 +4,7 @@ const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
 const { createNotification } = require("../service/notificationService");
 const bookingExpiryQueue = require("../queue/bookingExpiryQueue");
+const logger = require("../config/logger");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -190,10 +191,10 @@ exports.verifyPayment = async (req, res, next) => {
       const job = await bookingExpiryQueue.getJob(jobId);
       if (job) {
         await job.remove();
-        console.log(`[Payment] Expiry Job ${jobId} successfully removed from queue`);
+        logger.info(`[Payment] Expiry Job ${jobId} successfully removed from queue`);
       }
     } catch (queueError) {
-      console.error(`[Payment] Failed to remove expiry job : ${queueError.message}`);
+      logger.error(`[Payment] Failed to remove expiry job: ${queueError.message}`);
     }
 
     await createNotification({
