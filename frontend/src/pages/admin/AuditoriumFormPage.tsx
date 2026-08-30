@@ -24,7 +24,10 @@ const auditoriumSchema = z.object({
     .string()
     .min(1, "Price is required")
     .refine((v) => Number(v) >= 0, "Price cannot be negative"),
-  description: z.string().min(12, "Description must be at least 12 characters"),
+  description: z
+    .string()
+    .min(12, "Description must be at least 12 characters")
+    .max(500, "Description cannot exceed 500 characters"),
   images: z.any().optional(),
 });
 
