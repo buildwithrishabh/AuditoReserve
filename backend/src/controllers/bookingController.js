@@ -11,7 +11,7 @@ const {
 } = require("../utils/EmailOptions");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
-
+const { acquireLock, releaseLock } = require("../utils/lock");
 const bookingExpiryQueue = require("../queue/bookingExpiryQueue");
 
 exports.createBooking = async (req, res, next) => {
@@ -129,81 +129,102 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // ===============================
-    // Check Overlapping Bookings
-    // ===============================
+    // Acquire Lock
+    const lockKey = `lock:booking:${auditoriumId}:${bookingDay.getTime()}`;
+    const lock = await acquireLock(lockKey, 10000); // for 10 seconds
 
-    // Query for any existing booking in the same auditorium, same day,
-    // that overlaps with the requested time range.
-    // Interval overlap logic: Start_A < End_B AND End_A > Start_B
-    const overlappingBooking = await Booking.findOne({
-      auditorium: auditoriumId,
-      bookingDate: bookingDay,
-
-      // Only check active bookings
-      status: {
-        $in: ["pending", "approved", "confirmed"],
-      },
-
-      // Conflicted if existing booking starts before the new booking ends
-      startTime: {
-        $lt: formattedEndTime,
-      },
-
-      // Conflicted if existing booking ends after the new booking starts
-      endTime: {
-        $gt: formattedStartTime,
-      },
-    });
-
-    if (overlappingBooking) {
-      return res.status(400).json({
+    if (!lock) {
+      return res.status(409).json({
         success: false,
-        message: "This time slot is already booked",
+        message: "Another user is processing this booking. Please try again.",
       });
     }
 
-    // ===============================
-    // Calculate Total Price
-    // ===============================
+    let booking;
 
-    // Calculate booking duration in minutes
-    const [startH, startM] = formattedStartTime.split(":").map(Number);
-    const [endH, endM] = formattedEndTime.split(":").map(Number);
+    try {
+      // ===============================
+      // Check Overlapping Bookings
+      // ===============================
 
-    const totalMinutes = endH * 60 + endM - (startH * 60 + startM);
+      // Query for any existing booking in the same auditorium, same day,
+      // that overlaps with the requested time range.
+      // Interval overlap logic: Start_A < End_B AND End_A > Start_B
+      const overlappingBooking = await Booking.findOne({
+        auditorium: auditoriumId,
+        bookingDate: bookingDay,
 
-    // Convert duration to hours
-    const totalHours = totalMinutes / 60;
+        // Only check active bookings
+        status: {
+          $in: ["pending", "approved", "confirmed"],
+        },
 
-    // Multiply hours by auditorium's hourly rate and round to the nearest whole number
-    const totalPrice = Math.round(totalHours * auditorium.basePrice);
+        // Conflicted if existing booking starts before the new booking ends
+        startTime: {
+          $lt: formattedEndTime,
+        },
 
-    // ===============================
-    // Create Booking
-    // ===============================
+        // Conflicted if existing booking ends after the new booking starts
+        endTime: {
+          $gt: formattedStartTime,
+        },
+      });
 
-    // Save the new booking document with 'pending' status
-    const booking = await Booking.create({
-      user: userId,
-      auditorium: auditoriumId,
-      bookingDate: bookingDay,
+      if (overlappingBooking) {
+        return res.status(400).json({
+          success: false,
+          message: "This time slot is already booked",
+        });
+      }
 
-      startTime: formattedStartTime,
-      endTime: formattedEndTime,
+      // ===============================
+      // Calculate Total Price
+      // ===============================
 
-      purpose,
-      totalPrice,
-      status: "pending",
-    });
+      // Calculate booking duration in minutes
+      const [startH, startM] = formattedStartTime.split(":").map(Number);
+      const [endH, endM] = formattedEndTime.split(":").map(Number);
 
-    await createNotification({
-      recipient: userId,
-      type: "BOOKING_PENDING",
-      title: "Booking Request Pending",
-      message: `Your booking request for ${auditorium.name} on ${bookingDate} is pending approval.`,
-      data: { bookingId: booking._id },
-    });
+      const totalMinutes = endH * 60 + endM - (startH * 60 + startM);
+
+      // Convert duration to hours
+      const totalHours = totalMinutes / 60;
+
+      // Multiply hours by auditorium's hourly rate and round to the nearest whole number
+      const totalPrice = Math.round(totalHours * auditorium.basePrice);
+
+      // ===============================
+      // Create Booking
+      // ===============================
+
+      // Save the new booking document with 'pending' status
+      booking = await Booking.create({
+        user: userId,
+        auditorium: auditoriumId,
+        bookingDate: bookingDay,
+
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+
+        purpose,
+        totalPrice,
+        status: "pending",
+      });
+    } finally {
+      await releaseLock(lock.key, lock.value);
+    }
+
+    try {
+      await createNotification({
+        recipient: userId,
+        type: "BOOKING_PENDING",
+        title: "Booking Request Pending",
+        message: `Your booking request for ${auditorium.name} on ${bookingDate} is pending approval.`,
+        data: { bookingId: booking._id },
+      });
+    } catch (notificationError) {
+      logger.error("Error creating notification:", notificationError);
+    }
 
     // Return the created booking response to the user
     res.status(201).json({
