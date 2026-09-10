@@ -5,6 +5,9 @@ const razorpayClient = require("../config/razorPay");
 const { createNotification } = require("../service/notificationService");
 const bookingExpiryQueue = require("../queue/bookingExpiryQueue");
 const logger = require("../config/logger");
+const emailQueue = require("../queue/emailQueue");
+const User = require("../models/User");
+const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -117,21 +120,21 @@ exports.verifyPayment = async (req, res, next) => {
         message: "You are not allowed to verify this payment",
       });
     }
-    
+
     // Idempotency check: if already confirmed and paid, return success directly
-    if (booking.status === "confirmed"){
+    if (booking.status === "confirmed") {
       const existingPayment = await Payment.findById(booking.paymentId);
-      if (existingPayment && existingPayment.status === "paid"){
+      if (existingPayment && existingPayment.status === "paid") {
         return res.status(200).json({
           success: true,
           message: "Payment verified successfully (idempotent retry).",
           booking,
           payment: existingPayment,
-        })
+        });
       }
     }
 
-    if (booking.status !== "approved"){
+    if (booking.status !== "approved") {
       return res.status(400).json({
         success: false,
         message: "This booking is not awaiting payment",
@@ -181,16 +184,34 @@ exports.verifyPayment = async (req, res, next) => {
     booking.paymentId = payment._id;
     await booking.save();
 
+    try {
+      const user = await User.findById(booking.user);
+      if (user) {
+        const emailData = await bookingUpdatedEmail(
+          user,
+          booking._id,
+          "confirmed",
+        );
+        await emailQueue.add("booking-confirmed-email", { options: emailData });
+      }
+    } catch (error) {
+      logger.error("[Payment] failed to enqueue confirmation email:", error);
+    }
+
     // successfull payment -> remove the schedule job from the queue
     try {
       const jobId = `booking_expire_${booking._id}`;
       const job = await bookingExpiryQueue.getJob(jobId);
       if (job) {
         await job.remove();
-        logger.info(`[Payment] Expiry Job ${jobId} successfully removed from queue`);
+        logger.info(
+          `[Payment] Expiry Job ${jobId} successfully removed from queue`,
+        );
       }
     } catch (queueError) {
-      logger.error(`[Payment] Failed to remove expiry job: ${queueError.message}`);
+      logger.error(
+        `[Payment] Failed to remove expiry job: ${queueError.message}`,
+      );
     }
 
     await createNotification({

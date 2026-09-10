@@ -293,6 +293,12 @@ a {
   border-color: #3a3a4a;
 }
 
+.icon-button.active {
+  color: var(--accent);
+  border-color: rgba(124, 115, 230, 0.4);
+  background: rgba(124, 115, 230, 0.12);
+}
+
 .danger-icon {
   color: var(--danger);
   border-color: transparent;
@@ -3242,6 +3248,7 @@ td {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -3249,6 +3256,7 @@ td {
 .line-clamp-5 {
   display: -webkit-box;
   -webkit-line-clamp: 5;
+  line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

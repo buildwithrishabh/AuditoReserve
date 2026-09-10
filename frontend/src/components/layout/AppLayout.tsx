@@ -69,11 +69,14 @@ export function AppLayout() {
           {user ? (
             <>
               <NotificationCenter />
-              <Link to="/account" className="user-pill">
-                <User size={14} />
-                <span className="user-name">{user.name}</span>
-                <span className="user-role">{user.role}</span>
-              </Link>
+              <NavLink
+                to="/account"
+                className={({ isActive }) => `icon-button ${isActive ? "active" : ""}`}
+                aria-label="Profile"
+                title={`${user.name} (${user.role})`}
+              >
+                <User size={18} />
+              </NavLink>
               <button className="icon-button danger-icon" type="button" onClick={handleLogout} aria-label="Log out" title="Log out">
                 <LogOut size={18} />
               </button>

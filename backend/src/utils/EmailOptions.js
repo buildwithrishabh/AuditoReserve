@@ -250,10 +250,31 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
 
 exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
   const paymentLink = `${process.env.FRONTEND_URL}/bookings?pay=${booking._id}`;
-  const deadlineText = new Date(payment.expiresAt).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  
+  const rawDeadline = payment?.expiresAt || booking?.paymentDeadline;
+  const deadlineDate = rawDeadline
+    ? new Date(rawDeadline)
+    : new Date(Date.now() + 12 * 60 * 60 * 1000);
+
+  const deadlineText =
+    deadlineDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }) + " IST";
+
+  const formattedBookingDate = booking?.bookingDate
+    ? new Date(booking.bookingDate).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   return {
     from: {
@@ -262,7 +283,7 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
     },
     to: user.email,
     subject: "Payment required to confirm booking - AuditoReserve",
-    text: `Hi ${user.name}, your booking has been approved. Pay before ${deadlineText}: ${paymentLink}`,
+    text: `Hi ${user.name}, your booking for ${auditorium?.name || "Auditorium"} has been approved. Pay before ${deadlineText} (12 hours) to confirm: ${paymentLink}`,
     html: emailLayout({
       badge: "Payment required",
       heading: "Complete payment to confirm booking",
@@ -271,12 +292,13 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
           Hi <strong style="color:#e8e8ed;font-weight:700;">${user.name}</strong>,
         </p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
-          Your booking request for <strong style="color:#e8e8ed;">${auditorium.name}</strong>
+          Your booking request for <strong style="color:#e8e8ed;">${auditorium?.name || "Auditorium"}</strong>
           has been approved by the admin.
         </p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
+          ${formattedBookingDate ? `Booking Date: <strong style="color:#e8e8ed;">${formattedBookingDate}</strong> (${booking.startTime} - ${booking.endTime})<br/>` : ""}
           Amount: <strong style="color:#e8e8ed;">INR ${booking.totalPrice}</strong><br/>
-          Payment deadline: <strong style="color:#e8e8ed;">${deadlineText}</strong>
+          Payment deadline: <strong style="color:#e8e8ed;">${deadlineText}</strong> (12 hours)
         </p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
           Please complete payment within 12 hours. Your booking will be confirmed only after successful payment.
