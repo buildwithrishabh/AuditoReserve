@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { getAllBookings, updateBookingStatus } from "../../api/bookings";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
+import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -14,6 +15,7 @@ export function AdminBookingsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [status, setStatus] = useState("pending");
+  const [receiptBookingId, setReceiptBookingId] = useState(null);
   
   // Custom dialog control
   const [pendingAction, setPendingAction] = useState(null);
@@ -115,6 +117,11 @@ export function AdminBookingsPage() {
                       ? (nextStatus) => handleAdminActionClick(booking._id, nextStatus, bookingTitle)
                       : undefined
                   }
+                  onReceipt={
+                    booking.status === "confirmed"
+                      ? () => setReceiptBookingId(booking._id)
+                      : undefined
+                  }
                   isSubmittingAction={statusMutation.isPending}
                 />
               </motion.div>
@@ -129,6 +136,12 @@ export function AdminBookingsPage() {
           message="Try changing the status tab filters."
         />
       )}
+
+      <BookingReceiptModal
+        isOpen={Boolean(receiptBookingId)}
+        bookingId={receiptBookingId}
+        onClose={() => setReceiptBookingId(null)}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(pendingAction)}

@@ -40,3 +40,23 @@ export async function verifyPayment(input) {
   );
   return data;
 }
+
+export async function getBookingReceipt(bookingId) {
+  const { data } = await api.get(`/payments/${bookingId}/receipt`);
+  return data.receipt;
+}
+
+export async function downloadBookingReceiptPdf(bookingId, receiptNumber = "booking") {
+  const response = await api.get(`/payments/${bookingId}/receipt/download`, {
+    responseType: "blob",
+  });
+  const blob = new Blob([response.data], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `receipt_${receiptNumber}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}

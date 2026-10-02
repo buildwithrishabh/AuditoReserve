@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarDays, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
 import { generateGoogleCalendarUrl, downloadIcsFile } from "../../utils/calendarSync";
 
@@ -7,6 +7,7 @@ export function BookingRow({
   booking,
   onCancel,
   onPay,
+  onReceipt,
   adminActions,
   isSubmittingAction = false,
   showSyncActions = false,
@@ -97,6 +98,17 @@ export function BookingRow({
             disabled={isSubmittingAction}
           >
             Pay Now
+          </button>
+        )}
+        {booking.status === "confirmed" && onReceipt && (
+          <button
+            className="button ghost"
+            type="button"
+            onClick={onReceipt}
+            disabled={isSubmittingAction}
+            title="View & Download Receipt"
+          >
+            <FileText size={15} /> Receipt
           </button>
         )}
         {adminActions && (

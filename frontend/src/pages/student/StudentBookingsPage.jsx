@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getUserBookings, cancelBooking } from "../../api/bookings";
@@ -6,6 +7,7 @@ import { createPaymentOrder, verifyPayment } from "../../api/payments";
 import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
+import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -15,9 +17,18 @@ import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function StudentBookingsPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const [status, setStatus] = useState("all");
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [receiptBookingId, setReceiptBookingId] = useState(null);
+
+  useEffect(() => {
+    const receiptParam = searchParams.get("receipt");
+    if (receiptParam) {
+      setReceiptBookingId(receiptParam);
+    }
+  }, [searchParams]);
 
   const {
     data = [],
@@ -158,6 +169,11 @@ export function StudentBookingsPage() {
                       ? () => handleCancelClick(booking._id)
                       : undefined
                   }
+                  onReceipt={
+                    booking.status === "confirmed"
+                      ? () => setReceiptBookingId(booking._id)
+                      : undefined
+                  }
                   isSubmittingAction={cancelMutation.isPending}
                   showSyncActions={true}
                 />
@@ -166,6 +182,18 @@ export function StudentBookingsPage() {
           })}
         </motion.div>
       )}
+
+      <BookingReceiptModal
+        isOpen={Boolean(receiptBookingId)}
+        bookingId={receiptBookingId}
+        onClose={() => {
+          setReceiptBookingId(null);
+          if (searchParams.has("receipt")) {
+            searchParams.delete("receipt");
+            setSearchParams(searchParams);
+          }
+        }}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(cancellingBookingId)}
