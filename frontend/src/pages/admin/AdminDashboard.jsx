@@ -47,13 +47,15 @@ export function AdminDashboard() {
 
   return (
     <section>
-      <div className="section-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
-        <div className="page-header" style={{ margin: 0 }}>
+      <div className="dashboard-header-row">
+        <div className="page-header">
           <p className="eyebrow">Admin console</p>
-          <h1 style={{ margin: 0 }}>Dashboard</h1>
-          <p style={{ margin: "4px 0 0" }}>Review venue inventory stats and pending student requests.</p>
+          <h1>Dashboard</h1>
+          <p>Review venue inventory stats and pending student requests.</p>
         </div>
-        <RefreshButton variant="button" label="Refresh" title="Refresh dashboard data" />
+        <div className="dashboard-header-actions">
+          <RefreshButton label="Refresh dashboard" title="Refresh dashboard data" />
+        </div>
       </div>
 
       {isLoading ? (

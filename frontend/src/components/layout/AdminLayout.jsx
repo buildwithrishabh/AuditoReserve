@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { pageTransition } from "../../lib/animations";
 import { NotificationCenter } from "./NotificationCenter";
-import { RefreshButton } from "../common/RefreshButton";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -35,7 +34,6 @@ export function AdminLayout() {
           <span>Admin console</span>
         </Link>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
-          <RefreshButton title="Refresh console data" />
           <NotificationCenter />
           <button
             className="mobile-menu-button admin-menu-button"
@@ -77,15 +75,6 @@ export function AdminLayout() {
             <CalendarDays size={18} /> Bookings
           </NavLink>
         </nav>
-        
-        <div style={{ marginTop: "auto", marginBottom: "16px" }}>
-          <RefreshButton
-            variant="button"
-            label="Refresh data"
-            style={{ width: "100%", justifyContent: "center" }}
-            title="Refresh all admin data"
-          />
-        </div>
 
         <motion.div
           className="sidebar-footer"
@@ -124,7 +113,6 @@ export function AdminLayout() {
             <span className="live-status-text">System Active</span>
           </div>
           <div className="admin-topbar-actions">
-            <RefreshButton variant="button" label="Refresh data" title="Refresh all updates" />
             <NotificationCenter />
             <Link to="/account" className="admin-profile-badge" title="Manage account">
               <span className="admin-avatar-dot">
