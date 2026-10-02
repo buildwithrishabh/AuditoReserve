@@ -6,6 +6,7 @@ import { getAllBookings } from "../../api/bookings";
 import { BookingRow } from "../../components/bookings/BookingRow";
 import { SkeletonGrid } from "../../components/common/LoadingSkeleton";
 import { EmptyState } from "../../components/common/ErrorState";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { staggerContainerFast, cardItem, slideUp } from "../../lib/animations";
 
 function MetricCard({ title, value, tone }) {
@@ -46,10 +47,13 @@ export function AdminDashboard() {
 
   return (
     <section>
-      <div className="page-header">
-        <p className="eyebrow">Admin console</p>
-        <h1>Dashboard</h1>
-        <p>Review venue inventory stats and pending student requests.</p>
+      <div className="section-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
+        <div className="page-header" style={{ margin: 0 }}>
+          <p className="eyebrow">Admin console</p>
+          <h1 style={{ margin: 0 }}>Dashboard</h1>
+          <p style={{ margin: "4px 0 0" }}>Review venue inventory stats and pending student requests.</p>
+        </div>
+        <RefreshButton variant="button" label="Refresh" title="Refresh dashboard data" />
       </div>
 
       {isLoading ? (

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, LayoutDashboard, LogOut, MapPin, Menu, X } from "lucide-react";
+import { CalendarDays, LayoutDashboard, LogOut, MapPin, Menu, X, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { pageTransition } from "../../lib/animations";
+import { NotificationCenter } from "./NotificationCenter";
+import { RefreshButton } from "../common/RefreshButton";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -32,7 +34,9 @@ export function AdminLayout() {
           <span className="brand-mark">AR</span>
           <span>Admin console</span>
         </Link>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          <RefreshButton title="Refresh console data" />
+          <NotificationCenter />
           <button
             className="mobile-menu-button admin-menu-button"
             type="button"
@@ -74,6 +78,15 @@ export function AdminLayout() {
           </NavLink>
         </nav>
         
+        <div style={{ marginTop: "auto", marginBottom: "16px" }}>
+          <RefreshButton
+            variant="button"
+            label="Refresh data"
+            style={{ width: "100%", justifyContent: "center" }}
+            title="Refresh all admin data"
+          />
+        </div>
+
         <motion.div
           className="sidebar-footer"
           initial={{ opacity: 0, y: 10 }}
@@ -104,6 +117,24 @@ export function AdminLayout() {
       </AnimatePresence>
       
       <main className="admin-main">
+        {/* Desktop Admin Topbar */}
+        <header className="admin-desktop-topbar">
+          <div className="admin-topbar-status">
+            <span className="live-status-dot" />
+            <span className="live-status-text">System Active</span>
+          </div>
+          <div className="admin-topbar-actions">
+            <RefreshButton variant="button" label="Refresh data" title="Refresh all updates" />
+            <NotificationCenter />
+            <Link to="/account" className="admin-profile-badge" title="Manage account">
+              <span className="admin-avatar-dot">
+                <User size={14} />
+              </span>
+              <span>{user?.name || "Admin"}</span>
+            </Link>
+          </div>
+        </header>
+
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

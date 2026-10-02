@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { Footer } from "./Footer";
 import { pageTransition } from "../../lib/animations";
 import { NotificationCenter } from "./NotificationCenter";
+import { RefreshButton } from "../common/RefreshButton";
 
 const navItems = [
   { label: "Home", to: "/" },
@@ -66,6 +67,7 @@ export function AppLayout() {
         </nav>
 
         <div className="topbar-actions">
+          <RefreshButton title="Refresh updates" />
           {user ? (
             <>
               <NotificationCenter />
@@ -90,6 +92,7 @@ export function AppLayout() {
         </div>
 
         <div className="mobile-header-actions">
+          <RefreshButton title="Refresh updates" />
           {user && <NotificationCenter />}
           <button className="mobile-menu-btn" type="button" aria-label="Toggle menu" onClick={() => setMenuOpen((o) => !o)}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -118,6 +121,10 @@ export function AppLayout() {
                   <NavLink to="/admin" className={({ isActive }) => `mobile-dropdown-link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Admin Panel</NavLink>
                 )}
               </nav>
+
+              <div className="mobile-dropdown-refresh" style={{ padding: "10px 16px 4px" }}>
+                <RefreshButton variant="button" label="Refresh updates" style={{ width: "100%", justifyContent: "center" }} />
+              </div>
 
               <div className="mobile-dropdown-divider" />
 

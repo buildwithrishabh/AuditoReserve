@@ -8,6 +8,7 @@ import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState, EmptyState } from "../../components/common/ErrorState";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function AdminBookingsPage() {
@@ -71,10 +72,13 @@ export function AdminBookingsPage() {
 
   return (
     <section>
-      <div className="page-header">
-        <p className="eyebrow">Booking queue</p>
-        <h1>Booking requests</h1>
-        <p>Review student requests and approve or cancel booked facility slots.</p>
+      <div className="section-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+        <div className="page-header" style={{ margin: 0 }}>
+          <p className="eyebrow">Booking queue</p>
+          <h1 style={{ margin: 0 }}>Booking requests</h1>
+          <p style={{ margin: "4px 0 0" }}>Review student requests and approve or cancel booked facility slots.</p>
+        </div>
+        <RefreshButton variant="button" label="Refresh" queryKey={["admin-bookings"]} title="Refresh booking requests" />
       </div>
 
       <StatusTabs value={status} onChange={setStatus} includeAll />

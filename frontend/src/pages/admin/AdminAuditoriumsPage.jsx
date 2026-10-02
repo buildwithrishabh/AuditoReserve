@@ -8,6 +8,7 @@ import { useToast } from "../../hooks/useToast";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState } from "../../components/common/ErrorState";
+import { RefreshButton } from "../../components/common/RefreshButton";
 import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function AdminAuditoriumsPage() {
@@ -55,9 +56,12 @@ export function AdminAuditoriumsPage() {
           <h1 style={{ margin: "0" }}>Auditoriums</h1>
           <p style={{ margin: "4px 0 0" }}>Create, edit, and remove campus auditorium listings.</p>
         </div>
-        <Link className="button primary" to="/admin/auditoriums/new">
-          <Plus size={18} /> Create auditorium
-        </Link>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <RefreshButton variant="button" label="Refresh" queryKey={["auditoriums"]} title="Refresh auditoriums list" />
+          <Link className="button primary" to="/admin/auditoriums/new">
+            <Plus size={18} /> Create auditorium
+          </Link>
+        </div>
       </div>
 
       {isLoading && (
