@@ -209,8 +209,8 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
                       <div className="receipt-logo-mark">AR</div>
                       <div>
                         <h2 className="receipt-brand">AuditoReserve</h2>
-                        <p className="receipt-subtext">Campus Auditorium & Facility Reservation</p>
-                        <p className="receipt-org">Teerthanker Mahaveer University • Facility Services</p>
+                        <p className="receipt-subtext">Auditorium Reservation & Facility Management</p>
+                        <p className="receipt-org">Official Electronic Payment Receipt</p>
                       </div>
                     </div>
 
@@ -249,7 +249,7 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
                         <User size={13} className="info-header-icon" />
                         <span className="info-label">BILLED TO</span>
                       </div>
-                      <h4>{receipt.user?.name || "Student / Faculty"}</h4>
+                      <h4>{receipt.user?.name || "Customer"}</h4>
                       <p className="info-subtext">{receipt.user?.email}</p>
                       <div className="booking-ref-row">
                         <span className="subtle-code">ID: {receipt.booking?.id}</span>
@@ -273,11 +273,20 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
                         <Building2 size={13} className="info-header-icon" />
                         <span className="info-label">RESERVED FACILITY</span>
                       </div>
-                      <h4>{receipt.auditorium?.name || "Auditorium"}</h4>
-                      <p className="info-subtext">Location: {receipt.auditorium?.location || "Main Campus"}</p>
-                      <span className="capacity-badge">
-                        Capacity: {receipt.auditorium?.capacity || "Full"} seats
-                      </span>
+                      <h4>{receipt.auditorium?.name || "Auditorium Facility"}</h4>
+                      <p className="info-subtext">
+                        {receipt.auditorium?.description || (Array.isArray(receipt.auditorium?.amenities) && receipt.auditorium.amenities.length > 0 ? receipt.auditorium.amenities.join(", ") : "Campus Venue")}
+                      </p>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
+                        <span className="capacity-badge">
+                          Capacity: {receipt.auditorium?.capacity || "Full"} seats
+                        </span>
+                        {receipt.auditorium?.basePrice ? (
+                          <span className="capacity-badge">
+                            Rate: ₹{receipt.auditorium.basePrice}/hr
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 

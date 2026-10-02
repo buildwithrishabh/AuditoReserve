@@ -56,7 +56,7 @@ exports.createPaymentOrder = async (req, res, next) => {
     let payment = await Payment.findById(booking.paymentId);
 
     if (!payment) {
-      const receipt = `bk_${booking._id.toString().slice(-16)}_${Date.now()}`;
+      const receipt = `AR_${booking._id.toString().slice(-8)}_${Date.now().toString().slice(-8)}`;
       const razorpayOrder = await razorpayClient.orders.create({
         amount: booking.totalPrice * 100,
         currency: "INR",
@@ -259,7 +259,7 @@ exports.getReceipt = async (req, res, next) => {
     if (booking.status !== "confirmed" || !booking.paymentId) {
       return res.status(400).json({
         success: false,
-        message: "Receipt unavailable for unconfirmed bookings",
+        message: "Receipt is available only for confirmed bookings with verified payment",
       });
     }
 
@@ -267,7 +267,16 @@ exports.getReceipt = async (req, res, next) => {
     if (!payment || payment.status !== "paid") {
       return res
         .status(400)
-        .json({ success: false, message: "Payment not completed" });
+        .json({ success: false, message: "Receipt is available only after successful payment verification" });
+    }
+
+    // Ensure unique, clean receipt ID exists
+    if (!payment.receipt) {
+      const year = new Date(payment.paidAt || Date.now()).getFullYear();
+      const code = String(payment._id || booking._id).slice(-6).toUpperCase();
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      payment.receipt = `AR-${year}-${code}-${rand}`;
+      await payment.save();
     }
 
     if (req.query.format === "pdf") {
@@ -286,20 +295,22 @@ exports.getReceipt = async (req, res, next) => {
       success: true,
       receipt: {
         receiptNumber: payment.receipt,
-        paymentId: payment.gatewayPaymentId,
+        paymentId: payment.gatewayPaymentId || "Confirmed",
         orderId: payment.gatewayOrderId,
         paidAt: payment.paidAt,
         amount: payment.amount,
         currency: payment.currency,
         status: payment.status,
         user: {
-          name: booking.user.name,
-          email: booking.user.email,
+          name: booking.user?.name || "Customer",
+          email: booking.user?.email || "",
         },
         auditorium: {
-          name: booking.auditorium.name,
-          location: booking.auditorium.location,
-          capacity: booking.auditorium.capacity,
+          name: booking.auditorium?.name || "Auditorium Facility",
+          capacity: booking.auditorium?.capacity || 0,
+          amenities: booking.auditorium?.amenities || [],
+          basePrice: booking.auditorium?.basePrice || 0,
+          description: booking.auditorium?.description || "",
         },
         booking: {
           id: booking._id,
@@ -307,6 +318,7 @@ exports.getReceipt = async (req, res, next) => {
           startTime: booking.startTime,
           endTime: booking.endTime,
           purpose: booking.purpose,
+          totalPrice: booking.totalPrice,
         },
       },
     });
@@ -340,7 +352,7 @@ exports.downloadReceipt = async (req, res, next) => {
     if (booking.status !== "confirmed" || !booking.paymentId) {
       return res.status(400).json({
         success: false,
-        message: "Receipt unavailable for unconfirmed bookings",
+        message: "Receipt is available only for confirmed bookings with verified payment",
       });
     }
 
@@ -348,7 +360,16 @@ exports.downloadReceipt = async (req, res, next) => {
     if (!payment || payment.status !== "paid") {
       return res
         .status(400)
-        .json({ success: false, message: "Payment not completed" });
+        .json({ success: false, message: "Receipt is available only after successful payment verification" });
+    }
+
+    // Ensure unique, clean receipt ID exists
+    if (!payment.receipt) {
+      const year = new Date(payment.paidAt || Date.now()).getFullYear();
+      const code = String(payment._id || booking._id).slice(-6).toUpperCase();
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      payment.receipt = `AR-${year}-${code}-${rand}`;
+      await payment.save();
     }
 
     res.setHeader("Content-Type", "application/pdf");
