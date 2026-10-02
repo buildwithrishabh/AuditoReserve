@@ -147,12 +147,20 @@ exports.createBooking = async (req, res, next) => {
       // Check Overlapping Bookings
       // ===============================
 
-      // Query for any existing booking in the same auditorium, same day,
+      // Query for any existing booking in the same auditorium on the same calendar day,
       // that overlaps with the requested time range.
+      const dayStart = new Date(bookingDay);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(bookingDay);
+      dayEnd.setHours(23, 59, 59, 999);
+
       // Interval overlap logic: Start_A < End_B AND End_A > Start_B
       const overlappingBooking = await Booking.findOne({
         auditorium: auditoriumId,
-        bookingDate: bookingDay,
+        bookingDate: {
+          $gte: dayStart,
+          $lte: dayEnd,
+        },
 
         // Only check active bookings
         status: {
@@ -523,19 +531,26 @@ exports.getCalendarBooking = async (req, res, next) => {
     if (!auditoriumId || !month) {
       return res.status(400).json({
         success: false,
-        message: "Auditorium ID and month (YYY-MM) are required",
+        message: "Auditorium ID and month (YYYY-MM) are required",
       });
     }
 
-    const startDate = new Date(`${month}-01T00:00:00.000Z`);
-    const endDate = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth() + 1,
-      0,
-      23,
-      59,
-      999,
-    );
+    const [yearStr, monthStr] = month.split("-");
+    const year = parseInt(yearStr, 10);
+    const monthNum = parseInt(monthStr, 10);
+
+    if (isNaN(year) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid month format. Expected YYYY-MM",
+      });
+    }
+
+    // Buffer by 1 full day before and after the month in UTC to encompass
+    // all global timezone offsets (UTC-12 to UTC+14).
+    // For example, 1st of Oct in IST (UTC+5:30) is stored as Sep 30 18:30:00 UTC.
+    const startDate = new Date(Date.UTC(year, monthNum - 1, 1 - 1, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, monthNum, 1 + 1, 23, 59, 59, 999));
 
     const bookings = await Booking.find({
       auditorium: auditoriumId,
@@ -546,7 +561,7 @@ exports.getCalendarBooking = async (req, res, next) => {
       },
     })
       .select("bookingDate startTime endTime purpose status")
-      .sort({ startTime: 1 });
+      .sort({ bookingDate: 1, startTime: 1 });
 
     res.status(200).json({
       success: true,
