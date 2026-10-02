@@ -1,7 +1,20 @@
 const PDFDocument = require("pdfkit");
 
 /**
- * Generates an official PDF receipt for a confirmed booking payment.
+ * Formats a currency amount into standard Indian Rupee format.
+ * @param {number} amount
+ * @returns {string}
+ */
+function formatCurrency(amount) {
+  if (typeof amount !== "number") amount = Number(amount) || 0;
+  return "INR " + amount.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Generates an executive, publication-grade PDF receipt for a confirmed booking.
  * @param {Object} data - Contains booking, payment, user, auditorium details
  * @param {stream.Writable} stream - Destination stream (e.g. Express res)
  */
@@ -10,126 +23,199 @@ function buildReceiptPdf(data, stream) {
 
   const doc = new PDFDocument({
     size: "A4",
-    margin: 45,
+    margin: 40,
     info: {
-      Title: `Receipt - ${payment.receipt}`,
+      Title: `Receipt - ${payment?.receipt || booking?._id}`,
       Author: "AuditoReserve",
-      Subject: "Auditorium Booking Payment Receipt",
+      Subject: "Auditorium Reservation Official Receipt",
+      Keywords: "AuditoReserve, Receipt, Auditorium, Payment",
+      Creator: "AuditoReserve Automated Invoicing Service",
     },
   });
 
   doc.pipe(stream);
 
-  const primaryColor = "#4338CA"; // Indigo 700
-  const secondaryColor = "#1E293B"; // Slate 800
-  const mutedColor = "#64748B"; // Slate 500
-  const borderColor = "#E2E8F0"; // Slate 200
-  const bgLight = "#F8FAFC"; // Slate 50
+  // Modern corporate color palette
+  const brandIndigo = "#3730A3";    // Deep Indigo
+  const brandAccent = "#4F46E5";    // Vibrant Indigo
+  const slate900    = "#0F172A";    // Slate 900
+  const slate700    = "#334155";    // Slate 700
+  const slate500    = "#64748B";    // Slate 500
+  const slate400    = "#94A3B8";    // Slate 400
+  const slate200    = "#E2E8F0";    // Slate 200 border
+  const slate50     = "#F8FAFC";    // Slate 50 background
+  const emerald700  = "#047857";    // Emerald 700
+  const emerald50   = "#ECFDF5";    // Light Emerald bg
+  const emeraldBorder = "#A7F3D0";  // Emerald border
 
-  // ---------------- HEADER ----------------
+  // 1. Top Decorative Brand Strip (5px full width)
+  doc.rect(0, 0, 595.28, 6).fill(brandAccent);
+
+  // 2. Header Section
+  // Left: Brand & Institution Details
   doc
-    .fillColor(primaryColor)
+    .fillColor(brandIndigo)
+    .font("Helvetica-Bold")
     .fontSize(22)
+    .text("AuditoReserve", 40, 36);
+
+  doc
+    .fillColor(slate500)
     .font("Helvetica-Bold")
-    .text("AuditoReserve", 45, 45);
+    .fontSize(7.5)
+    .text("CAMPUS FACILITY & AUDITORIUM BOOKING SYSTEM", 40, 62, {
+      characterSpacing: 0.6,
+    });
 
   doc
-    .fontSize(9)
+    .fillColor(slate400)
     .font("Helvetica")
-    .fillColor(mutedColor)
-    .text("Campus Facility & Auditorium Booking System", 45, 72);
+    .fontSize(8)
+    .text("Teerthanker Mahaveer University • Facility Services Office", 40, 74)
+    .text("Moradabad, Uttar Pradesh, India", 40, 85);
+
+  // Right: Document Title & Meta Block
+  const rightX = 330;
+  const rightW = 225;
 
   doc
-    .fillColor(secondaryColor)
+    .fillColor(slate900)
+    .font("Helvetica-Bold")
     .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("PAYMENT RECEIPT", 360, 45, { align: "right", width: 190 });
+    .text("PAYMENT RECEIPT", rightX, 36, { align: "right", width: rightW });
 
+  // Receipt Number (split into label and value to prevent overlap)
   doc
-    .fontSize(9)
+    .fillColor(slate500)
     .font("Helvetica")
-    .fillColor(mutedColor)
-    .text(`Receipt #: ${payment.receipt}`, 360, 66, { align: "right", width: 190 })
-    .text(
-      `Date: ${new Date(payment.paidAt || Date.now()).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })}`,
-      360,
-      79,
-      { align: "right", width: 190 }
-    );
+    .fontSize(8)
+    .text("Receipt Number:", rightX, 58, { align: "right", width: rightW });
 
-  // Divider Line
   doc
-    .moveTo(45, 105)
-    .lineTo(550, 105)
-    .strokeColor(borderColor)
+    .fillColor(slate700)
+    .font("Helvetica-Bold")
+    .fontSize(8)
+    .text(payment?.receipt || `REC-${booking?._id}`, rightX, 68, { align: "right", width: rightW });
+
+  // Issue Date & Status
+  const issuedDate = new Date(payment?.paidAt || Date.now()).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  doc
+    .fillColor(slate500)
+    .font("Helvetica")
+    .fontSize(8)
+    .text(`Issue Date: ${issuedDate}`, rightX, 80, { align: "right", width: rightW });
+
+  doc
+    .fillColor(emerald700)
+    .font("Helvetica-Bold")
+    .fontSize(8.5)
+    .text("STATUS: PAID (CONFIRMED)", rightX, 92, { align: "right", width: rightW });
+
+  // Header Divider
+  doc
+    .moveTo(40, 110)
+    .lineTo(555, 110)
+    .strokeColor(slate200)
     .lineWidth(1)
     .stroke();
 
-  // ---------------- BILLING & FACILITY INFO ----------------
-  const infoY = 120;
+  // 3. Two-Column Information Cards (Billed To & Venue Reserved)
+  const cardY = 122;
+  const cardW = 250;
+  const cardH = 82;
 
   // Box 1: Billed To
   doc
-    .roundedRect(45, infoY, 245, 80, 6)
-    .fillAndStroke(bgLight, borderColor);
+    .roundedRect(40, cardY, cardW, cardH, 5)
+    .fillAndStroke(slate50, slate200);
 
   doc
-    .fillColor(primaryColor)
+    .fillColor(brandAccent)
     .font("Helvetica-Bold")
-    .fontSize(10)
-    .text("BILLED TO", 55, infoY + 10);
+    .fontSize(8)
+    .text("BILLED TO / RESERVED BY", 52, cardY + 10, { characterSpacing: 0.5 });
 
   doc
-    .fillColor(secondaryColor)
-    .font("Helvetica-Bold")
-    .fontSize(11)
-    .text(user.name || "Student / Faculty", 55, infoY + 26);
-
-  doc
-    .fillColor(mutedColor)
-    .font("Helvetica")
-    .fontSize(9)
-    .text(user.email, 55, infoY + 42)
-    .text(`Booking ID: ${booking._id.toString()}`, 55, infoY + 56);
-
-  // Box 2: Facility Details
-  doc
-    .roundedRect(305, infoY, 245, 80, 6)
-    .fillAndStroke(bgLight, borderColor);
-
-  doc
-    .fillColor(primaryColor)
-    .font("Helvetica-Bold")
-    .fontSize(10)
-    .text("FACILITY RESERVED", 315, infoY + 10);
-
-  doc
-    .fillColor(secondaryColor)
+    .fillColor(slate900)
     .font("Helvetica-Bold")
     .fontSize(11)
-    .text(auditorium.name || "Auditorium Facility", 315, infoY + 26);
+    .text(user?.name || "Student / Faculty", 52, cardY + 24, { width: cardW - 24, ellipsis: true });
 
   doc
-    .fillColor(mutedColor)
+    .fillColor(slate500)
     .font("Helvetica")
-    .fontSize(9)
-    .text(`Location: ${auditorium.location || "Main Campus"}`, 315, infoY + 42)
-    .text(`Capacity: ${auditorium.capacity ? auditorium.capacity + " seats" : "N/A"}`, 315, infoY + 56);
-
-  // ---------------- RESERVATION SCHEDULE ----------------
-  const scheduleY = 215;
+    .fontSize(8.5)
+    .text(user?.email || "campus@tmu.ac.in", 52, cardY + 39, { width: cardW - 24, ellipsis: true });
 
   doc
-    .fillColor(secondaryColor)
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Reservation Schedule", 45, scheduleY);
+    .fillColor(slate400)
+    .font("Helvetica")
+    .fontSize(7.5)
+    .text(`Booking Ref: #${booking?._id || "N/A"}`, 52, cardY + 58);
 
-  const formattedDate = booking.bookingDate
+  // Box 2: Facility Reserved
+  const box2X = 305;
+  doc
+    .roundedRect(box2X, cardY, cardW, cardH, 5)
+    .fillAndStroke(slate50, slate200);
+
+  doc
+    .fillColor(brandAccent)
+    .font("Helvetica-Bold")
+    .fontSize(8)
+    .text("VENUE & FACILITY RESERVED", box2X + 12, cardY + 10, { characterSpacing: 0.5 });
+
+  doc
+    .fillColor(slate900)
+    .font("Helvetica-Bold")
+    .fontSize(11)
+    .text(auditorium?.name || "Campus Auditorium", box2X + 12, cardY + 24, { width: cardW - 24, ellipsis: true });
+
+  doc
+    .fillColor(slate500)
+    .font("Helvetica")
+    .fontSize(8.5)
+    .text(`Location: ${auditorium?.location || "Main Campus"}`, box2X + 12, cardY + 39, { width: cardW - 24, ellipsis: true });
+
+  doc
+    .fillColor(slate400)
+    .font("Helvetica")
+    .fontSize(7.5)
+    .text(`Seating Capacity: ${auditorium?.capacity ? auditorium.capacity + " Attendees" : "Full Venue"}`, box2X + 12, cardY + 58);
+
+  // 4. Reservation Schedule Table
+  const schedSectionY = 220;
+
+  doc
+    .fillColor(slate900)
+    .font("Helvetica-Bold")
+    .fontSize(10.5)
+    .text("Reservation Schedule", 40, schedSectionY);
+
+  const schedTableY = schedSectionY + 16;
+  const tableW = 515;
+
+  // Header row
+  doc
+    .roundedRect(40, schedTableY, tableW, 22, 3)
+    .fill(slate900);
+
+  doc
+    .fillColor("#FFFFFF")
+    .font("Helvetica-Bold")
+    .fontSize(8)
+    .text("PURPOSE / EVENT DESCRIPTION", 52, schedTableY + 7)
+    .text("BOOKING DATE", 310, schedTableY + 7)
+    .text("TIME SLOT", 440, schedTableY + 7);
+
+  // Schedule Data Row
+  const purposeText = booking?.purpose || "Campus Event / Auditorium Reservation";
+  const formattedDate = booking?.bookingDate
     ? new Date(booking.bookingDate).toLocaleDateString("en-IN", {
         weekday: "short",
         day: "2-digit",
@@ -138,147 +224,219 @@ function buildReceiptPdf(data, stream) {
       })
     : "N/A";
 
-  const detailsTableY = scheduleY + 20;
+  const timeSlotText = `${booking?.startTime || "N/A"} - ${booking?.endTime || "N/A"}`;
 
-  // Header Bar
-  doc
-    .rect(45, detailsTableY, 505, 24)
-    .fill(primaryColor);
+  // Calculate dynamic height for purpose column so it never overflows
+  doc.font("Helvetica").fontSize(8.5);
+  const purposeHeight = Math.max(
+    28,
+    doc.heightOfString(purposeText, { width: 245 }) + 16
+  );
 
+  const schedRowY = schedTableY + 22;
   doc
-    .fillColor("#FFFFFF")
-    .font("Helvetica-Bold")
-    .fontSize(9)
-    .text("EVENT / PURPOSE", 55, detailsTableY + 7)
-    .text("BOOKING DATE", 250, detailsTableY + 7)
-    .text("TIME SLOT", 400, detailsTableY + 7);
-
-  // Row
-  doc
-    .rect(45, detailsTableY + 24, 505, 32)
-    .fillAndStroke(bgLight, borderColor);
+    .rect(40, schedRowY, tableW, purposeHeight)
+    .fillAndStroke(slate50, slate200);
 
   doc
-    .fillColor(secondaryColor)
+    .fillColor(slate700)
     .font("Helvetica")
-    .fontSize(9)
-    .text(booking.purpose || "Auditorium Booking", 55, detailsTableY + 34, { width: 185, lineBreak: false })
-    .text(formattedDate, 250, detailsTableY + 34)
-    .text(`${booking.startTime} - ${booking.endTime}`, 400, detailsTableY + 34);
-
-  // ---------------- PAYMENT BREAKDOWN TABLE ----------------
-  const paymentTableY = detailsTableY + 75;
+    .fontSize(8.5)
+    .text(purposeText, 52, schedRowY + 8, { width: 245, lineGap: 2 });
 
   doc
-    .fillColor(secondaryColor)
+    .fillColor(slate900)
     .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Payment Breakdown", 45, paymentTableY);
+    .fontSize(8.5)
+    .text(formattedDate, 310, schedRowY + 8)
+    .text(timeSlotText, 440, schedRowY + 8);
 
-  const tableHeaderY = paymentTableY + 20;
+  // 5. Payment Breakdown Table
+  const paySectionY = schedRowY + purposeHeight + 20;
+
+  doc
+    .fillColor(slate900)
+    .font("Helvetica-Bold")
+    .fontSize(10.5)
+    .text("Payment Breakdown", 40, paySectionY);
+
+  const payTableY = paySectionY + 16;
 
   // Table Header
   doc
-    .rect(45, tableHeaderY, 505, 24)
-    .fill("#1E293B");
+    .roundedRect(40, payTableY, tableW, 22, 3)
+    .fill(brandIndigo);
 
   doc
     .fillColor("#FFFFFF")
     .font("Helvetica-Bold")
-    .fontSize(9)
-    .text("DESCRIPTION", 55, tableHeaderY + 7)
-    .text("GATEWAY REF", 280, tableHeaderY + 7)
-    .text("AMOUNT (INR)", 450, tableHeaderY + 7, { align: "right", width: 90 });
+    .fontSize(8)
+    .text("LINE ITEM & DESCRIPTION", 52, payTableY + 7)
+    .text("PAYMENT GATEWAY REF", 280, payTableY + 7)
+    .text("AMOUNT (INR)", 430, payTableY + 7, { align: "right", width: 110 });
 
-  // Table Item Row
-  const itemRowY = tableHeaderY + 24;
-  doc
-    .rect(45, itemRowY, 505, 35)
-    .fillAndStroke("#FFFFFF", borderColor);
+  // Item Row
+  const payRowY = payTableY + 22;
+  const payRowH = 34;
 
   doc
-    .fillColor(secondaryColor)
-    .font("Helvetica")
-    .fontSize(9)
-    .text(`Auditorium Slot Reservation (${booking.startTime} - ${booking.endTime})`, 55, itemRowY + 12)
-    .text(payment.gatewayPaymentId || payment.gatewayOrderId || "N/A", 280, itemRowY + 12)
+    .rect(40, payRowY, tableW, payRowH)
+    .fillAndStroke("#FFFFFF", slate200);
+
+  doc
+    .fillColor(slate900)
     .font("Helvetica-Bold")
-    .text(`INR ${payment.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 450, itemRowY + 12, {
-      align: "right",
-      width: 90,
-    });
-
-  // Summary Rows
-  const totalRowY = itemRowY + 35;
-  doc
-    .rect(45, totalRowY, 505, 38)
-    .fillAndStroke(bgLight, borderColor);
-
-  doc
-    .fillColor(secondaryColor)
-    .font("Helvetica-Bold")
-    .fontSize(11)
-    .text("Total Paid:", 330, totalRowY + 13)
-    .fillColor(primaryColor)
-    .fontSize(13)
-    .text(`INR ${payment.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 450, totalRowY + 12, {
-      align: "right",
-      width: 90,
-    });
-
-  // ---------------- PAYMENT METADATA & BADGE ----------------
-  const metaY = totalRowY + 55;
-
-  doc
-    .roundedRect(45, metaY, 505, 60, 6)
-    .fillAndStroke(bgLight, borderColor);
-
-  doc
-    .fillColor("#15803D") // Green 700
-    .font("Helvetica-Bold")
-    .fontSize(10)
-    .text("STATUS: PAID (CONFIRMED)", 55, metaY + 12);
-
-  doc
-    .fillColor(mutedColor)
-    .font("Helvetica")
     .fontSize(8.5)
-    .text(`Payment Gateway: Razorpay`, 55, metaY + 28)
-    .text(`Razorpay Order ID: ${payment.gatewayOrderId || "N/A"}`, 55, metaY + 40)
-    .text(`Payment ID: ${payment.gatewayPaymentId || "N/A"}`, 280, metaY + 28)
-    .text(
-      `Paid At: ${
-        payment.paidAt
-          ? new Date(payment.paidAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST"
-          : "Confirmed"
-      }`,
-      280,
-      metaY + 40
-    );
+    .text(`Auditorium Booking Fee (${timeSlotText})`, 52, payRowY + 8);
 
-  // ---------------- FOOTER & NOTES ----------------
   doc
-    .moveTo(45, 740)
-    .lineTo(550, 740)
-    .strokeColor(borderColor)
+    .fillColor(slate500)
+    .font("Helvetica")
+    .fontSize(7.5)
+    .text("Official booking slot reservation & maintenance charges", 52, payRowY + 20);
+
+  doc
+    .fillColor(slate700)
+    .font("Helvetica")
+    .fontSize(8)
+    .text(payment?.gatewayPaymentId || payment?.gatewayOrderId || "Online Netbanking/UPI", 280, payRowY + 13);
+
+  doc
+    .fillColor(slate900)
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .text(formatCurrency(payment?.amount || booking?.totalPrice), 430, payRowY + 12, {
+      align: "right",
+      width: 110,
+    });
+
+  // Total Paid Row
+  const totalRowY = payRowY + payRowH;
+  const totalRowH = 38;
+
+  doc
+    .rect(40, totalRowY, tableW, totalRowH)
+    .fillAndStroke(slate50, slate200);
+
+  doc
+    .fillColor(slate700)
+    .font("Helvetica")
+    .fontSize(8)
+    .text("Grand Total Paid (All taxes & facility fees included):", 52, totalRowY + 14);
+
+  doc
+    .fillColor(brandIndigo)
+    .font("Helvetica-Bold")
+    .fontSize(12)
+    .text(formatCurrency(payment?.amount || booking?.totalPrice), 415, totalRowY + 12, {
+      align: "right",
+      width: 125,
+    });
+
+  // 6. Verified Payment Certificate & Transaction Security Box
+  const certY = totalRowY + totalRowH + 18;
+  const certH = 72;
+
+  doc
+    .roundedRect(40, certY, tableW, certH, 5)
+    .fillAndStroke(emerald50, emeraldBorder);
+
+  // Status Badge
+  doc
+    .fillColor(emerald700)
+    .font("Helvetica-Bold")
+    .fontSize(9.5)
+    .text("ELECTRONIC PAYMENT CONFIRMED & VERIFIED", 52, certY + 12);
+
+  // Metadata 2-Column layout inside cert box
+  const col1X = 52;
+  const col2X = 300;
+
+  doc
+    .fillColor(slate500)
+    .font("Helvetica")
+    .fontSize(8)
+    .text("Payment Gateway: Razorpay Financial Services", col1X, certY + 30)
+    .text(`Order Reference: ${payment?.gatewayOrderId || "N/A"}`, col1X, certY + 42)
+    .text(`Transaction ID: ${payment?.gatewayPaymentId || "N/A"}`, col1X, certY + 54);
+
+  const formattedPaidAt = payment?.paidAt
+    ? new Date(payment.paidAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST"
+    : "Confirmed upon order";
+
+  doc
+    .fillColor(slate500)
+    .font("Helvetica")
+    .fontSize(8)
+    .text(`Timestamp: ${formattedPaidAt}`, col2X, certY + 30)
+    .text(`Currency: ${payment?.currency || "INR"} (Indian Rupee)`, col2X, certY + 42)
+    .text(`Verification Hash: ${String(payment?._id || booking?._id).slice(0, 16)}... [SECURE]`, col2X, certY + 54);
+
+  // 7. Official Digital Authentication Watermark Stamp
+  // Draw an elegant circular stamp in the bottom-right corner of the certificate area
+  const stampCenterX = 515;
+  const stampCenterY = certY + 36;
+  const stampRadius = 24;
+
+  doc
+    .circle(stampCenterX, stampCenterY, stampRadius)
     .lineWidth(1)
+    .strokeColor(emeraldBorder)
     .stroke();
 
   doc
-    .fillColor(mutedColor)
+    .circle(stampCenterX, stampCenterY, stampRadius - 3)
+    .lineWidth(0.5)
+    .strokeColor(emerald700)
+    .stroke();
+
+  doc
+    .fillColor(emerald700)
+    .font("Helvetica-Bold")
+    .fontSize(6)
+    .text("AUTHENTIC", stampCenterX - 20, stampCenterY - 7, { align: "center", width: 40 })
+    .text("VERIFIED", stampCenterX - 20, stampCenterY + 1, { align: "center", width: 40 });
+
+  // 8. Footer Section
+  const footerY = 745;
+
+  doc
+    .moveTo(40, footerY)
+    .lineTo(555, footerY)
+    .strokeColor(slate200)
+    .lineWidth(0.75)
+    .stroke();
+
+  doc
+    .fillColor(slate500)
+    .font("Helvetica-Bold")
+    .fontSize(7.5)
+    .text("IMPORTANT NOTICE & CHECK-IN GUIDELINES", 40, footerY + 8, {
+      align: "center",
+      width: tableW,
+    });
+
+  doc
+    .fillColor(slate400)
     .font("Helvetica")
-    .fontSize(8)
+    .fontSize(7.2)
     .text(
-      "Notice: This is an official computer-generated receipt issued by AuditoReserve. Please carry a digital or printed copy during event check-in.",
-      45,
-      750,
-      { align: "center", width: 505 }
+      "This document is an authentic electronic receipt generated by AuditoReserve. Please present a printed or digital copy during auditorium check-in.",
+      40,
+      footerY + 20,
+      { align: "center", width: tableW }
     )
     .text(
-      "For queries or rescheduling policies, contact the facility administration.",
-      45,
-      764,
-      { align: "center", width: 505 }
+      "For rescheduling, cancellations, or audio-visual equipment setup requests, please contact campus facility administration.",
+      40,
+      footerY + 32,
+      { align: "center", width: tableW }
+    )
+    .text(
+      `AuditoReserve Invoicing System • Page 1 of 1 • Generated: ${new Date().toLocaleDateString("en-IN")}`,
+      40,
+      footerY + 45,
+      { align: "center", width: tableW }
     );
 
   doc.end();
