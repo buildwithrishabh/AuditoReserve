@@ -49,6 +49,20 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   const handleDownload = async () => {
     if (!bookingId || !receipt) return;
     try {
@@ -76,7 +90,7 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="confirm-overlay receipt-modal-overlay"
+          className="receipt-modal-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -84,10 +98,10 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
         >
           <motion.div
             className="receipt-modal-container"
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            initial={{ opacity: 0, scale: 0.96, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Actions Header */}

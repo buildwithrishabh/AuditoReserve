@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import { CalendarDays, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
-import { generateGoogleCalendarUrl, downloadIcsFile } from "../../utils/calendarSync";
 
 export function BookingRow({
   booking,
@@ -10,7 +9,6 @@ export function BookingRow({
   onReceipt,
   adminActions,
   isSubmittingAction = false,
-  showSyncActions = false,
 }) {
   const auditorium =
     typeof booking.auditorium === "string" ? undefined : booking.auditorium;
@@ -47,25 +45,6 @@ export function BookingRow({
           <p className="booking-deadline" style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>
             Payment deadline: {formatDeadline(booking.paymentDeadline)}
           </p>
-        )}
-        {showSyncActions && booking.status === "confirmed" && (
-          <div className="calendar-sync-actions">
-            <a
-              href={generateGoogleCalendarUrl(booking, auditorium?.name || "Auditorium Facility")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="button ghost"
-            >
-              📅 Add to Google Calendar
-            </a>
-            <button
-              type="button"
-              onClick={() => downloadIcsFile(booking, auditorium?.name || "Auditorium Facility")}
-              className="button ghost"
-            >
-              📥 Download .ics
-            </button>
-          </div>
         )}
       </div>
       <div className="booking-meta">
