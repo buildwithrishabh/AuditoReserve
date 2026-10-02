@@ -222,6 +222,12 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
     cancelled: "Cancelled",
   };
 
+  const isConfirmed = status === "confirmed";
+  const actionLink = isConfirmed
+    ? `${process.env.FRONTEND_URL}/bookings?receipt=${bookingId}`
+    : `${process.env.FRONTEND_URL}/bookings`;
+  const actionText = isConfirmed ? "View & Download Receipt" : "View Bookings";
+
   return {
     from: {
       name: process.env.FROM_NAME,
@@ -229,7 +235,7 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
     },
     to: user.email,
     subject: `Booking ${bookingStatus[status]} — AuditoReserve`,
-    text: `Hi ${user.name}, your booking ${bookingId} has been ${bookingStatus[status]}.`,
+    text: `Hi ${user.name}, your booking ${bookingId} has been ${bookingStatus[status]}.${isConfirmed ? ` View or download your receipt at: ${actionLink}` : ""}`,
     html: emailLayout({
       badge: "Booking update",
       heading: `Booking ${bookingStatus[status]}`,
@@ -239,10 +245,11 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
         </p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8b8b9e;">
           Your booking ${bookingId} has been ${bookingStatus[status]}.
+          ${isConfirmed ? "Your payment has been received and your auditorium reservation is confirmed. You can view and download your official PDF receipt below." : ""}
         </p>
       `,
-      link: `${process.env.FRONTEND_URL}/bookings`,
-      linkText: "View Bookings",
+      link: actionLink,
+      linkText: actionText,
     }),
   };
 };

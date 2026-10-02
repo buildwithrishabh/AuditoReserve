@@ -8,6 +8,7 @@ const logger = require("../config/logger");
 const emailQueue = require("../queue/emailQueue");
 const User = require("../models/User");
 const { bookingUpdatedEmail } = require("../utils/EmailOptions");
+const { buildReceiptPdf } = require("../utils/receiptGenerator");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -228,6 +229,138 @@ exports.verifyPayment = async (req, res, next) => {
       booking,
       payment,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getReceipt = async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId)
+      .populate("user", "name email")
+      .populate("auditorium");
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    const isOwner = booking.user._id.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "Access Denied" });
+    }
+
+    if (booking.status !== "confirmed" || !booking.paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Receipt unavailable for unconfirmed bookings",
+      });
+    }
+
+    const payment = await Payment.findById(booking.paymentId);
+    if (!payment || payment.status !== "paid") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment not completed" });
+    }
+
+    if (req.query.format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="receipt_${payment.receipt}.pdf"`
+      );
+      return buildReceiptPdf(
+        { booking, payment, user: booking.user, auditorium: booking.auditorium },
+        res
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      receipt: {
+        receiptNumber: payment.receipt,
+        paymentId: payment.gatewayPaymentId,
+        orderId: payment.gatewayOrderId,
+        paidAt: payment.paidAt,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        user: {
+          name: booking.user.name,
+          email: booking.user.email,
+        },
+        auditorium: {
+          name: booking.auditorium.name,
+          location: booking.auditorium.location,
+          capacity: booking.auditorium.capacity,
+        },
+        booking: {
+          id: booking._id,
+          date: booking.bookingDate,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          purpose: booking.purpose,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.downloadReceipt = async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId)
+      .populate("user", "name email")
+      .populate("auditorium");
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    const isOwner = booking.user._id.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "Access Denied" });
+    }
+
+    if (booking.status !== "confirmed" || !booking.paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Receipt unavailable for unconfirmed bookings",
+      });
+    }
+
+    const payment = await Payment.findById(booking.paymentId);
+    if (!payment || payment.status !== "paid") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment not completed" });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="receipt_${payment.receipt}.pdf"`
+    );
+
+    buildReceiptPdf(
+      { booking, payment, user: booking.user, auditorium: booking.auditorium },
+      res
+    );
   } catch (error) {
     next(error);
   }
