@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarDays, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle2, XCircle, Download, Loader2 } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
 
 export function BookingRow({
@@ -7,6 +7,8 @@ export function BookingRow({
   onCancel,
   onPay,
   onReceipt,
+  onDownloadReceipt,
+  isDownloadingReceipt = false,
   adminActions,
   isSubmittingAction = false,
 }) {
@@ -79,15 +81,23 @@ export function BookingRow({
             Pay Now
           </button>
         )}
-        {booking.status === "confirmed" && onReceipt && (
+        {(booking.status === "confirmed") && (onDownloadReceipt || onReceipt) && (
           <button
             className="button ghost"
             type="button"
-            onClick={onReceipt}
-            disabled={isSubmittingAction}
-            title="View & Download Receipt"
+            onClick={onDownloadReceipt || onReceipt}
+            disabled={isSubmittingAction || isDownloadingReceipt}
+            title="Download Receipt"
           >
-            <FileText size={15} /> Receipt
+            {isDownloadingReceipt ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Downloading...
+              </>
+            ) : (
+              <>
+                <Download size={15} /> Download Receipt
+              </>
+            )}
           </button>
         )}
         {adminActions && (

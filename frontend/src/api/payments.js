@@ -46,17 +46,43 @@ export async function getBookingReceipt(bookingId) {
   return data.receipt;
 }
 
-export async function downloadBookingReceiptPdf(bookingId, receiptNumber = "booking") {
-  const response = await api.get(`/payments/${bookingId}/receipt/download`, {
-    responseType: "blob",
-  });
-  const blob = new Blob([response.data], { type: "application/pdf" });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `receipt_${receiptNumber}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
+export async function downloadBookingReceiptPdf(bookingId, receiptNumber) {
+  try {
+    const response = await api.get(`/payments/${bookingId}/receipt/download`, {
+      responseType: "blob",
+    });
+
+    let filename = receiptNumber ? `receipt_${receiptNumber}.pdf` : `receipt_${bookingId}.pdf`;
+    const disposition = response.headers?.["content-disposition"];
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (match && match[1]) {
+        filename = match[1].replace(/['"]/g, "").trim();
+      }
+    }
+
+    const blob = new Blob([response.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    if (error?.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const json = JSON.parse(text);
+        if (json?.message) {
+          throw new Error(json.message);
+        }
+      } catch (parseErr) {
+        if (parseErr.message && parseErr !== error) throw parseErr;
+      }
+    }
+    throw error;
+  }
 }
+

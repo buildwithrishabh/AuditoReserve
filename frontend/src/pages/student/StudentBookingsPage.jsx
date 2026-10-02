@@ -3,11 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getUserBookings, cancelBooking } from "../../api/bookings";
-import { createPaymentOrder, verifyPayment } from "../../api/payments";
+import { createPaymentOrder, verifyPayment, downloadBookingReceiptPdf } from "../../api/payments";
 import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
-import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -21,14 +20,28 @@ export function StudentBookingsPage() {
   const { showToast } = useToast();
   const [status, setStatus] = useState("all");
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
-  const [receiptBookingId, setReceiptBookingId] = useState(null);
+  const [downloadingBookingId, setDownloadingBookingId] = useState(null);
+
+  const handleDownloadReceipt = async (bookingId) => {
+    try {
+      setDownloadingBookingId(bookingId);
+      await downloadBookingReceiptPdf(bookingId);
+      showToast("Receipt downloaded successfully.", "success");
+    } catch (error) {
+      showToast(error?.message || "Failed to download receipt.", "error");
+    } finally {
+      setDownloadingBookingId(null);
+    }
+  };
 
   useEffect(() => {
     const receiptParam = searchParams.get("receipt");
     if (receiptParam) {
-      setReceiptBookingId(receiptParam);
+      void handleDownloadReceipt(receiptParam);
+      searchParams.delete("receipt");
+      setSearchParams(searchParams);
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
   const {
     data = [],
@@ -171,9 +184,10 @@ export function StudentBookingsPage() {
                   }
                   onReceipt={
                     booking.status === "confirmed"
-                      ? () => setReceiptBookingId(booking._id)
+                      ? () => handleDownloadReceipt(booking._id)
                       : undefined
                   }
+                  isDownloadingReceipt={downloadingBookingId === booking._id}
                   isSubmittingAction={cancelMutation.isPending}
                 />
               </motion.div>
@@ -181,18 +195,6 @@ export function StudentBookingsPage() {
           })}
         </motion.div>
       )}
-
-      <BookingReceiptModal
-        isOpen={Boolean(receiptBookingId)}
-        bookingId={receiptBookingId}
-        onClose={() => {
-          setReceiptBookingId(null);
-          if (searchParams.has("receipt")) {
-            searchParams.delete("receipt");
-            setSearchParams(searchParams);
-          }
-        }}
-      />
 
       <ConfirmDialog
         isOpen={Boolean(cancellingBookingId)}
