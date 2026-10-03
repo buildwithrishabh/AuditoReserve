@@ -3,7 +3,11 @@ const User = require("../models/User");
 
 exports.protect = async (req, res, next) => {
   try {
-    const token = req.cookies.accessToken;
+    let token = req.cookies?.accessToken;
+
+    if (!token && req.headers?.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
 
     // No token
     if (!token) {

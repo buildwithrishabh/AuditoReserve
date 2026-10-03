@@ -18,16 +18,30 @@ const {
   authorizeRole,
   isverified,
 } = require("../middlewares/authMiddleware");
+const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+
+// Limiters for auditorium routes
+const viewAuditoriumLimiter = slidingWindowLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  prefix: "rl:auditorium:view",
+});
+
+const uploadAuditoriumLimiter = slidingWindowLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  prefix: "rl:auditorium:mutate",
+});
 
 // ==============================
 // PUBLIC ROUTES
 // ==============================
 
 // Get all auditoriums
-router.get("/viewAllAuditoriums", getAllAuditoriums);
+router.get("/viewAllAuditoriums", viewAuditoriumLimiter, getAllAuditoriums);
 
 // Get single auditorium
-router.get("/viewAuditorium/:id", getSingleAuditorium);
+router.get("/viewAuditorium/:id", viewAuditoriumLimiter, getSingleAuditorium);
 
 // ==============================
 // ADMIN ROUTES
@@ -39,6 +53,7 @@ router.post(
   protect,
   authorizeRole("admin"),
   isverified,
+  uploadAuditoriumLimiter,
   upload.array("images", 5),
   createAuditorium,
 );
@@ -49,6 +64,7 @@ router.put(
   protect,
   authorizeRole("admin"),
   isverified,
+  uploadAuditoriumLimiter,
   upload.array("images", 5),
   updateAuditorium,
 );

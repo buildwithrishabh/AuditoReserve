@@ -4,7 +4,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-const rateLimit = require("express-rate-limit");
+const { slidingWindowLimiter } = require("./middlewares/rateLimiter");
 
 // Load env vars
 dotenv.config();
@@ -16,16 +16,11 @@ const app = express();
 // Trust proxy (required behind reverse proxies like nginx, Cloudflare, etc.)
 app.set("trust proxy", 1);
 
-// Rate limiting for auth endpoints (prevents brute force attacks)
-const authLimiter = rateLimit({
+// General rate limiter for auth router (Redis sliding window)
+const authLimiter = slidingWindowLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 attempts per window per IP
-  message: {
-    success: false,
-    message: "Too many attempts, please try again later",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
+  max: 60,
+  prefix: "rl:auth:general",
 });
 
 // Middlewares
