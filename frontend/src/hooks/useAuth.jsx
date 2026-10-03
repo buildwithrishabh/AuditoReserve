@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe, logout as logoutRequest } from "../api/auth";
+import { setApiAccessToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -28,11 +29,13 @@ export function AuthProvider({ children }) {
   const setUser = useCallback((user, token = null) => {
     setManualUser(user);
     setManualToken(token);
+    setApiAccessToken(token);
   }, []);
 
   const logout = useCallback(async () => {
     setManualUser(null);
     setManualToken(null);
+    setApiAccessToken(null);
     queryClient.setQueryData(["auth", "me"], null);
     try {
       await logoutRequest();
@@ -43,9 +46,16 @@ export function AuthProvider({ children }) {
   }, [queryClient]);
 
   useEffect(() => {
+    if (data?.accessToken) {
+      setApiAccessToken(data.accessToken);
+    }
+  }, [data?.accessToken]);
+
+  useEffect(() => {
     const handleExpired = () => {
       setManualUser(null);
       setManualToken(null);
+      setApiAccessToken(null);
       queryClient.clear();
     };
 
@@ -58,6 +68,7 @@ export function AuthProvider({ children }) {
       const { user, accessToken } = e.detail;
       setManualUser(user);
       setManualToken(accessToken);
+      setApiAccessToken(accessToken);
       queryClient.setQueryData(["auth", "me"], { user, accessToken });
     };
 

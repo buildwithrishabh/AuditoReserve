@@ -1484,6 +1484,20 @@ p {
   min-height: 100vh;
 }
 
+/* ===== Admin Topbar Desktop ===== */
+.admin-topbar-desktop {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .admin-topbar-desktop {
+    display: none;
+  }
+}
+
 /* ===== Metrics Dashboard ===== */
 .metric-grid {
   display: grid;

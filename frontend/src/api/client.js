@@ -5,6 +5,20 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+let currentAccessToken = null;
+
+export function setApiAccessToken(token) {
+  currentAccessToken = token || null;
+}
+
+api.interceptors.request.use((config) => {
+  if (currentAccessToken && !config.headers?.Authorization) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${currentAccessToken}`;
+  }
+  return config;
+});
+
 let refreshPromise = null;
 
 const skipRefreshFor = ["/auth/refresh", "/auth/login", "/auth/register", "/auth/logout"];
@@ -33,6 +47,10 @@ api.interceptors.response.use(
         const refreshResponse = await refreshPromise;
         refreshPromise = null;
 
+        if (refreshResponse.data?.accessToken) {
+          setApiAccessToken(refreshResponse.data.accessToken);
+        }
+
         // Notify useAuth to update local state/context with new token and user
         window.dispatchEvent(
           new CustomEvent("auth:refreshed", {
@@ -46,6 +64,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         refreshPromise = null;
+        setApiAccessToken(null);
         window.dispatchEvent(new Event("auth:expired"));
         return Promise.reject(refreshError);
       }

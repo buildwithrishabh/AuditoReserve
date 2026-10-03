@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getAllBookings, updateBookingStatus } from "../../api/bookings";
-import { downloadBookingReceiptPdf } from "../../api/payments";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
+import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -15,19 +15,7 @@ export function AdminBookingsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [status, setStatus] = useState("pending");
-  const [downloadingBookingId, setDownloadingBookingId] = useState(null);
-
-  const handleDownloadReceipt = async (bookingId) => {
-    try {
-      setDownloadingBookingId(bookingId);
-      await downloadBookingReceiptPdf(bookingId);
-      showToast("Receipt downloaded successfully.", "success");
-    } catch (error) {
-      showToast(error?.message || "Failed to download receipt.", "error");
-    } finally {
-      setDownloadingBookingId(null);
-    }
-  };
+  const [selectedReceiptBookingId, setSelectedReceiptBookingId] = useState(null);
   
   // Custom dialog control
   const [pendingAction, setPendingAction] = useState(null);
@@ -131,10 +119,9 @@ export function AdminBookingsPage() {
                   }
                   onReceipt={
                     booking.status === "confirmed"
-                      ? () => handleDownloadReceipt(booking._id)
+                      ? () => setSelectedReceiptBookingId(booking._id)
                       : undefined
                   }
-                  isDownloadingReceipt={downloadingBookingId === booking._id}
                   isSubmittingAction={statusMutation.isPending}
                 />
               </motion.div>
@@ -158,6 +145,12 @@ export function AdminBookingsPage() {
         cancelText="Dismiss"
         onConfirm={handleConfirmAction}
         onCancel={() => setPendingAction(null)}
+      />
+
+      <BookingReceiptModal
+        isOpen={Boolean(selectedReceiptBookingId)}
+        bookingId={selectedReceiptBookingId}
+        onClose={() => setSelectedReceiptBookingId(null)}
       />
     </section>
   );

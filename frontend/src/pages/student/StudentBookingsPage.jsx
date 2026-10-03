@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getUserBookings, cancelBooking } from "../../api/bookings";
-import { createPaymentOrder, verifyPayment, downloadBookingReceiptPdf } from "../../api/payments";
+import { createPaymentOrder, verifyPayment } from "../../api/payments";
 import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
+import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -20,28 +21,7 @@ export function StudentBookingsPage() {
   const { showToast } = useToast();
   const [status, setStatus] = useState("all");
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
-  const [downloadingBookingId, setDownloadingBookingId] = useState(null);
-
-  const handleDownloadReceipt = async (bookingId) => {
-    try {
-      setDownloadingBookingId(bookingId);
-      await downloadBookingReceiptPdf(bookingId);
-      showToast("Receipt downloaded successfully.", "success");
-    } catch (error) {
-      showToast(error?.message || "Failed to download receipt.", "error");
-    } finally {
-      setDownloadingBookingId(null);
-    }
-  };
-
-  useEffect(() => {
-    const receiptParam = searchParams.get("receipt");
-    if (receiptParam) {
-      void handleDownloadReceipt(receiptParam);
-      searchParams.delete("receipt");
-      setSearchParams(searchParams);
-    }
-  }, [searchParams, setSearchParams]);
+  const [selectedReceiptBookingId, setSelectedReceiptBookingId] = useState(null);
 
   const {
     data = [],
@@ -64,50 +44,73 @@ export function StudentBookingsPage() {
     },
   });
 
-  const handlePayNow = async (bookingId) => {
-    const loaded = await loadRazorpayScript();
+  const handlePayNow = useCallback(
+    async (bookingId) => {
+      const loaded = await loadRazorpayScript();
 
-    if (!loaded || !window.Razorpay) {
-      showToast("Could not load Razorpay checkout.", "error");
-      return;
+      if (!loaded || !window.Razorpay) {
+        showToast("Could not load Razorpay checkout.", "error");
+        return;
+      }
+
+      try {
+        const paymentData = await createPaymentOrder(bookingId);
+
+        const options = {
+          key: paymentData.key,
+          amount: paymentData.order.amount,
+          currency: paymentData.order.currency,
+          name: "AuditoReserve",
+          description: "Auditorium booking payment",
+          order_id: paymentData.order.id,
+          handler: async (response) => {
+            try {
+              const result = await verifyPayment({
+                bookingId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              showToast(result.message || "Payment successful.", "success");
+              void queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+              // Automatically display official payment receipt preview upon verified payment
+              setSelectedReceiptBookingId(bookingId);
+            } catch (error) {
+              showToast(error instanceof Error ? error.message : "Payment verification failed.", "error");
+            }
+          },
+          theme: {
+            color: "#7c73e6",
+          },
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Failed to create payment order.", "error");
+      }
+    },
+    [queryClient, showToast],
+  );
+
+  // Handle URL query parameters for ?receipt=<id> and ?pay=<id> (from email links)
+  useEffect(() => {
+    const receiptParam = searchParams.get("receipt");
+    const payParam = searchParams.get("pay");
+
+    if (receiptParam) {
+      setSelectedReceiptBookingId(receiptParam);
+      searchParams.delete("receipt");
+      setSearchParams(searchParams, { replace: true });
     }
 
-    try {
-      const paymentData = await createPaymentOrder(bookingId);
-
-      const options = {
-        key: paymentData.key,
-        amount: paymentData.order.amount,
-        currency: paymentData.order.currency,
-        name: "AuditoReserve",
-        description: "Auditorium booking payment",
-        order_id: paymentData.order.id,
-        handler: async (response) => {
-          try {
-            const result = await verifyPayment({
-              bookingId,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            showToast(result.message || "Payment successful.", "success");
-            void queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
-          } catch (error) {
-            showToast(error instanceof Error ? error.message : "Payment verification failed.", "error");
-          }
-        },
-        theme: {
-          color: "#7c73e6",
-        },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "Failed to create payment order.", "error");
+    if (payParam) {
+      void handlePayNow(payParam);
+      searchParams.delete("pay");
+      setSearchParams(searchParams, { replace: true });
     }
-  };
+  }, [searchParams, setSearchParams, handlePayNow]);
 
   const bookings = data.filter((b) => status === "all" || b.status === status);
 
@@ -184,10 +187,9 @@ export function StudentBookingsPage() {
                   }
                   onReceipt={
                     booking.status === "confirmed"
-                      ? () => handleDownloadReceipt(booking._id)
+                      ? () => setSelectedReceiptBookingId(booking._id)
                       : undefined
                   }
-                  isDownloadingReceipt={downloadingBookingId === booking._id}
                   isSubmittingAction={cancelMutation.isPending}
                 />
               </motion.div>
@@ -204,6 +206,12 @@ export function StudentBookingsPage() {
         cancelText="Keep Booking"
         onConfirm={handleConfirmCancel}
         onCancel={() => setCancellingBookingId(null)}
+      />
+
+      <BookingReceiptModal
+        isOpen={Boolean(selectedReceiptBookingId)}
+        bookingId={selectedReceiptBookingId}
+        onClose={() => setSelectedReceiptBookingId(null)}
       />
     </section>
   );
