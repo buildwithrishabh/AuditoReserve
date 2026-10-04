@@ -66,10 +66,20 @@ const bookingSchema = new mongoose.Schema(
 
 bookingSchema.index({
   auditorium: 1,
-  bookingDate: 1,
   status: 1,
-  paymentDeadline: 1,
+  bookingDate: 1,
+  startTime: 1,
+  endTime: 1,
 });
+
+// Index for user Dashboard Query: getUserBookings
+bookingSchema.index({ user: 1, createdAt: -1 });
+
+// Index for Admin Dashboard Query: getAllBookings (sorted by newest)
+bookingSchema.index({ createdAt: -1 });
+
+// Index for payment auto-expiry queue worker query
+bookingSchema.index({ status: 1, paymentDeadline: 1 });
 
 
 module.exports = mongoose.model("Booking", bookingSchema);

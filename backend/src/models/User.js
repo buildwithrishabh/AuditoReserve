@@ -48,4 +48,10 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+// Tokens par sparse index lagayein taaki empty strings ya nulls index space na lein
+userSchema.index({ refreshToken: 1 }, { sparse: true });
+userSchema.index({ verificationToken: 1 }, { sparse: true });
+userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
+
+
 module.exports = mongoose.model("User", userSchema);
