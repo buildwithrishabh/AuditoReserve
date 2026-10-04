@@ -346,6 +346,7 @@ exports.getUserBookings = async (req, res, next) => {
 // Update Booking Status (Admin)
 // ===============================
 exports.updateBookingStatus = async (req, res, next) => {
+  let lock = null;
   try {
     const { status } = req.body;
 
@@ -413,13 +414,32 @@ exports.updateBookingStatus = async (req, res, next) => {
       });
     }
 
+    // --- APPROVAL LOGIC WITH DISTRIBUTED LOCK ---
+    const bookingDay = new Date(booking.bookingDate);
+    bookingDay.setHours(0, 0, 0, 0);
+
+    const lockKey = `lock:booking:${booking.auditorium}:${bookingDay.getTime()}`;
+    lock = await acquireLock(lockKey, 15000); // 15s lock
+
+    if (!lock) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Another booking process is running for this auditorium. Try again.",
+      });
+    }
+
     // ===============================================================
     // Concurrency Check: Prevent double-booking on Admin Confirmation
     // ===============================================================
+    const dayStart = new Date(bookingDay);
+    const dayEnd = new Date(bookingDay);
+    dayEnd.setHours(23, 59, 59, 999);
+
     const overlappingConfirmed = await Booking.findOne({
       _id: { $ne: booking._id }, // Exclude this booking itself from the search
       auditorium: booking.auditorium,
-      bookingDate: booking.bookingDate,
+      bookingDate: { $gte: dayStart, $lte: dayEnd },
       status: {
         $in: ["approved", "confirmed"],
       },
@@ -435,7 +455,7 @@ exports.updateBookingStatus = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message:
-          "Cannot confirm. This time slot conflicts with an already confirmed booking.",
+          "Cannot approve. This time slot conflicts with an already approved/confirmed booking.",
       });
     }
 
@@ -517,6 +537,10 @@ exports.updateBookingStatus = async (req, res, next) => {
   } catch (error) {
     logger.error("Error updating booking status:", error);
     next(error);
+  } finally {
+    if (lock) {
+      await releaseLock(lock.key, lock.value);
+    }
   }
 };
 
