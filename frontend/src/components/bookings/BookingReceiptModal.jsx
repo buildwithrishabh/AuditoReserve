@@ -235,7 +235,7 @@ export function BookingReceiptModal({ isOpen, bookingId, onClose }) {
                         </button>
                       </div>
                       <p className="receipt-date">
-                        Issued: {formatDateTime(receipt.paidAt || Date.now())}
+                        Issued: {formatDateTime(receipt.paidAt)}
                       </p>
                     </div>
                   </div>

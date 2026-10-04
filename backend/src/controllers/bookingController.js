@@ -248,44 +248,96 @@ exports.createBooking = async (req, res, next) => {
 };
 
 // ===============================
-// Get Logged In User Bookings
+// Get All Bookings (Admin)
 // ===============================
-exports.getUserBookings = async (req, res, next) => {
+exports.getAllBookings = async (req, res, next) => {
   try {
-    const bookings = await Booking.find({
-      user: req.user.id,
-    })
-      .populate("auditorium")
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit, 10) || 20),
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    if (req.query.auditoriumId) {
+      filter.auditorium = req.query.auditoriumId;
+    }
+
+    const [bookings, total] = await Promise.all([
+      Booking.find(filter)
+        .populate("user", "name email")
+        .populate("auditorium", "name capacity basePrice")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Booking.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
       count: bookings.length,
-      bookings,
+      bookings, // Required for frontend compatibility (data.bookings)
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+      },
     });
   } catch (error) {
-    logger.error("Error fetching user bookings:", error);
+    logger.error("Error fetching all bookings for admin:", error);
     next(error);
   }
 };
 
 // ===============================
-// Get All Bookings (Admin)
+// Get Logged In User Bookings
 // ===============================
-exports.getAllBookings = async (req, res, next) => {
+exports.getUserBookings = async (req, res, next) => {
   try {
-    const bookings = await Booking.find()
-      .populate("user", "name email")
-      .populate("auditorium")
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(req.query.limit, 10) || 10),
+    );
+
+    const skip = (page - 1) * limit;
+
+    const filter = { user: req.user.id };
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    const [bookings, total] = await Promise.all([
+      Booking.find(filter)
+        .populate("auditorium", "name capacity basePrice images")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Booking.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
       count: bookings.length,
-      bookings,
+      bookings, // Required for frontend compatibility (data.bookings)
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+      },
     });
   } catch (error) {
-    logger.error("Error fetching all bookings for admin:", error);
+    logger.error("Error fetching user bookings:", error);
     next(error);
   }
 };

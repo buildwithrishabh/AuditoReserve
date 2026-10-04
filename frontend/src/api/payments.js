@@ -72,14 +72,19 @@ export async function downloadBookingReceiptPdf(bookingId, receiptNumber) {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     if (error?.response?.data instanceof Blob) {
+      let customMessage = null;
       try {
         const text = await error.response.data.text();
         const json = JSON.parse(text);
         if (json?.message) {
-          throw new Error(json.message);
+          customMessage = json.message;
         }
-      } catch (parseErr) {
-        if (parseErr.message && parseErr !== error) throw parseErr;
+      } catch {
+        // Response blob is not valid JSON, ignore parse error
+      }
+
+      if (customMessage) {
+        throw new Error(customMessage, { cause: error });
       }
     }
     throw error;

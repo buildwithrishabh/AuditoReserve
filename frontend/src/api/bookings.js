@@ -8,11 +8,12 @@ export async function createBooking(input) {
   return data;
 }
 
-export async function getUserBookings() {
+export async function getUserBookings(params = {}) {
   const { data } = await api.get(
     "/bookings/my-bookings",
+    { params }
   );
-  return data.bookings;
+  return data;
 }
 
 export async function cancelBooking(id) {
@@ -20,11 +21,12 @@ export async function cancelBooking(id) {
   return data;
 }
 
-export async function getAllBookings() {
+export async function getAllBookings(params = {}) {
   const { data } = await api.get(
     "/bookings/all",
+    { params }
   );
-  return data.bookings;
+  return data;
 }
 
 export async function updateBookingStatus(id, status) {

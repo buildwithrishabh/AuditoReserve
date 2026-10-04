@@ -13,6 +13,7 @@ import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState, EmptyState } from "../../components/common/ErrorState";
 import { RefreshButton } from "../../components/common/RefreshButton";
+import { Pagination } from "../../components/common/Pagination";
 import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function StudentBookingsPage() {
@@ -20,18 +21,38 @@ export function StudentBookingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
   const [selectedReceiptBookingId, setSelectedReceiptBookingId] = useState(null);
 
   const {
-    data = [],
+    data,
     isLoading,
     isError,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: ["my-bookings"],
-    queryFn: getUserBookings,
+    queryKey: ["my-bookings", page, status],
+    queryFn: () =>
+      getUserBookings({
+        page,
+        limit: 10,
+        status: status === "all" ? undefined : status,
+      }),
   });
+
+  const bookings = data?.bookings || (Array.isArray(data) ? data : []);
+  const pagination = data?.pagination || {
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    totalItems: bookings.length,
+  };
+
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus);
+    setPage(1);
+  };
 
   const cancelMutation = useMutation({
     mutationFn: cancelBooking,
@@ -112,8 +133,6 @@ export function StudentBookingsPage() {
     }
   }, [searchParams, setSearchParams, handlePayNow]);
 
-  const bookings = data.filter((b) => status === "all" || b.status === status);
-
   const handleCancelClick = (id) => {
     setCancellingBookingId(id);
   };
@@ -138,7 +157,7 @@ export function StudentBookingsPage() {
         </div>
       </div>
 
-      <StatusTabs value={status} onChange={setStatus} includeAll />
+      <StatusTabs value={status} onChange={handleStatusChange} includeAll />
 
       {isLoading && (
         <FullPageState
@@ -162,40 +181,51 @@ export function StudentBookingsPage() {
       )}
       
       {!isLoading && !isError && bookings.length > 0 && (
-        <motion.div
-          className="booking-list"
-          variants={staggerContainerFast}
-          initial="hidden"
-          animate="visible"
-        >
-          {bookings.map((booking) => {
-            const isPaymentExpired =
-              booking.paymentDeadline && new Date(booking.paymentDeadline) < new Date();
-            return (
-              <motion.div key={booking._id} variants={listItem}>
-                <BookingRow
-                  booking={booking}
-                  onPay={
-                    booking.status === "approved" && !isPaymentExpired
-                      ? () => void handlePayNow(booking._id)
-                      : undefined
-                  }
-                  onCancel={
-                    booking.status === "pending"
-                      ? () => handleCancelClick(booking._id)
-                      : undefined
-                  }
-                  onReceipt={
-                    booking.status === "confirmed"
-                      ? () => setSelectedReceiptBookingId(booking._id)
-                      : undefined
-                  }
-                  isSubmittingAction={cancelMutation.isPending}
-                />
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        <>
+          <motion.div
+            className="booking-list"
+            variants={staggerContainerFast}
+            initial="hidden"
+            animate="visible"
+          >
+            {bookings.map((booking) => {
+              const isPaymentExpired =
+                booking.paymentDeadline && new Date(booking.paymentDeadline) < new Date();
+              return (
+                <motion.div key={booking._id} variants={listItem}>
+                  <BookingRow
+                    booking={booking}
+                    onPay={
+                      booking.status === "approved" && !isPaymentExpired
+                        ? () => void handlePayNow(booking._id)
+                        : undefined
+                    }
+                    onCancel={
+                      booking.status === "pending"
+                        ? () => handleCancelClick(booking._id)
+                        : undefined
+                    }
+                    onReceipt={
+                      booking.status === "confirmed"
+                        ? () => setSelectedReceiptBookingId(booking._id)
+                        : undefined
+                    }
+                    isSubmittingAction={cancelMutation.isPending}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            limit={pagination.limit}
+            onPageChange={(newPage) => setPage(newPage)}
+            isLoading={isFetching}
+          />
+        </>
       )}
 
       <ConfirmDialog

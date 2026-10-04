@@ -35,10 +35,16 @@ export function AdminDashboard() {
     queryFn: getAllAuditoriums,
   });
 
-  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery({
-    queryKey: ["admin-bookings"],
-    queryFn: getAllBookings,
+  const { data: bookingsResponse, isLoading: isLoadingBookings } = useQuery({
+    queryKey: ["admin-dashboard-bookings"],
+    queryFn: () => getAllBookings({ limit: 100 }),
   });
+
+  const bookings =
+    bookingsResponse?.bookings ||
+    (Array.isArray(bookingsResponse) ? bookingsResponse : []);
+  const totalBookingsCount =
+    bookingsResponse?.pagination?.totalItems ?? bookings.length;
 
   const pending = bookings.filter((b) => b.status === "pending");
   const confirmed = bookings.filter((b) => b.status === "confirmed");
@@ -70,7 +76,7 @@ export function AdminDashboard() {
         >
           <motion.div className="metric-grid" variants={staggerContainerFast}>
             <MetricCard title="Auditoriums" value={auditoriums.length} />
-            <MetricCard title="Total bookings" value={bookings.length} />
+            <MetricCard title="Total bookings" value={totalBookingsCount} />
             <MetricCard title="Pending requests" value={pending.length} tone="accent" />
             <MetricCard title="Confirmed" value={confirmed.length} tone="success" />
           </motion.div>

@@ -9,12 +9,14 @@ import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState, EmptyState } from "../../components/common/ErrorState";
+import { Pagination } from "../../components/common/Pagination";
 import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function AdminBookingsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [status, setStatus] = useState("pending");
+  const [page, setPage] = useState(1);
   const [selectedReceiptBookingId, setSelectedReceiptBookingId] = useState(null);
   
   // Custom dialog control
@@ -23,14 +25,28 @@ export function AdminBookingsPage() {
   const [confirmMessage, setConfirmMessage] = useState("");
 
   const {
-    data = [],
+    data,
     isLoading,
     isError,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: ["admin-bookings"],
-    queryFn: getAllBookings,
+    queryKey: ["admin-bookings", page, status],
+    queryFn: () =>
+      getAllBookings({
+        page,
+        limit: 10,
+        status: status === "all" ? undefined : status,
+      }),
   });
+
+  const bookings = data?.bookings || (Array.isArray(data) ? data : []);
+  const pagination = data?.pagination || {
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    totalItems: bookings.length,
+  };
 
   const statusMutation = useMutation({
     mutationFn: ({ id, nextStatus }) =>
@@ -45,7 +61,10 @@ export function AdminBookingsPage() {
     },
   });
 
-  const bookings = data.filter((b) => status === "all" || b.status === status);
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus);
+    setPage(1);
+  };
 
   const handleAdminActionClick = (bookingId, nextStatus, bookingTitle) => {
     setPendingAction({ bookingId, nextStatus });
@@ -79,7 +98,7 @@ export function AdminBookingsPage() {
         <p>Review student requests and approve or cancel booked facility slots.</p>
       </div>
 
-      <StatusTabs value={status} onChange={setStatus} includeAll />
+      <StatusTabs value={status} onChange={handleStatusChange} includeAll />
 
       {isLoading && (
         <FullPageState
@@ -96,38 +115,49 @@ export function AdminBookingsPage() {
       )}
       
       {!isLoading && !isError && (
-        <motion.div
-          className="booking-list"
-          style={{ marginTop: "24px" }}
-          variants={staggerContainerFast}
-          initial="hidden"
-          animate="visible"
-        >
-          {bookings.map((booking) => {
-            const auditorium =
-              typeof booking.auditorium === "string" ? undefined : booking.auditorium;
-            const bookingTitle = auditorium?.name || "Auditorium Facility";
-            
-            return (
-              <motion.div key={booking._id} variants={listItem}>
-                <BookingRow
-                  booking={booking}
-                  adminActions={
-                    booking.status === "pending"
-                      ? (nextStatus) => handleAdminActionClick(booking._id, nextStatus, bookingTitle)
-                      : undefined
-                  }
-                  onReceipt={
-                    booking.status === "confirmed"
-                      ? () => setSelectedReceiptBookingId(booking._id)
-                      : undefined
-                  }
-                  isSubmittingAction={statusMutation.isPending}
-                />
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        <>
+          <motion.div
+            className="booking-list"
+            style={{ marginTop: "24px" }}
+            variants={staggerContainerFast}
+            initial="hidden"
+            animate="visible"
+          >
+            {bookings.map((booking) => {
+              const auditorium =
+                typeof booking.auditorium === "string" ? undefined : booking.auditorium;
+              const bookingTitle = auditorium?.name || "Auditorium Facility";
+              
+              return (
+                <motion.div key={booking._id} variants={listItem}>
+                  <BookingRow
+                    booking={booking}
+                    adminActions={
+                      booking.status === "pending"
+                        ? (nextStatus) => handleAdminActionClick(booking._id, nextStatus, bookingTitle)
+                        : undefined
+                    }
+                    onReceipt={
+                      booking.status === "confirmed"
+                        ? () => setSelectedReceiptBookingId(booking._id)
+                        : undefined
+                    }
+                    isSubmittingAction={statusMutation.isPending}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            limit={pagination.limit}
+            onPageChange={(newPage) => setPage(newPage)}
+            isLoading={isFetching}
+          />
+        </>
       )}
 
       {!isLoading && !isError && bookings.length === 0 && (
