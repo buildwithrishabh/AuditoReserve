@@ -247,7 +247,25 @@ VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 - **MongoDB**: Local MongoDB community instance or MongoDB Atlas URI
 - **Redis**: Local server instance or Redis Cloud instance
 
-### ⚡ Installation & Local Development
+### 🐳 Running with Docker (Recommended)
+Launch the entire platform (MongoDB, Redis, Node.js API, and Nginx React Frontend) in isolated containers with one command:
+
+```bash
+# Build and run all services in detached mode
+docker compose up -d --build
+
+# Inspect running containers
+docker compose ps
+
+# View unified logs
+docker compose logs -f
+```
+* **Frontend Application:** [http://localhost](http://localhost)
+* **Backend Health Check:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+---
+
+### ⚡ Manual Local Development
 
 1. **Clone the repository**
    ```bash
