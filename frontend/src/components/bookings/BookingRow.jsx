@@ -81,25 +81,25 @@ export function BookingRow({
             Pay Now
           </button>
         )}
-        {(booking.status === "confirmed") && (onReceipt || onDownloadReceipt) && (
+        {(booking.status === "confirmed") && (onDownloadReceipt || onReceipt) && (
           <button
             className="button ghost"
             type="button"
-            onClick={onReceipt || onDownloadReceipt}
+            onClick={onDownloadReceipt || onReceipt}
             disabled={isSubmittingAction || isDownloadingReceipt}
-            title={onReceipt ? "View Receipt" : "Download Receipt"}
+            title={onDownloadReceipt ? "Download Receipt" : "View Receipt"}
           >
             {isDownloadingReceipt ? (
               <>
                 <Loader2 size={15} className="animate-spin" /> Downloading...
               </>
-            ) : onReceipt ? (
+            ) : onDownloadReceipt ? (
               <>
-                <FileText size={15} /> View Receipt
+                <Download size={15} /> Download Receipt
               </>
             ) : (
               <>
-                <Download size={15} /> Download Receipt
+                <FileText size={15} /> View Receipt
               </>
             )}
           </button>

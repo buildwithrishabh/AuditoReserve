@@ -3,11 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getUserBookings, cancelBooking } from "../../api/bookings";
-import { createPaymentOrder, verifyPayment } from "../../api/payments";
+import {
+  createPaymentOrder,
+  verifyPayment,
+  downloadBookingReceiptPdf,
+} from "../../api/payments";
 import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
-import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
@@ -23,7 +26,7 @@ export function StudentBookingsPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
-  const [selectedReceiptBookingId, setSelectedReceiptBookingId] = useState(null);
+  const [downloadingBookingId, setDownloadingBookingId] = useState(null);
 
   const {
     data,
@@ -65,6 +68,21 @@ export function StudentBookingsPage() {
     },
   });
 
+  const handleDownloadReceipt = useCallback(
+    async (bookingId, receiptNumber) => {
+      try {
+        setDownloadingBookingId(bookingId);
+        await downloadBookingReceiptPdf(bookingId, receiptNumber);
+        showToast("Receipt downloaded successfully.", "success");
+      } catch (error) {
+        showToast(error?.message || "Failed to download receipt.", "error");
+      } finally {
+        setDownloadingBookingId(null);
+      }
+    },
+    [showToast],
+  );
+
   const handlePayNow = useCallback(
     async (bookingId) => {
       const loaded = await loadRazorpayScript();
@@ -95,8 +113,8 @@ export function StudentBookingsPage() {
 
               showToast(result.message || "Payment successful.", "success");
               void queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
-              // Automatically display official payment receipt preview upon verified payment
-              setSelectedReceiptBookingId(bookingId);
+              // Automatically trigger official payment receipt download
+              void handleDownloadReceipt(bookingId);
             } catch (error) {
               showToast(error instanceof Error ? error.message : "Payment verification failed.", "error");
             }
@@ -112,7 +130,7 @@ export function StudentBookingsPage() {
         showToast(error instanceof Error ? error.message : "Failed to create payment order.", "error");
       }
     },
-    [queryClient, showToast],
+    [queryClient, showToast, handleDownloadReceipt],
   );
 
   // Handle URL query parameters for ?receipt=<id> and ?pay=<id> (from email links)
@@ -121,7 +139,7 @@ export function StudentBookingsPage() {
     const payParam = searchParams.get("pay");
 
     if (receiptParam) {
-      setSelectedReceiptBookingId(receiptParam);
+      void handleDownloadReceipt(receiptParam);
       searchParams.delete("receipt");
       setSearchParams(searchParams, { replace: true });
     }
@@ -131,7 +149,7 @@ export function StudentBookingsPage() {
       searchParams.delete("pay");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams, handlePayNow]);
+  }, [searchParams, setSearchParams, handlePayNow, handleDownloadReceipt]);
 
   const handleCancelClick = (id) => {
     setCancellingBookingId(id);
@@ -205,11 +223,12 @@ export function StudentBookingsPage() {
                         ? () => handleCancelClick(booking._id)
                         : undefined
                     }
-                    onReceipt={
+                    onDownloadReceipt={
                       booking.status === "confirmed"
-                        ? () => setSelectedReceiptBookingId(booking._id)
+                        ? () => handleDownloadReceipt(booking._id)
                         : undefined
                     }
+                    isDownloadingReceipt={downloadingBookingId === booking._id}
                     isSubmittingAction={cancelMutation.isPending}
                   />
                 </motion.div>
@@ -236,12 +255,6 @@ export function StudentBookingsPage() {
         cancelText="Keep Booking"
         onConfirm={handleConfirmCancel}
         onCancel={() => setCancellingBookingId(null)}
-      />
-
-      <BookingReceiptModal
-        isOpen={Boolean(selectedReceiptBookingId)}
-        bookingId={selectedReceiptBookingId}
-        onClose={() => setSelectedReceiptBookingId(null)}
       />
     </section>
   );
