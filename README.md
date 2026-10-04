@@ -1,70 +1,76 @@
 <div align="center">
 
   # 🏛️ AuditoReserve
-  ### *Next-Generation Campus Auditorium Booking & Management Platform*
+  ### *Enterprise-Grade Campus Auditorium Reservation & Facility Management Platform*
 
   [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-  [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg?logo=node.js)](https://nodejs.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933.svg?logo=node.js)](https://nodejs.org/)
+  [![Express.js](https://img.shields.io/badge/Express.js-v4.21-000000.svg?logo=express)](https://expressjs.com/)
   [![React](https://img.shields.io/badge/React-v19-61DAFB.svg?logo=react)](https://react.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-v6.0-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38BDF8.svg?logo=tailwindcss)](https://tailwindcss.com/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-v6.0-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-06B6D4.svg?logo=tailwindcss)](https://tailwindcss.com/)
   [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248.svg?logo=mongodb)](https://www.mongodb.com/)
   [![Redis](https://img.shields.io/badge/Redis-ioredis-DC382D.svg?logo=redis)](https://redis.io/)
-  [![BullMQ](https://img.shields.io/badge/BullMQ-Asynchronous_Queue-FF4500.svg)](https://bullmq.io/)
+  [![BullMQ](https://img.shields.io/badge/BullMQ-Asynchronous_Queues-FF4500.svg)](https://bullmq.io/)
   [![Razorpay](https://img.shields.io/badge/Razorpay-Payment_Gateway-0C2340.svg?logo=razorpay)](https://razorpay.com/)
+  [![Cloudinary](https://img.shields.io/badge/Cloudinary-CDN_Media-3448C5.svg?logo=cloudinary)](https://cloudinary.com/)
 
   <p align="center">
-    <b>AuditoReserve</b> is an enterprise-grade, high-performance auditorium reservation system tailored for educational institutions. Designed with role-based workflows, real-time availability tracking, resilient caching, asynchronous job queues, and seamless online payment processing.
+    <b>AuditoReserve</b> is a modern, high-performance auditorium booking platform built for university campuses. Designed with role-based workflows, distributed concurrency control, real-time multi-node synchronization, asynchronous background queues, and instant CDN-delivered PDF receipts.
+  </p>
+
+  <p align="center">
+    <a href="#-key-features">Key Features</a> •
+    <a href="#-system-architecture">System Architecture</a> •
+    <a href="#-tech-stack">Tech Stack</a> •
+    <a href="#-getting-started">Getting Started</a> •
+    <a href="#-api-endpoints">API Reference</a> •
+    <a href="./ARCHITECTURE.md">Deep-Dive Architecture ↗</a>
   </p>
 
 </div>
 
 ---
 
-## 📌 Table of Contents
+## 📖 Overview
 
-- [📚 In-Depth Feature Guides](./docs/features/README.md)
-- [✨ Key Features](#-key-features)
-  - [👤 Student Experience](#-student-experience)
-  - [🔑 Admin Management](#-admin-management)
-  - [⚙️ Architecture \& Reliability](#️-architecture--reliability)
-  - [🛡️ Enterprise Security](#️-enterprise-security)
-- [🏗️ System Architecture](#️-system-architecture)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [📂 Directory Structure](#-directory-structure)
-- [⚙️ Environment Configuration](#️-environment-configuration)
-- [🏁 Getting Started](#-getting-started)
-- [🔌 API Reference](#-api-reference)
-- [📄 License \& Author](#-license--author)
+University auditoriums are high-demand shared resources susceptible to scheduling conflicts, unconfirmed slot hoarding, and administrative overhead. **AuditoReserve** solves this by providing:
+
+1. **Conflict-Free Reservations:** Powered by **Redis-backed distributed locks (Redlock)** to eliminate double-booking race conditions during concurrent approval windows.
+2. **Asynchronous Heavy Processing:** PDF receipt generation, email dispatches, and 12-hour unpaid slot expirations are completely offloaded to background **BullMQ** workers.
+3. **Instant CDN Delivery:** Computer-generated PDF receipts stream directly into **Cloudinary** via Node.js streams (zero local disk I/O) and are served via instant `302 Redirects` (< 3ms response).
+4. **Horizontal Scalability:** Stateless Express servers paired with `@socket.io/redis-adapter` for multi-instance WebSocket synchronization across distributed server nodes.
+
+> 💡 **Looking for low-level architecture designs, concurrency flowcharts, and sequence diagrams?**  
+> Check out the [Comprehensive Architecture Specification (ARCHITECTURE.md)](./ARCHITECTURE.md).
 
 ---
 
 ## ✨ Key Features
 
-### 👤 Student Experience
-- 📅 **Interactive Availability Calendar**: Visual month-view schedule displaying current bookings and daily slot allocations to prevent double-booking.
-- 📝 **Intelligent Booking Requests**: Form validation with date/time collision detection before submission.
-- 💳 **Razorpay Payment Gateway**: Instant, secure payment checkout for approved booking requests within a strict 12-hour window.
-- 📆 **Calendar Integration**: Export approved bookings directly to **Google Calendar** or download standard **`.ics`** calendar files.
-- 🔔 **Real-Time Push Notifications**: In-app WebSocket alert center delivering instant status updates (`Pending`, `Approved`, `Confirmed`, `Cancelled`).
+### 🎓 Student Experience
+- 📅 **Interactive Visual Calendar:** Month-view calendar displaying real-time booking statuses and booked time slots.
+- 📝 **Collision-Guarded Booking Requests:** Real-time client & server validation checking for date/time overlaps before submission.
+- 💳 **Seamless Razorpay Integration:** Secure payments for approved bookings within a strictly enforced 12-hour payment window.
+- 🧾 **Instant PDF Invoices:** Direct download and inline preview of verified payment receipts powered by Cloudinary CDN.
+- 🔔 **Live Push Alerts:** In-app real-time notifications via WebSockets on booking approvals, rejections, and payment confirmations.
+- 📆 **Calendar Sync:** One-click export to Google Calendar and `.ics` files.
 
-### 🔑 Admin Management
-- 🏢 **Auditorium Management (CRUD)**: Manage venue catalogs, capacity, equipment details, and image uploads powered by **Cloudinary**.
-- 📑 **Booking Review Workflow**: Approve or reject student requests with custom notes and automated payment window initialization.
-- 📊 **Analytics Dashboard**: High-level overview of venue utilization rates, total revenue generated, and booking trend distributions.
+### 🛡️ Administrative Control
+- 🏢 **Venue Management (CRUD):** Catalog halls, capacities, amenities, base pricing, and multi-image uploads to Cloudinary.
+- 📑 **Booking Review Workflow:** Approve or reject student applications with collision detection and automated 12-hour payment timers.
+- 📊 **Analytics & Metrics:** Operational dashboard providing utilization rates, revenue analytics, and upcoming reservation feeds.
+- ⚡ **Automated Slot Expiration:** Auto-releases approved bookings back to available inventory if payment is not received within 12 hours.
 
-### ⚙️ Architecture & Reliability
-- ⚡ **Resilient Redis Cache-Aside**: High-speed caching for auditorium catalogs with a **5-minute TTL**, auto-invalidation on updates, and transparent fallback to MongoDB on Redis downtime.
-- 🔄 **Asynchronous BullMQ Workers**:
-  - `email-queue`: Decouples transactional emails (verification, approvals, receipts, cancellations) via Brevo API out of the main request thread.
-  - `booking-expiry`: Schedules a 12-hour delayed queue worker to automatically revoke unpaid approved bookings.
-- 🌐 **Multi-Device WebSocket Registry**: Tracks active user connection IDs across multiple tabs/devices, dispatching targeted push updates and purging disconnected sockets on logout.
-- 🛡️ **Graceful Shutdowns**: Node process intercepts `SIGINT`/`SIGTERM` to allow running BullMQ jobs and active database connections to close safely.
-
-### 🛡️ Enterprise Security
-- ✉️ **University Domain Locking**: Restricts user registration strictly to approved institutional email domains (e.g., `@tmu.ac.in`).
-- 🔐 **HTTP-Only JWT Authentication**: Access and refresh tokens delivered in secure, HTTP-only, SameSite cookies to mitigate XSS exposure.
-- 🛑 **Rate Limiting & Security Headers**: Integrated `express-rate-limit` on sensitive auth routes and `helmet` for HTTP security policies.
+### ⚙️ Core Platform & Engineering
+- 🔒 **Distributed Concurrency Guard:** Redlock implementation prevents two admins or students from claiming or approving colliding slots simultaneously.
+- ⚡ **Resilient Cache-Aside Pattern:** Redis caching for auditorium catalogs with automated cache invalidation upon updates.
+- 🔄 **3 Dedicated BullMQ Worker Queues:**
+  - `email-queue`: Asynchronous transactional emails (verification, approval, cancellations).
+  - `booking-expiry-queue`: 12-hour delayed timer enforcing payment deadlines.
+  - `pdf-generation-queue`: Direct stream PDF rendering and cloud CDN synchronization.
+- 🌐 **Multi-Instance WebSocket Adapter:** Redis Pub/Sub backplane ensures notifications reach users across load-balanced API nodes.
+- 🛡️ **Graceful Process Shutdown:** Intercepts `SIGINT`/`SIGTERM` to allow running BullMQ jobs and active DB connections to terminate safely.
 
 ---
 
@@ -73,44 +79,51 @@
 ```mermaid
 flowchart TD
     subgraph Client ["Client Layer (React 19 + TypeScript)"]
-        UI[Vite Frontend Client]
-        WS_Client[Socket.io Client]
+        UI[Vite Frontend SPA]
+        WS[Socket.io Client]
     end
 
-    subgraph API ["Backend API Layer (Express.js)"]
+    subgraph Gateway ["Edge & Security"]
+        Proxy[Reverse Proxy / Nginx]
+        Limiter[Redis Sliding Window Limiter]
+        Idempotent[Idempotency Filter]
+    end
+
+    subgraph API ["Stateless Backend Tier (Express.js)"]
         Server[Express App Server]
-        Auth[JWT & Cookie Auth]
-        Routes[API Routes]
+        Auth[JWT & HttpOnly Cookie Guard]
     end
 
-    subgraph Caching ["Cache & Storage"]
-        Redis[ioredis Cache Cluster]
-        Mongo[(MongoDB Database)]
+    subgraph State ["Distributed Cache & Messaging (Redis)"]
+        Lock[Redlock Distributed Locks]
+        Adapter[Socket.io Redis Pub/Sub Adapter]
+        Queues[BullMQ Queues]
+        Cache[Auditorium Catalog Cache]
     end
 
-    subgraph Queue ["Background Job Processing"]
-        Bull[BullMQ Queue Manager]
-        EmailWorker[Email Worker / Brevo API]
-        ExpiryWorker[12h Payment Expiry Worker]
+    subgraph Workers ["Async Background Workers (BullMQ)"]
+        EmailW[Email Worker / Brevo SMTP]
+        ExpiryW[12h Booking Expiry Worker]
+        PDFW[PDFKit Stream Worker]
     end
 
-    subgraph ThirdParty ["External Services"]
-        Cloudinary[Cloudinary CDN]
+    subgraph Storage ["Cloud & Persistence"]
+        DB[(MongoDB Database)]
+        Cloud[Cloudinary CDN]
         Razorpay[Razorpay Payment API]
     end
 
-    UI -->|HTTPS Requests| Server
-    WS_Client <-->|WebSocket Push| Server
+    UI --> Proxy
+    WS <--> Proxy
+    Proxy --> Limiter --> Idempotent --> Server
     Server --> Auth
-    Auth --> Routes
-    Routes -->|Cache Check / Set| Redis
-    Redis -.->|Cache Miss Fallback| Mongo
-    Routes -->|Persist Data| Mongo
-    Routes -->|Dispatch Jobs| Bull
-    Bull --> EmailWorker
-    Bull --> ExpiryWorker
-    Routes -->|Upload Assets| Cloudinary
-    Routes -->|Process Checkout| Razorpay
+    Server <--> State
+    Server --> DB
+    Server --> Razorpay
+    Queues --> Workers
+    PDFW -->|Direct Stream| Cloud
+    PDFW -->|Persist receiptPdfUrl| DB
+    EmailW --> UI
 ```
 
 ---
@@ -118,25 +131,27 @@ flowchart TD
 ## 🛠️ Tech Stack
 
 ### Backend Stack
-| Domain | Technology | Description |
+| Layer | Technologies | Purpose |
 | :--- | :--- | :--- |
-| **Runtime & Framework** | Node.js / Express.js | High-concurrency RESTful API server |
-| **Database & ORM** | MongoDB / Mongoose | NoSQL document storage with schema validation |
-| **Caching Layer** | Redis / ioredis | In-memory cache-aside pattern with TTL |
-| **Task Queues** | BullMQ | Redis-backed asynchronous worker queues |
-| **Real-time Engine** | Socket.io | Bi-directional WebSocket notification channel |
-| **Payment Gateway** | Razorpay Node SDK | Transaction management & webhook processing |
-| **Media & Mail** | Cloudinary / Nodemailer / Brevo | Cloud asset storage & API transactional emails |
+| **Runtime & Server** | Node.js (v18+) • Express.js 4.21 | High-concurrency asynchronous REST API |
+| **Primary Database** | MongoDB • Mongoose 9.6 | Document database with schema validation & compound indexes |
+| **In-Memory Store** | Redis • ioredis 5.10 | Cache-aside, distributed locks, rate limiting, and BullMQ backend |
+| **Job Queues** | BullMQ 5.78 | Redis-backed asynchronous worker queues with exponential retries |
+| **Real-time Engine** | Socket.io 4.8 • `@socket.io/redis-adapter` | Bi-directional multi-node WebSocket communication |
+| **PDF Generation** | PDFKit 0.20 | Programmatic, high-resolution vector PDF receipt creation |
+| **Media & CDN** | Cloudinary SDK • Multer Storage | Cloud image hosting & direct raw PDF stream storage |
+| **Payments** | Razorpay Node SDK 2.9 | Order creation, HMAC-SHA256 signature verification |
+| **Logging & Security** | Winston 3.19 • Helmet • Morgan | Structured JSON logging & hardened HTTP security headers |
 
 ### Frontend Stack
-| Domain | Technology | Description |
+| Layer | Technologies | Purpose |
 | :--- | :--- | :--- |
-| **UI Framework** | React 19 / TypeScript | Modern type-safe component architecture |
-| **Build Tooling** | Vite / PostCSS | Blazing fast client-side bundler |
-| **Styling & Motion** | Tailwind CSS v4 / Framer Motion | Design system & fluid micro-interactions |
-| **Data & State** | TanStack React Query v5 | Server-state management, caching & polling |
-| **Routing & Forms** | React Router v7 / React Hook Form + Zod | Dynamic client routing & schema form validation |
-| **Icons** | Lucide React | Modern visual iconography |
+| **UI Framework** | React 19 • TypeScript 6.0 | Modern type-safe component architecture |
+| **Build & Bundler** | Vite 8.0 • PostCSS | High-speed HMR development & optimized production bundles |
+| **Styling & Motion** | Tailwind CSS v4 • Framer Motion | Modern design system & micro-interactions |
+| **Server State** | TanStack React Query v5 | Data fetching, automated caching & optimistic updates |
+| **Forms & Validation** | React Hook Form • Zod 4.4 | Schema-driven client-side form validation |
+| **Icons & UI** | Lucide React | Lightweight vector iconography |
 
 ---
 
@@ -144,30 +159,31 @@ flowchart TD
 
 ```
 Auditorium Booking System/
+├── 📄 ARCHITECTURE.md          # Comprehensive architectural & sequence documentation
+├── 📄 README.md                # Project overview and quickstart guide
+│
 ├── 📁 backend/
 │   ├── 📁 src/
-│   │   ├── 📁 config/        # Database, Redis, Cloudinary & Razorpay configs
-│   │   ├── 📁 controllers/   # Auth, Auditorium, Booking & Payment logic
-│   │   ├── 📁 middlewares/   # Auth, Rate limiting & Error handlers
-│   │   ├── 📁 models/        # Mongoose database schemas
-│   │   ├── 📁 queue/         # BullMQ queue producers
-│   │   ├── 📁 routes/        # Express API endpoints
-│   │   ├── 📁 service/      # Email & Cloudinary integration services
-│   │   ├── 📁 utils/        # Socket registry & helper utilities
-│   │   ├── 📁 worker/       # Asynchronous BullMQ background processors
-│   │   ├── 📄 app.js        # Express app initialization & middleware stack
-│   │   └── 📄 server.js     # Server bootstrap & WebSocket listener
+│   │   ├── 📁 config/          # Database, Redis, Cloudinary, Razorpay & Winston
+│   │   ├── 📁 controllers/     # Auth, Auditorium, Booking, and Payment handlers
+│   │   ├── 📁 middlewares/     # JWT, Role Guard, Idempotency, Rate Limiter
+│   │   ├── 📁 models/          # User, Auditorium, Booking, Payment Mongoose schemas
+│   │   ├── 📁 queue/           # BullMQ queue producers (Email, Expiry, PDF)
+│   │   ├── 📁 routes/          # Express route definitions
+│   │   ├── 📁 utils/           # Cloudinary helpers, PDFKit receipt generator
+│   │   ├── 📁 worker/          # BullMQ background workers (email, expiry, pdf)
+│   │   ├── 📄 app.js           # Express app configuration & middleware pipeline
+│   │   └── 📄 server.js        # Server bootstrap, Socket.io & graceful shutdown
 │   └── 📄 package.json
 │
 └── 📁 frontend/
     ├── 📁 src/
-    │   ├── 📁 api/          # Axios HTTP clients & endpoint definitions
-    │   ├── 📁 components/   # Reusable UI components & modals
-    │   ├── 📁 hooks/        # Custom React hooks (Auth, Sockets, Query)
-    │   ├── 📁 pages/        # Student & Admin page views
-    │   ├── 📁 types.ts      # TypeScript interface definitions
-    │   ├── 📄 App.tsx       # Main router & app layout
-    │   └── 📄 main.tsx      # Entry point & provider wrappers
+    │   ├── 📁 api/             # Axios API client & endpoints
+    │   ├── 📁 components/      # Reusable UI widgets, modals, layout cards
+    │   ├── 📁 hooks/           # Custom hooks (Auth, WebSocket, React Query)
+    │   ├── 📁 pages/           # Student & Admin page views
+    │   ├── 📄 App.tsx          # React Router v7 navigation tree
+    │   └── 📄 main.tsx         # Client root & React Query Provider
     └── 📄 package.json
 ```
 
@@ -175,41 +191,45 @@ Auditorium Booking System/
 
 ## ⚙️ Environment Configuration
 
-To run AuditoReserve locally or in production, configure `.env` files in both `backend/` and `frontend/` directories.
+Create `.env` configuration files in both `backend/` and `frontend/` directories:
 
-### 🔑 Backend Configuration (`backend/.env`)
+### 🔑 Backend (`backend/.env`)
 
 ```env
-# Server Setup
 PORT=5000
 NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
 
-# Database Connections
+# Database & Cache
 MONGODB_URI=mongodb://localhost:27017/auditoreserve
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
 # Security & Domain Restrictions
-JWT_ACCESS_SECRET=your_super_secret_access_key
-JWT_REFRESH_SECRET=your_super_secret_refresh_key
+JWT_ACCESS_SECRET=your_super_secret_access_jwt_key
+JWT_REFRESH_SECRET=your_super_secret_refresh_jwt_key
 UNIVERSITY_DOMAIN=tmu.ac.in
 
 # Cloudinary Storage
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
-# Brevo Email API
-BREVO_API_KEY=your_brevo_api_key
+# Email Gateway (SMTP / Brevo)
+EMAIL_HOST=smtp-relay.brevo.com
+EMAIL_PORT=587
+EMAIL_USER=your_smtp_user
+EMAIL_PASS=your_smtp_password
 FROM_EMAIL=noreply@tmu.ac.in
+FROM_NAME="AuditoReserve Administration"
 
 # Razorpay Gateway
 RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_SECRET_KEY=your_razorpay_secret_key
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
-### 💻 Frontend Configuration (`frontend/.env`)
+### 💻 Frontend (`frontend/.env`)
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
@@ -222,70 +242,92 @@ VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ## 🏁 Getting Started
 
 ### 📋 Prerequisites
-Ensure you have the following installed on your machine:
 - **Node.js**: `v18.0.0` or higher
 - **npm**: `v9.0.0` or higher
-- **MongoDB**: Local server instance or MongoDB Atlas connection
+- **MongoDB**: Local MongoDB community instance or MongoDB Atlas URI
 - **Redis**: Local server instance or Redis Cloud instance
 
-### ⚡ Installation & Setup
+### ⚡ Installation & Local Development
 
-1. **Clone the Repository**
+1. **Clone the repository**
    ```bash
    git clone https://github.com/buildwithrishabh/AuditoReserve.git
    cd "Auditorium Booking System"
    ```
 
-2. **Backend Setup**
+2. **Start Backend Service**
    ```bash
    cd backend
    npm install
-   # Create and configure your backend .env file
+   # Ensure backend/.env is populated
    npm run dev
    ```
 
-3. **Frontend Setup**
+3. **Start Frontend Client**
    ```bash
    cd ../frontend
    npm install
-   # Create and configure your frontend .env file
+   # Ensure frontend/.env is populated
    npm run dev
    ```
 
-4. **Access the Application**
-   - **Frontend Client**: [http://localhost:5173](http://localhost:5173)
-   - **Backend API Base**: [http://localhost:5000/api](http://localhost:5000/api)
+4. **Verify Running Application**
+   - **Frontend UI:** [http://localhost:5173](http://localhost:5173)
+   - **Backend Health Check:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
 ---
 
-## 🔌 API Reference
+## 🔌 API Endpoints
 
-| Module | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/api/auth/register` | Public | Register user (restricted domain check) |
-| **Auth** | `POST` | `/api/auth/login` | Public | Authenticate user & issue HTTP cookies |
-| **Auth** | `POST` | `/api/auth/logout` | Authenticated | Invalidate refresh tokens & clear cookies |
-| **Auth** | `GET` | `/api/auth/me` | Authenticated | Retrieve current session profile |
-| **Auditorium** | `GET` | `/api/auditoriums` | Public | Fetch all auditoriums (Redis cached) |
-| **Auditorium** | `POST` | `/api/auditoriums` | Admin | Create new auditorium entry with image |
-| **Auditorium** | `PUT` | `/api/auditoriums/:id` | Admin | Update auditorium details & purge cache |
-| **Booking** | `POST` | `/api/bookings` | Student | Submit booking request for an auditorium |
-| **Booking** | `GET` | `/api/bookings/my-bookings` | Student | Get personal booking history |
-| **Booking** | `PATCH` | `/api/bookings/:id/status` | Admin | Approve or reject booking request |
-| **Payment** | `POST` | `/api/payments/create-order` | Student | Initialize Razorpay payment order |
-| **Payment** | `POST` | `/api/payments/verify` | Student | Verify Razorpay payment signature |
-| **Notifications**| `GET` | `/api/notifications` | Authenticated | Get in-app notification feed |
+### 🔐 Authentication (`/api/auth`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Public | Register new user (domain verified) |
+| `POST` | `/api/auth/login` | Public | Authenticate user & issue HttpOnly JWT |
+| `POST` | `/api/auth/logout` | Authenticated | Revoke refresh token & purge cookies |
+| `GET` | `/api/auth/me` | Authenticated | Retrieve authenticated user profile |
+
+### 🏛️ Auditoriums (`/api/auditoriums`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/auditoriums` | Public | List all venues (Redis cached) |
+| `GET` | `/api/auditoriums/:id` | Public | Get single auditorium details |
+| `POST` | `/api/auditoriums` | Admin | Create venue with Cloudinary photos |
+| `PUT` | `/api/auditoriums/:id` | Admin | Update venue & invalidate cache |
+| `DELETE`| `/api/auditoriums/:id` | Admin | Remove venue & purge associated cache |
+
+### 📅 Bookings (`/api/bookings`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/bookings` | Student | Submit booking reservation request |
+| `GET` | `/api/bookings/my-bookings`| Student | Get personal bookings (with pagination) |
+| `GET` | `/api/bookings` | Admin | List all requests with status filters |
+| `PATCH`| `/api/bookings/:id/status` | Admin | Approve/Reject request (Redlock protected) |
+| `DELETE`| `/api/bookings/:id` | Student/Admin | Cancel pending/approved reservation |
+
+### 💳 Payments & Receipts (`/api/payments`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/payments/create-order/:bookingId` | Student | Create Razorpay order |
+| `POST` | `/api/payments/verify` | Student | Verify payment signature & confirm booking |
+| `GET` | `/api/payments/:bookingId/receipt` | Authenticated | Fetch receipt JSON / inline PDF |
+| `GET` | `/api/payments/:bookingId/receipt/download` | Authenticated | Instant 302 redirect to Cloudinary CDN PDF |
+
+### 🔔 Notifications (`/api/notifications`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/notifications` | Authenticated | Fetch user notification feed |
+| `PATCH`| `/api/notifications/:id/read` | Authenticated | Mark notification as read |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you find any issues or have feature requests, feel free to open an issue or submit a pull request.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git checkout -b feature/AmazingFeature`)
+Contributions are welcome! Please follow these steps:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ---
@@ -294,5 +336,5 @@ Contributions are welcome! If you find any issues or have feature requests, feel
 
 Distributed under the **ISC License**.
 
-Developed with ❤️ by **Rishabh Kumar**  
-🔗 **GitHub**: [@buildwithrishabh](https://github.com/buildwithrishabh)
+Created & Maintained with ❤️ by **Rishabh Kumar**  
+- **GitHub:** [@buildwithrishabh](https://github.com/buildwithrishabh)
