@@ -52,6 +52,19 @@ export async function downloadBookingReceiptPdf(bookingId, receiptNumber) {
       responseType: "blob",
     });
 
+    // Safeguard: Check if the response is actually JSON instead of a binary PDF
+    if (response.data.type === "application/json" || response.status === 202) {
+      const text = await response.data.text();
+      let msg = "Receipt is being prepared. Please retry in a few seconds.";
+      try {
+        const json = JSON.parse(text);
+        if (json.message) msg = json.message;
+      } catch {
+        // Not valid JSON, keep default msg
+      }
+      throw new Error(msg);
+    }
+
     let filename = receiptNumber ? `receipt_${receiptNumber}.pdf` : `receipt_${bookingId}.pdf`;
     const disposition = response.headers?.["content-disposition"];
     if (disposition && disposition.includes("filename=")) {

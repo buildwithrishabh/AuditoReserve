@@ -396,17 +396,28 @@ exports.downloadReceipt = async (req, res, next) => {
       return res.redirect(payment.receiptPdfUrl);
     }
 
-    // 2. EDGE CASE: Worker is still processing or wasn't triggered
-    await pdfQueue.add(
-      "generate-receipt",
-      { bookingId: booking._id, paymentId: payment._id },
-      { jobId: `receipt_${payment._id}` },
+    // 2. Queue background upload to Cloudinary for future instant CDN delivery
+    pdfQueue
+      .add(
+        "generate-receipt",
+        { bookingId: booking._id, paymentId: payment._id },
+        { jobId: `receipt_${payment._id}` },
+      )
+      .catch((err) =>
+        logger.error("[PDF] Failed to queue Cloudinary upload:", err),
+      );
+
+    // 3. Fallback: Stream valid PDF immediately so the user ALWAYS gets a real, uncorrupted PDF
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="receipt_${payment.receipt || booking._id}.pdf"`,
     );
 
-    return res.status(202).json({
-      success: true,
-      message: "Receipt is being prepared. Please retry in a few seconds.",
-    });
+    return buildReceiptPdf(
+      { booking, payment, user: booking.user, auditorium: booking.auditorium },
+      res,
+    );
   } catch (error) {
     next(error);
   }
