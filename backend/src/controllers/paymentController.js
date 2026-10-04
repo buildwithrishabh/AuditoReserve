@@ -9,6 +9,7 @@ const emailQueue = require("../queue/emailQueue");
 const User = require("../models/User");
 const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 const { buildReceiptPdf } = require("../utils/receiptGenerator");
+const pdfQueue = require("../queue/pdfQueue");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -199,6 +200,16 @@ exports.verifyPayment = async (req, res, next) => {
       logger.error("[Payment] failed to enqueue confirmation email:", error);
     }
 
+    try {
+      await pdfQueue.add(
+        "generate-receipt",
+        { bookingId: booking._id, paymentId: payment._id },
+        { jobId: `receipt_${payment._id}` },
+      );
+    } catch (queueError) {
+      logger.error("[Payment] Failed to enqueue PDF receipt job:", queueError);
+    }
+
     // successfull payment -> remove the schedule job from the queue
     try {
       const jobId = `booking_expire_${booking._id}`;
@@ -259,7 +270,8 @@ exports.getReceipt = async (req, res, next) => {
     if (booking.status !== "confirmed" || !booking.paymentId) {
       return res.status(400).json({
         success: false,
-        message: "Receipt is available only for confirmed bookings with verified payment",
+        message:
+          "Receipt is available only for confirmed bookings with verified payment",
       });
     }
 
@@ -267,13 +279,19 @@ exports.getReceipt = async (req, res, next) => {
     if (!payment || payment.status !== "paid") {
       return res
         .status(400)
-        .json({ success: false, message: "Receipt is available only after successful payment verification" });
+        .json({
+          success: false,
+          message:
+            "Receipt is available only after successful payment verification",
+        });
     }
 
     // Ensure unique, clean receipt ID exists
     if (!payment.receipt) {
       const year = new Date(payment.paidAt || Date.now()).getFullYear();
-      const code = String(payment._id || booking._id).slice(-6).toUpperCase();
+      const code = String(payment._id || booking._id)
+        .slice(-6)
+        .toUpperCase();
       const rand = Math.floor(1000 + Math.random() * 9000);
       payment.receipt = `AR-${year}-${code}-${rand}`;
       await payment.save();
@@ -283,11 +301,16 @@ exports.getReceipt = async (req, res, next) => {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `inline; filename="receipt_${payment.receipt}.pdf"`
+        `inline; filename="receipt_${payment.receipt}.pdf"`,
       );
       return buildReceiptPdf(
-        { booking, payment, user: booking.user, auditorium: booking.auditorium },
-        res
+        {
+          booking,
+          payment,
+          user: booking.user,
+          auditorium: booking.auditorium,
+        },
+        res,
       );
     }
 
@@ -352,7 +375,8 @@ exports.downloadReceipt = async (req, res, next) => {
     if (booking.status !== "confirmed" || !booking.paymentId) {
       return res.status(400).json({
         success: false,
-        message: "Receipt is available only for confirmed bookings with verified payment",
+        message:
+          "Receipt is available only for confirmed bookings with verified payment",
       });
     }
 
@@ -360,28 +384,29 @@ exports.downloadReceipt = async (req, res, next) => {
     if (!payment || payment.status !== "paid") {
       return res
         .status(400)
-        .json({ success: false, message: "Receipt is available only after successful payment verification" });
+        .json({
+          success: false,
+          message:
+            "Receipt is available only after successful payment verification",
+        });
     }
 
-    // Ensure unique, clean receipt ID exists
-    if (!payment.receipt) {
-      const year = new Date(payment.paidAt || Date.now()).getFullYear();
-      const code = String(payment._id || booking._id).slice(-6).toUpperCase();
-      const rand = Math.floor(1000 + Math.random() * 9000);
-      payment.receipt = `AR-${year}-${code}-${rand}`;
-      await payment.save();
+    // 1. FAST PATH: Already on Cloudinary -> Instant 302 Redirect (< 3ms)
+    if (payment.receiptPdfUrl) {
+      return res.redirect(payment.receiptPdfUrl);
     }
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="receipt_${payment.receipt}.pdf"`
+    // 2. EDGE CASE: Worker is still processing or wasn't triggered
+    await pdfQueue.add(
+      "generate-receipt",
+      { bookingId: booking._id, paymentId: payment._id },
+      { jobId: `receipt_${payment._id}` },
     );
 
-    buildReceiptPdf(
-      { booking, payment, user: booking.user, auditorium: booking.auditorium },
-      res
-    );
+    return res.status(202).json({
+      success: true,
+      message: "Receipt is being prepared. Please retry in a few seconds.",
+    });
   } catch (error) {
     next(error);
   }

@@ -69,6 +69,11 @@ const paymentSchema = new mongoose.Schema(
     failureReason: {
       type: String,
     },
+
+    receiptPdfUrl: {
+      type: String,
+      default: null
+    }
   },
   { timestamps: true },
 );

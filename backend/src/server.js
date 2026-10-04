@@ -8,6 +8,7 @@ const connectDB = require("./config/db");
 const redisClient = require("./config/redis");
 const emailQueue = require("./queue/emailQueue");
 const bookingExpiryQueue = require("./queue/bookingExpiryQueue");
+const pdfQueue = require("./queue/pdfQueue");
 
 
 // Connect to database
@@ -16,6 +17,7 @@ connectDB();
 // Start Background Queue Workers
 const emailWorker = require("./worker/emailWorker");
 const bookingExpiryWorker = require("./worker/bookingExpiryWorker");
+const pdfWorker = require("./worker/pdfWorker");
 
 const PORT = process.env.PORT || 5000;
 
@@ -53,7 +55,8 @@ const gracefulShutdown = async (signal) => {
       logger.info("Closing BullMQ workers...");
       await Promise.all([
         emailWorker.close(),
-        bookingExpiryWorker.close()
+        bookingExpiryWorker.close(),
+        pdfWorker.close(),
       ]);
       logger.info("BullMQ workers closed.");
 
@@ -61,7 +64,8 @@ const gracefulShutdown = async (signal) => {
       logger.info("Closing BullMQ queues...");
       await Promise.all([
         emailQueue.close(),
-        bookingExpiryQueue.close()
+        bookingExpiryQueue.close(),
+        pdfQueue.close(),
       ]);
       logger.info("BullMQ queues closed.");
 
