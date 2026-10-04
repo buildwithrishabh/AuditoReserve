@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const https = require("https");
 const Booking = require("../models/booking");
 const Payment = require("../models/payment");
 const razorpayClient = require("../config/razorPay");
@@ -391,9 +392,43 @@ exports.downloadReceipt = async (req, res, next) => {
         });
     }
 
-    // 1. FAST PATH: Already on Cloudinary -> Instant 302 Redirect (< 3ms)
+    // 1. FAST PATH: Stream pre-generated PDF from Cloudinary directly to client (Zero CPU render cost & No CORS redirect)
     if (payment.receiptPdfUrl) {
-      return res.redirect(payment.receiptPdfUrl);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="receipt_${payment.receipt || booking._id}.pdf"`,
+      );
+
+      return https
+        .get(payment.receiptPdfUrl, (cloudRes) => {
+          if (cloudRes.statusCode === 200) {
+            cloudRes.pipe(res);
+          } else {
+            // Fallback to on-the-fly rendering if Cloudinary fetch encounters an issue
+            buildReceiptPdf(
+              {
+                booking,
+                payment,
+                user: booking.user,
+                auditorium: booking.auditorium,
+              },
+              res,
+            );
+          }
+        })
+        .on("error", (err) => {
+          logger.error("[Payment] Error piping Cloudinary PDF:", err);
+          buildReceiptPdf(
+            {
+              booking,
+              payment,
+              user: booking.user,
+              auditorium: booking.auditorium,
+            },
+            res,
+          );
+        });
     }
 
     // 2. Queue background upload to Cloudinary for future instant CDN delivery
