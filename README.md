@@ -174,6 +174,9 @@ Auditorium Booking System/
 │   │   ├── 📁 worker/          # BullMQ background workers (email, expiry, pdf)
 │   │   ├── 📄 app.js           # Express app configuration & middleware pipeline
 │   │   └── 📄 server.js        # Server bootstrap, Socket.io & graceful shutdown
+│   ├── 📄 Dockerfile           # Multi-stage production container image
+│   ├── 📄 docker-compose.yml   # Backend, MongoDB & Redis container orchestration
+│   ├── 📄 .dockerignore        # Build context ignore rules
 │   └── 📄 package.json
 │
 └── 📁 frontend/
@@ -244,28 +247,36 @@ VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ### 📋 Prerequisites
 - **Node.js**: `v18.0.0` or higher
 - **npm**: `v9.0.0` or higher
-- **MongoDB**: Local MongoDB community instance or MongoDB Atlas URI
-- **Redis**: Local server instance or Redis Cloud instance
+- **MongoDB**: Local MongoDB community instance or MongoDB Atlas URI (or run via Docker)
+- **Redis**: Local server instance or Redis Cloud instance (or run via Docker)
+- **Docker & Docker Compose**: (Optional, for containerized backend & databases)
 
-### 🐳 Running with Docker (Recommended)
-Launch the entire platform (MongoDB, Redis, Node.js API, and Nginx React Frontend) in isolated containers with one command:
+### 🐳 Running Backend with Docker (Recommended for Backend)
+You can launch the backend service alongside dedicated **MongoDB 7** and **Redis 7** containers with health checks and persistent volumes with a single command:
 
 ```bash
-# Build and run all services in detached mode
+# 1. Navigate to backend directory
+cd backend
+
+# 2. Build and start MongoDB, Redis, and Backend API in detached mode
 docker compose up -d --build
 
-# Inspect running containers
+# 3. Verify running containers and health checks
 docker compose ps
 
-# View unified logs
-docker compose logs -f
+# 4. View live logs from the backend service
+docker compose logs -f backend
 ```
-* **Frontend Application:** [http://localhost](http://localhost)
 * **Backend Health Check:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+To stop the backend stack:
+```bash
+docker compose down
+```
 
 ---
 
-### ⚡ Manual Local Development
+### ⚡ Manual Local Development Setup
 
 1. **Clone the repository**
    ```bash

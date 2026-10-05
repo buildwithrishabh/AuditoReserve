@@ -3,7 +3,7 @@
 # ==========================================
 FROM node:20-alpine AS base
 
-# Install curl for container health checks
+# Install curl for container health check
 RUN apk add --no-cache curl
 
 WORKDIR /app
@@ -29,7 +29,7 @@ USER node
 # Expose backend server port
 EXPOSE 5000
 
-# Health check
+# Health check against /api/health
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:5000/api/health || exit 1
 

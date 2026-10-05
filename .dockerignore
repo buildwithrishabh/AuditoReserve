@@ -1,9 +1,0 @@
-.git
-.gitignore
-*.log
-node_modules
-dist
-.env
-.env.*
-README.md
-ARCHITECTURE.md
