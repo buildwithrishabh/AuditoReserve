@@ -61,7 +61,8 @@ src/
 │   ├── auth/     # Login, register, etc.
 │   ├── public/   # Public pages (home, catalog)
 │   └── student/  # Student pages
-├── App.tsx       # Root component with routing
+├── App.jsx       # Root component with routing
 ├── App.css       # Global styles
-└── main.tsx      # Entry point
+└── main.jsx      # Entry point
 ```
+
