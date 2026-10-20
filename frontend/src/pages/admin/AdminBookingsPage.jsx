@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getAllBookings, updateBookingStatus } from "../../api/bookings";
-import { downloadBookingReceiptPdf } from "../../api/payments";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
@@ -17,19 +16,6 @@ export function AdminBookingsPage() {
   const { showToast } = useToast();
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
-  const [downloadingBookingId, setDownloadingBookingId] = useState(null);
-
-  const handleDownloadReceipt = async (bookingId) => {
-    try {
-      setDownloadingBookingId(bookingId);
-      await downloadBookingReceiptPdf(bookingId);
-      showToast("Receipt downloaded successfully.", "success");
-    } catch (error) {
-      showToast(error?.message || "Failed to download receipt.", "error");
-    } finally {
-      setDownloadingBookingId(null);
-    }
-  };
   
   // Custom dialog control
   const [pendingAction, setPendingAction] = useState(null);
@@ -149,12 +135,6 @@ export function AdminBookingsPage() {
                         ? (nextStatus) => handleAdminActionClick(booking._id, nextStatus, bookingTitle)
                         : undefined
                     }
-                    onDownloadReceipt={
-                      booking.status === "confirmed"
-                        ? () => handleDownloadReceipt(booking._id)
-                        : undefined
-                    }
-                    isDownloadingReceipt={downloadingBookingId === booking._id}
                     isSubmittingAction={statusMutation.isPending}
                   />
                 </motion.div>

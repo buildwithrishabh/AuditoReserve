@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { CalendarDays, LayoutDashboard, LogOut, MapPin, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
-import { NotificationCenter } from "./NotificationCenter";
 import { pageTransition } from "../../lib/animations";
 
 export function AdminLayout() {
@@ -33,19 +32,17 @@ export function AdminLayout() {
           <span className="brand-mark">AR</span>
           <span>Admin console</span>
         </Link>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
-          <NotificationCenter />
-          <button
-            className="mobile-menu-button admin-menu-button"
-            type="button"
-            aria-label={isMenuOpen ? "Close admin navigation" : "Open admin navigation"}
-            aria-expanded={isMenuOpen}
-            aria-controls="admin-navigation"
-            onClick={() => setIsMenuOpen((open) => !open)}
-          >
-            {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+        <button
+          className="mobile-menu-button admin-menu-button"
+          type="button"
+          aria-label={isMenuOpen ? "Close admin navigation" : "Open admin navigation"}
+          aria-expanded={isMenuOpen}
+          aria-controls="admin-navigation"
+          onClick={() => setIsMenuOpen((open) => !open)}
+          style={{ marginLeft: "auto" }}
+        >
+          {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </header>
 
       <motion.aside
@@ -106,9 +103,6 @@ export function AdminLayout() {
       </AnimatePresence>
       
       <main className="admin-main">
-        <div className="admin-topbar-desktop">
-          <NotificationCenter />
-        </div>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
