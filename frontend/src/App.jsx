@@ -52,17 +52,18 @@ function RouteFallback() {
 function NotFoundPage() {
   return (
     <motion.div
-      className="full-state"
+      className="full-state not-found-page"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
+      <div className="not-found-badge">404</div>
       <motion.h1
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        404 - Page Not Found
+        Page Not Found
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }}
@@ -76,7 +77,7 @@ function NotFoundPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Link className="button primary" to="/" style={{ marginTop: "16px" }}>
+        <Link className="button primary" to="/" style={{ marginTop: "20px" }}>
           Go to catalog
         </Link>
       </motion.div>

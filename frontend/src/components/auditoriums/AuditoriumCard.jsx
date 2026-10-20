@@ -6,10 +6,10 @@ export function ImageFrame({ src, alt, large }) {
   return (
     <div className={`image-frame ${large ? "large" : ""}`}>
       {src ? (
-        <img src={src} alt={alt} loading="lazy" decoding="async" />
+        <img src={src} alt={alt || "Auditorium"} loading="lazy" decoding="async" />
       ) : (
         <span style={{ fontSize: large ? "24px" : "14px" }}>
-          {alt.slice(0, 2).toUpperCase()}
+          {alt?.slice(0, 2).toUpperCase() || "AR"}
         </span>
       )}
     </div>
@@ -35,7 +35,7 @@ export function AuditoriumCard({ auditorium, hideActions }) {
           <span className="price">₹{auditorium.basePrice}/hr</span>
         </div>
         <div className="meta-row">
-          <Users size={16} style={{ color: "var(--primary)" }} />
+          <Users size={16} style={{ color: "var(--accent)" }} />
           <span>{auditorium.capacity} seats</span>
         </div>
         <p className="line-clamp-5">{auditorium.description}</p>

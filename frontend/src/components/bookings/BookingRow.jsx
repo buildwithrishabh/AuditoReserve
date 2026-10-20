@@ -35,7 +35,9 @@ export function BookingRow({
   return (
     <article className="booking-row">
       <div className="booking-main">
-        <StatusBadge status={booking.status} />
+        <div style={{ marginBottom: "6px" }}>
+          <StatusBadge status={booking.status} />
+        </div>
         <h3>{auditorium?.name || "Auditorium Facility"}</h3>
         {user && (
           <p className="booking-user">
@@ -44,18 +46,18 @@ export function BookingRow({
         )}
         <p style={{ color: "var(--text-muted)" }}>{booking.purpose}</p>
         {booking.status === "approved" && booking.paymentDeadline && (
-          <p className="booking-deadline" style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>
+          <p className="booking-deadline" style={{ color: "#f6c453", fontSize: "13px", marginTop: "4px", fontWeight: "600" }}>
             Payment deadline: {formatDeadline(booking.paymentDeadline)}
           </p>
         )}
       </div>
       <div className="booking-meta">
         <span>
-          <CalendarDays size={16} style={{ color: "var(--primary)" }} />{" "}
+          <CalendarDays size={16} style={{ color: "var(--accent)" }} />{" "}
           {formatDate(booking.bookingDate)}
         </span>
         <span>
-          <Clock size={16} style={{ color: "var(--primary)" }} />{" "}
+          <Clock size={16} style={{ color: "var(--accent)" }} />{" "}
           {booking.startTime} - {booking.endTime}
         </span>
         <strong>₹{booking.totalPrice}</strong>

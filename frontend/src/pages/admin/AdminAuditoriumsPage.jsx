@@ -7,7 +7,7 @@ import { getAllAuditoriums, deleteAuditorium } from "../../api/auditoriums";
 import { useToast } from "../../hooks/useToast";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
-import { ErrorState } from "../../components/common/ErrorState";
+import { ErrorState, EmptyState } from "../../components/common/ErrorState";
 import { staggerContainerFast, listItem } from "../../lib/animations";
 
 export function AdminAuditoriumsPage() {
@@ -180,8 +180,11 @@ export function AdminAuditoriumsPage() {
             </tbody>
           </table>
           {data.length === 0 && (
-            <div style={{ padding: "40px", textAlign: "center" }}>
-              <p>No auditoriums listed yet. Click "Create auditorium" to add one.</p>
+            <div style={{ padding: "20px" }}>
+              <EmptyState
+                title="No auditoriums listed yet"
+                message='Click "Create auditorium" above to add your first venue.'
+              />
             </div>
           )}
         </motion.div>

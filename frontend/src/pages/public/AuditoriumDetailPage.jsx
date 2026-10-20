@@ -110,15 +110,15 @@ export function AuditoriumDetailPage() {
             animate="visible"
           >
             <motion.span variants={cardItem}>
-              <Users size={17} style={{ color: "var(--primary)" }} />{" "}
+              <Users size={17} style={{ color: "var(--accent)" }} />{" "}
               {auditorium.capacity} seats capacity
             </motion.span>
             <motion.span variants={cardItem}>
-              <MapPin size={17} style={{ color: "var(--primary)" }} /> Campus
+              <MapPin size={17} style={{ color: "var(--accent)" }} /> Campus
               facility infrastructure
             </motion.span>
             <motion.span variants={cardItem}>
-              <Clock size={17} style={{ color: "var(--primary)" }} /> ₹
+              <Clock size={17} style={{ color: "var(--accent)" }} /> ₹
               {auditorium.basePrice} base price per hour
             </motion.span>
           </motion.div>
@@ -157,7 +157,7 @@ export function AuditoriumDetailPage() {
             )}
           </motion.div>
           <motion.p variants={fadeIn} className="note">
-            Booking requests require administrator review. availability conflicts
+            Booking requests require administrator review. Availability conflicts
             are evaluated at the time of submission.
           </motion.p>
         </motion.aside>

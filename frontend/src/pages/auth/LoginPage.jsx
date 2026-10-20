@@ -115,33 +115,32 @@ export function LoginPage() {
             placeholder="yourname@tmu.ac.in"
           />
         </motion.div>
-        <motion.div variants={cardItem} style={{ position: "relative" }}>
+        <motion.div variants={cardItem}>
           <TextField
             label="Password"
             type={showPassword ? "text" : "password"}
             error={errors.password?.message}
             {...field("password")}
             placeholder="••••••••"
+            rightElement={
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
           />
-          <button
-            type="button"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            onClick={() => setShowPassword((v) => !v)}
-            style={{
-              position: "absolute",
-              right: "12px",
-              bottom: errors.password?.message ? "32px" : "8px",
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              padding: "4px",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
         </motion.div>
         
         <motion.div variants={cardItem} style={{ display: "flex", justifyContent: "flex-end", marginTop: "-10px" }}>

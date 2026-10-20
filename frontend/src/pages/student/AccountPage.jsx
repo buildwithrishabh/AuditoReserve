@@ -41,13 +41,14 @@ export function AccountPage() {
               width: "56px",
               height: "56px",
               borderRadius: "50%",
-              background: "var(--primary-light)",
+              background: "linear-gradient(135deg, rgba(124, 115, 230, 0.15), rgba(79, 70, 229, 0.08))",
               display: "grid",
               placeItems: "center",
-              border: "1px solid var(--border)",
+              border: "1px solid rgba(124, 115, 230, 0.3)",
+              boxShadow: "0 4px 16px rgba(124, 115, 230, 0.15)",
             }}
           >
-            <User size={28} style={{ color: "var(--primary)" }} />
+            <User size={28} style={{ color: "var(--accent)" }} />
           </div>
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>
@@ -68,7 +69,7 @@ export function AccountPage() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <Mail size={16} style={{ color: "var(--primary)" }} />
+              <Mail size={16} style={{ color: "var(--accent)" }} />
               <span style={{ fontWeight: "700", fontSize: "13px" }}>Email address</span>
             </div>
             <p style={{ margin: "0", fontSize: "14px", fontWeight: "500", color: "var(--text)" }}>
@@ -86,7 +87,7 @@ export function AccountPage() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <ShieldCheck size={16} style={{ color: "var(--primary)" }} />
+              <ShieldCheck size={16} style={{ color: "var(--accent)" }} />
               <span style={{ fontWeight: "700", fontSize: "13px" }}>Permission Role</span>
             </div>
             <div style={{ display: "flex", alignItems: "center" }}>
