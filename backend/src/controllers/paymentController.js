@@ -12,6 +12,7 @@ const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 const { buildReceiptPdf } = require("../utils/receiptGenerator");
 const pdfQueue = require("../queue/pdfQueue");
 const mongoose = require("mongoose");
+const { acquireLock, releaseLock } = require("../utils/lock");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -101,6 +102,7 @@ exports.createPaymentOrder = async (req, res, next) => {
 };
 
 exports.verifyPayment = async (req, res, next) => {
+  let lock = null;
   try {
     const {
       bookingId,
@@ -108,6 +110,18 @@ exports.verifyPayment = async (req, res, next) => {
       razorpay_payment_id,
       razorpay_signature,
     } = req.body;
+
+    // Acquire distributed lock to prevent race conditions with bookingExpiryWorker
+    const lockKey = `lock:booking:${bookingId}`;
+    lock = await acquireLock(lockKey, 15000);
+
+    if (!lock) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Payment verification is already in progress for this booking. Please wait a moment.",
+      });
+    }
 
     const booking = await Booking.findById(bookingId);
 
@@ -197,9 +211,21 @@ exports.verifyPayment = async (req, res, next) => {
         throw new Error("Payment record not found for this order");
       }
 
+      // Atomic conditional update on booking: only confirm if it is STILL 'approved'
+      const updatedBooking = await Booking.findOneAndUpdate(
+        { _id: bookingId, status: "approved" },
+        { status: "confirmed", paymentId: payment._id },
+        { new: true, session },
+      );
+
+      if (!updatedBooking) {
+        throw new Error(
+          "Booking is no longer awaiting payment (may have been expired or cancelled).",
+        );
+      }
+
       booking.status = "confirmed";
       booking.paymentId = payment._id;
-      await booking.save({ session });
 
       await session.commitTransaction();
     } catch (error) {
@@ -266,6 +292,10 @@ exports.verifyPayment = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  } finally {
+    if (lock) {
+      await releaseLock(lock.key, lock.value);
+    }
   }
 };
 

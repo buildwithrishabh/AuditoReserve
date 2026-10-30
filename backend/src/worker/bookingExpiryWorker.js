@@ -7,6 +7,7 @@ const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 const User = require("../models/User");
 const { createNotification } = require("../service/notificationService");
 const logger = require("../config/logger");
+const { acquireLock, releaseLock } = require("../utils/lock");
 
 const worker = new Worker(
   "booking-expiry",
@@ -15,78 +16,108 @@ const worker = new Worker(
 
     logger.info(`[Expiry Worker] Checking expiration for booking ${bookingId}`);
 
-    const booking = await Booking.findById(bookingId);
+    // Acquire distributed lock to synchronize with verifyPayment
+    const lockKey = `lock:booking:${bookingId}`;
+    const lock = await acquireLock(lockKey, 15000);
 
-    if (!booking) {
-      logger.info(`[Expiry Worker] Booking ${bookingId} not found. Skipping.`);
-      return;
-    }
-
-    if (booking.status === "confirmed" || booking.status === "cancelled") {
-      logger.info(
-        `[Expiry Worker] Booking ${bookingId} has status '${booking.status}'. Skipping cancellation.`,
+    if (!lock) {
+      // Throw error to trigger BullMQ exponential backoff retry
+      throw new Error(
+        `[Expiry Worker] Booking ${bookingId} is currently being processed by another operation. Retrying...`,
       );
-      return;
     }
 
-    // Handle Pending Request Expiry (Not reviewed by admin in time)
-    if (booking.status === "pending") {
-      booking.status = "cancelled";
-      await booking.save();
+    try {
+      const booking = await Booking.findById(bookingId);
 
-      await createNotification({
-        recipient: booking.user,
-        type: "BOOKING_CANCELLED",
-        title: "Booking Request Expired",
-        message:
-          "Your booking request expired because it was not reviewed by admin in time.",
-        data: { bookingId: booking._id },
-      });
-
-      logger.info(
-        `[Expiry Worker] Successfully expired pending booking ${bookingId}`,
-      );
-      return;
-    }
-
-    // Handle Approved Booking Expiry (Payment deadline passed)
-    if (booking.status === "approved") {
-      booking.status = "cancelled";
-      await booking.save();
-
-      await createNotification({
-        recipient: booking.user,
-        type: "BOOKING_CANCELLED",
-        title: "Booking Expired",
-        message: `Your booking request was cancelled because the payment deadline expired.`,
-        data: { bookingId: booking._id },
-      });
-
-      if (booking.paymentId) {
-        await Payment.findByIdAndUpdate(booking.paymentId, {
-          status: "expired",
-          failureReason: "Payment deadline expired (12 hours passed)",
-        });
+      if (!booking) {
+        logger.info(`[Expiry Worker] Booking ${bookingId} not found. Skipping.`);
+        return;
       }
 
-      try {
-        const user = await User.findById(booking.user);
-
-        if (user) {
-          const emailData = await bookingUpdatedEmail(
-            user,
-            booking._id,
-            "cancelled",
-          );
-          await emailQueue.add("booking-cancelled-email", { options: emailData });
-          logger.info(`[Expiry Worker] Sent cancellation email to ${user.email}`);
-        }
-      } catch (error) {
-        logger.error(
-          `[Expiry Worker] Failed to send cancellation email: ${error}`,
+      if (booking.status === "confirmed" || booking.status === "cancelled") {
+        logger.info(
+          `[Expiry Worker] Booking ${bookingId} has status '${booking.status}'. Skipping cancellation.`,
         );
+        return;
       }
-      logger.info(`[Expiry worker] Successfully expired booking ${bookingId}`);
+
+      // Handle Pending Request Expiry (Not reviewed by admin in time)
+      if (booking.status === "pending") {
+        const updatedBooking = await Booking.findOneAndUpdate(
+          { _id: bookingId, status: "pending" },
+          { status: "cancelled" },
+          { new: true },
+        );
+
+        if (!updatedBooking) return;
+
+        await createNotification({
+          recipient: booking.user,
+          type: "BOOKING_CANCELLED",
+          title: "Booking Request Expired",
+          message:
+            "Your booking request expired because it was not reviewed by admin in time.",
+          data: { bookingId: booking._id },
+        });
+
+        logger.info(
+          `[Expiry Worker] Successfully expired pending booking ${bookingId}`,
+        );
+        return;
+      }
+
+      // Handle Approved Booking Expiry (Payment deadline passed)
+      if (booking.status === "approved") {
+        const updatedBooking = await Booking.findOneAndUpdate(
+          { _id: bookingId, status: "approved" },
+          { status: "cancelled" },
+          { new: true },
+        );
+
+        if (!updatedBooking) {
+          logger.info(
+            `[Expiry Worker] Booking ${bookingId} status changed concurrently (already confirmed). Skipping.`,
+          );
+          return;
+        }
+
+        await createNotification({
+          recipient: booking.user,
+          type: "BOOKING_CANCELLED",
+          title: "Booking Expired",
+          message: `Your booking request was cancelled because the payment deadline expired.`,
+          data: { bookingId: booking._id },
+        });
+
+        if (booking.paymentId) {
+          await Payment.findByIdAndUpdate(booking.paymentId, {
+            status: "expired",
+            failureReason: "Payment deadline expired (12 hours passed)",
+          });
+        }
+
+        try {
+          const user = await User.findById(booking.user);
+
+          if (user) {
+            const emailData = await bookingUpdatedEmail(
+              user,
+              booking._id,
+              "cancelled",
+            );
+            await emailQueue.add("booking-cancelled-email", { options: emailData });
+            logger.info(`[Expiry Worker] Sent cancellation email to ${user.email}`);
+          }
+        } catch (error) {
+          logger.error(
+            `[Expiry Worker] Failed to send cancellation email: ${error}`,
+          );
+        }
+        logger.info(`[Expiry worker] Successfully expired booking ${bookingId}`);
+      }
+    } finally {
+      await releaseLock(lock.key, lock.value);
     }
   },
   {
