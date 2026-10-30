@@ -22,6 +22,20 @@ exports.createBooking = async (req, res, next) => {
     // Retrieve user ID from req.user (typically populated by Auth middleware)
     const userId = req.user.id;
 
+    // Check maximum active pending requests per student
+    const activePendingCount = await Booking.countDocuments({
+      user: userId,
+      status: "pending",
+    });
+
+    if (activePendingCount >= 3) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You already have 3 pending booking requests. Please wait for admin approval",
+      });
+    }
+
     // ===============================
     // Validation
     // ===============================
@@ -164,7 +178,7 @@ exports.createBooking = async (req, res, next) => {
 
         // Only check active bookings
         status: {
-          $in: ["pending", "approved", "confirmed"],
+          $in: ["approved", "confirmed"],
         },
 
         // Conflicted if existing booking starts before the new booking ends
@@ -182,6 +196,31 @@ exports.createBooking = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           message: "This time slot is already booked",
+        });
+      }
+
+      // Check if this user already has an active pending request for an overlapping slot
+      const userDuplicatePending = await Booking.findOne({
+        user: userId,
+        auditorium: auditoriumId,
+        bookingDate: {
+          $gte: dayStart,
+          $lte: dayEnd,
+        },
+        status: "pending",
+        startTime: {
+          $lt: formattedEndTime,
+        },
+        endTime: {
+          $gt: formattedStartTime,
+        },
+      });
+
+      if (userDuplicatePending) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "You already have a pending booking request for this time slot",
         });
       }
 
@@ -232,6 +271,25 @@ exports.createBooking = async (req, res, next) => {
       });
     } catch (notificationError) {
       logger.error("Error creating notification:", notificationError);
+    }
+
+    // Schedule auto-expiry for pending booking if admin does not review within 24 hours (or before event start)
+    try {
+      const pendingDelayMs = Math.min(
+        24 * 60 * 60 * 1000,
+        Math.max(60 * 1000, bookingStartDateTime.getTime() - now.getTime())
+      );
+
+      await bookingExpiryQueue.add(
+        `expire_pending_${booking._id}`,
+        { bookingId: booking._id, type: "pending" },
+        {
+          delay: pendingDelayMs,
+          jobId: `booking_pending_expire_${booking._id}`,
+        }
+      );
+    } catch (queueErr) {
+      logger.error("Failed to schedule pending booking expiry job:", queueErr);
     }
 
     // Return the created booking response to the user
@@ -381,6 +439,16 @@ exports.updateBookingStatus = async (req, res, next) => {
 
       await booking.save();
 
+      // Clean up pending expiry job
+      try {
+        const pendingJob = await bookingExpiryQueue.getJob(
+          `booking_pending_expire_${booking._id}`
+        );
+        if (pendingJob) await pendingJob.remove();
+      } catch (err) {
+        logger.error("Failed to remove pending expiry job on cancel:", err);
+      }
+
       try {
         const user = await User.findById(booking.user);
 
@@ -494,6 +562,52 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     await booking.save();
 
+    // Clean up the pending expiry job for this approved booking
+    try {
+      const pendingJob = await bookingExpiryQueue.getJob(
+        `booking_pending_expire_${booking._id}`,
+      );
+      if (pendingJob) await pendingJob.remove();
+    } catch (err) {
+      logger.error("Failed to remove pending expiry job on approve:", err);
+    }
+
+    // Automatically decline any other pending requests overlapping with this approved booking
+    const conflictingPending = await Booking.find({
+      _id: { $ne: booking._id },
+      auditorium: booking.auditorium,
+      bookingDate: { $gte: dayStart, $lte: dayEnd },
+      status: "pending",
+      startTime: { $lt: booking.endTime },
+      endTime: { $gt: booking.startTime },
+    });
+
+    if (conflictingPending.length > 0) {
+      const conflictIds = conflictingPending.map((b) => b._id);
+      await Booking.updateMany(
+        { _id: { $in: conflictIds } },
+        { $set: { status: "cancelled" } },
+      );
+
+      for (const conflict of conflictingPending) {
+        bookingExpiryQueue
+          .getJob(`booking_pending_expire_${conflict._id}`)
+          .then((job) => job && job.remove())
+          .catch(() => {});
+
+        createNotification({
+          recipient: conflict.user,
+          type: "BOOKING_CANCELLED",
+          title: "Booking Request Declined",
+          message:
+            "Another booking request was approved for this time slot.",
+          data: { bookingId: conflict._id },
+        }).catch((err) =>
+          logger.error("Notification error for auto-declined booking:", err),
+        );
+      }
+    }
+
     const delayMs = 12 * 60 * 60 * 1000;
 
     await bookingExpiryQueue.add(
@@ -577,6 +691,28 @@ exports.cancelBooking = async (req, res, next) => {
     booking.status = "cancelled";
 
     await booking.save();
+
+    // Clean up any pending or approved expiry jobs from queue
+    try {
+      const pendingJob = await bookingExpiryQueue.getJob(
+        `booking_pending_expire_${booking._id}`,
+      );
+      if (pendingJob) await pendingJob.remove();
+
+      const approvedJob = await bookingExpiryQueue.getJob(
+        `booking_expire_${booking._id}`,
+      );
+      if (approvedJob) await approvedJob.remove();
+    } catch (err) {
+      logger.error("Failed to remove expiry job on user cancel:", err);
+    }
+
+    if (booking.paymentId) {
+      await Payment.findByIdAndUpdate(booking.paymentId, {
+        status: "cancelled",
+        failureReason: "Booking cancelled by user",
+      });
+    }
 
     await createNotification({
       recipient: booking.user,
