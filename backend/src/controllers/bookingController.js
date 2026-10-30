@@ -4,7 +4,7 @@ const User = require("../models/User");
 const { createNotification } = require("../service/notificationService");
 const emailQueue = require("../queue/emailQueue");
 const logger = require("../config/logger");
-
+const mongoose = require("mongoose");
 const {
   bookingUpdatedEmail,
   paymentRequestEmail,
@@ -277,7 +277,7 @@ exports.createBooking = async (req, res, next) => {
     try {
       const pendingDelayMs = Math.min(
         24 * 60 * 60 * 1000,
-        Math.max(60 * 1000, bookingStartDateTime.getTime() - now.getTime())
+        Math.max(60 * 1000, bookingStartDateTime.getTime() - now.getTime()),
       );
 
       await bookingExpiryQueue.add(
@@ -286,7 +286,7 @@ exports.createBooking = async (req, res, next) => {
         {
           delay: pendingDelayMs,
           jobId: `booking_pending_expire_${booking._id}`,
-        }
+        },
       );
     } catch (queueErr) {
       logger.error("Failed to schedule pending booking expiry job:", queueErr);
@@ -442,7 +442,7 @@ exports.updateBookingStatus = async (req, res, next) => {
       // Clean up pending expiry job
       try {
         const pendingJob = await bookingExpiryQueue.getJob(
-          `booking_pending_expire_${booking._id}`
+          `booking_pending_expire_${booking._id}`,
         );
         if (pendingJob) await pendingJob.remove();
       } catch (err) {
@@ -544,23 +544,40 @@ exports.updateBookingStatus = async (req, res, next) => {
       },
     });
 
-    const payment = await Payment.create({
-      user: booking.user,
-      booking: booking._id,
-      amount: booking.totalPrice,
-      currency: "INR",
-      gatewayOrderId: razorpayOrder.id,
-      receipt,
-      status: "created",
-      expiresAt: paymentDeadline,
-    });
+    // Transactions
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    booking.status = "approved";
-    booking.approvedAt = approvedAt;
-    booking.paymentDeadline = paymentDeadline;
-    booking.paymentId = payment._id;
+    let payment;
 
-    await booking.save();
+    try {
+      payment = new Payment({
+        user: booking.user,
+        booking: booking._id,
+        amount: booking.totalPrice,
+        currency: "INR",
+        gatewayOrderId: razorpayOrder.id,
+        receipt,
+        status: "created",
+        expiresAt: paymentDeadline,
+      });
+
+      await payment.save({ session });
+
+      booking.status = "approved";
+      booking.approvedAt = approvedAt;
+      booking.paymentDeadline = paymentDeadline;
+      booking.paymentId = payment._id;
+      await booking.save({ session });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      logger.error("[Booking] Approval transaction aborted:", error);
+      throw error;
+    } finally {
+      session.endSession();
+    }
 
     // Clean up the pending expiry job for this approved booking
     try {
@@ -599,8 +616,7 @@ exports.updateBookingStatus = async (req, res, next) => {
           recipient: conflict.user,
           type: "BOOKING_CANCELLED",
           title: "Booking Request Declined",
-          message:
-            "Another booking request was approved for this time slot.",
+          message: "Another booking request was approved for this time slot.",
           data: { bookingId: conflict._id },
         }).catch((err) =>
           logger.error("Notification error for auto-declined booking:", err),

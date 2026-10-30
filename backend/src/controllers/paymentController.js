@@ -11,6 +11,7 @@ const User = require("../models/User");
 const { bookingUpdatedEmail } = require("../utils/EmailOptions");
 const { buildReceiptPdf } = require("../utils/receiptGenerator");
 const pdfQueue = require("../queue/pdfQueue");
+const mongoose = require("mongoose");
 
 exports.createPaymentOrder = async (req, res, next) => {
   try {
@@ -172,20 +173,42 @@ exports.verifyPayment = async (req, res, next) => {
         message: "Invalid payment signature",
       });
     }
-    const payment = await Payment.findOneAndUpdate(
-      { gatewayOrderId: razorpay_order_id },
-      {
-        gatewayPaymentId: razorpay_payment_id,
-        gatewaySignature: razorpay_signature,
-        status: "paid",
-        paidAt: new Date(),
-      },
-      { new: true },
-    );
 
-    booking.status = "confirmed";
-    booking.paymentId = payment._id;
-    await booking.save();
+    // Atomic Multi-Document transaction
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let payment;
+
+    try {
+      payment = await Payment.findOneAndUpdate(
+        { gatewayOrderId: razorpay_order_id },
+        {
+          gatewayPaymentId: razorpay_payment_id,
+          gatewaySignature: razorpay_signature,
+          status: "paid",
+          paidAt: new Date(),
+        },
+        { new: true, session },
+      );
+
+      if (!payment) {
+        throw new Error("Payment record not found for this order");
+      }
+
+      booking.status = "confirmed";
+      booking.paymentId = payment._id;
+      await booking.save({ session });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      logger.error("[Payment] Transaction aborted:", error);
+      throw error;
+    } finally {
+      session.endSession();
+    }
 
     try {
       const user = await User.findById(booking.user);
@@ -278,13 +301,11 @@ exports.getReceipt = async (req, res, next) => {
 
     const payment = await Payment.findById(booking.paymentId);
     if (!payment || payment.status !== "paid") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "Receipt is available only after successful payment verification",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Receipt is available only after successful payment verification",
+      });
     }
 
     // Ensure unique, clean receipt ID exists
@@ -383,13 +404,11 @@ exports.downloadReceipt = async (req, res, next) => {
 
     const payment = await Payment.findById(booking.paymentId);
     if (!payment || payment.status !== "paid") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "Receipt is available only after successful payment verification",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Receipt is available only after successful payment verification",
+      });
     }
 
     // 1. FAST PATH: Stream pre-generated PDF from Cloudinary directly to client (Zero CPU render cost & No CORS redirect)
