@@ -6,6 +6,8 @@ const redisClient = require("./redis");
 const { createAdapter } = require("@socket.io/redis-adapter");
 
 let io;
+let pubClient;
+let subClient;
 
 const initSocket = (server) => {
   io = new Server(server, {
@@ -21,8 +23,8 @@ const initSocket = (server) => {
   });
 
   // Pub/Sub for scaling server
-  const pubClient = redisClient.duplicate();
-  const subClient = redisClient.duplicate();
+  pubClient = redisClient.duplicate();
+  subClient = redisClient.duplicate();
 
   pubClient.on("error", (err) => {
     logger.error("[Socket] Redis PubClient error:", err);
@@ -85,8 +87,28 @@ const sendRealTimeNotification = (userId, notification) => {
   }
 };
 
+const closeSocket = async () => {
+  try {
+    if (io) {
+      await new Promise((resolve) => io.close(resolve));
+      logger.info("[Socket] Socket.io server closed.");
+    }
+    if (pubClient) {
+      await pubClient.quit();
+      logger.info("[Socket] Redis PubClient closed.");
+    }
+    if (subClient) {
+      await subClient.quit();
+      logger.info("[Socket] Redis SubClient closed.");
+    }
+  } catch (err) {
+    logger.error("[Socket] Error closing socket/redis adapter:", err);
+  }
+};
+
 module.exports = {
   initSocket,
+  closeSocket,
   sendRealTimeNotification,
   getIo: () => io,
 };

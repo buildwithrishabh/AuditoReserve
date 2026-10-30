@@ -2,7 +2,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const http = require("http");
 const logger = require("./config/logger");
-const { initSocket } = require("./config/socket");
+const { initSocket, closeSocket } = require("./config/socket");
 const app = require("./app");
 const connectDB = require("./config/db");
 const redisClient = require("./config/redis");
@@ -69,6 +69,9 @@ const gracefulShutdown = async (signal) => {
       ]);
       logger.info("BullMQ queues closed.");
 
+      // Close Socket.io server and its Redis adapter clients
+      await closeSocket();
+
       // Close standalone Redis client
       logger.info("Closing Redis connection...");
       await redisClient.quit();
@@ -92,3 +95,13 @@ const gracefulShutdown = async (signal) => {
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Process-level unhandled exception and rejection handlers
+process.on("unhandledRejection", (reason) => {
+  logger.error("FATAL: Unhandled Promise Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("FATAL: Uncaught Exception:", error);
+  gracefulShutdown("uncaughtException");
+});

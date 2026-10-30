@@ -33,4 +33,3 @@ notificationRouter.patch("/:id", notificationMutateLimiter, markAsRead);
 notificationRouter.delete("/:id", notificationMutateLimiter, deleteNotification);
 
 module.exports = notificationRouter;
-

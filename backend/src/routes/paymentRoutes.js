@@ -1,13 +1,11 @@
 const express = require("express");
 
-
 const {
-    createPaymentOrder,
-    verifyPayment,
-    getReceipt,
-    downloadReceipt
+  createPaymentOrder,
+  verifyPayment,
+  getReceipt,
+  downloadReceipt,
 } = require("../controllers/paymentController");
-
 
 const {
   protect,
@@ -17,6 +15,8 @@ const {
 
 const idempotency = require("../middlewares/idempotencyMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const { verifyPaymentSchema } = require("../validators/paymentValidator");
 
 // Limiters for payment routes
 const paymentOrderLimiter = slidingWindowLimiter({
@@ -52,7 +52,7 @@ paymentRouter.post(
   authorizeRole("student"),
   paymentOrderLimiter,
   idempotency({ ttl: 86400, prefix: "idem:order" }),
-  createPaymentOrder
+  createPaymentOrder,
 );
 
 paymentRouter.post(
@@ -61,11 +61,25 @@ paymentRouter.post(
   isverified,
   authorizeRole("student"),
   paymentVerifyLimiter,
+  validate(verifyPaymentSchema),
   idempotency({ required: true, ttl: 86400, prefix: "idem:verify" }),
-  verifyPayment
+  verifyPayment,
 );
 
-paymentRouter.get("/:bookingId/receipt", protect, isverified, receiptLimiter, getReceipt);
-paymentRouter.get("/:bookingId/receipt/download", protect, isverified, pdfDownloadLimiter, downloadReceipt);
+paymentRouter.get(
+  "/:bookingId/receipt",
+  protect,
+  isverified,
+  receiptLimiter,
+  getReceipt,
+);
+
+paymentRouter.get(
+  "/:bookingId/receipt/download",
+  protect,
+  isverified,
+  pdfDownloadLimiter,
+  downloadReceipt,
+);
 
 module.exports = paymentRouter;

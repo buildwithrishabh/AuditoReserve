@@ -11,8 +11,18 @@ const {
   getCalendarBooking,
 } = require("../controllers/bookingController");
 
-const { protect, authorizeRole, isverified } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  authorizeRole,
+  isverified,
+} = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const {
+  createBookingSchema,
+  calendarQuerySchema,
+  updateBookingStatusSchema,
+} = require("../validators/bookingValidator");
 
 // Limiters for booking routes
 const bookingCreateLimiter = slidingWindowLimiter({
@@ -44,7 +54,14 @@ const userBookingsLimiter = slidingWindowLimiter({
 // ======================================
 
 // Get Calendar Bookings (for availability checks)
-router.get("/calendar", protect, isverified, calendarLimiter, getCalendarBooking);
+router.get(
+  "/calendar",
+  protect,
+  isverified,
+  calendarLimiter,
+  validate({ query: calendarQuerySchema }),
+  getCalendarBooking,
+);
 
 // Create Booking
 router.post(
@@ -53,7 +70,8 @@ router.post(
   isverified,
   authorizeRole("student"),
   bookingCreateLimiter,
-  createBooking
+  validate(createBookingSchema),
+  createBooking,
 );
 
 // Get Logged In User Bookings
@@ -63,7 +81,7 @@ router.get(
   isverified,
   authorizeRole("student"),
   userBookingsLimiter,
-  getUserBookings
+  getUserBookings,
 );
 
 // Cancel Booking
@@ -73,7 +91,7 @@ router.put(
   isverified,
   authorizeRole("student"),
   bookingCancelLimiter,
-  cancelBooking
+  cancelBooking,
 );
 
 // ======================================
@@ -84,6 +102,13 @@ router.put(
 router.get("/all", protect, isverified, authorizeRole("admin"), getAllBookings);
 
 // Update Booking Status
-router.put("/status/:id", protect, isverified, authorizeRole("admin"), updateBookingStatus);
+router.put(
+  "/status/:id",
+  protect,
+  isverified,
+  authorizeRole("admin"),
+  validate(updateBookingStatusSchema),
+  updateBookingStatus,
+);
 
 module.exports = router;

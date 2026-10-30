@@ -12,13 +12,17 @@ const {
 
 const upload = require("../middlewares/uploadMiddleware");
 
-// Example auth middleware
 const {
   protect,
   authorizeRole,
   isverified,
 } = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const {
+  createAuditoriumSchema,
+  updateAuditoriumSchema,
+} = require("../validators/auditoriumValidator");
 
 // Limiters for auditorium routes
 const viewAuditoriumLimiter = slidingWindowLimiter({
@@ -55,6 +59,7 @@ router.post(
   isverified,
   uploadAuditoriumLimiter,
   upload.array("images", 5),
+  validate(createAuditoriumSchema),
   createAuditorium,
 );
 
@@ -66,6 +71,7 @@ router.put(
   isverified,
   uploadAuditoriumLimiter,
   upload.array("images", 5),
+  validate(updateAuditoriumSchema),
   updateAuditorium,
 );
 

@@ -56,37 +56,19 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const paymentRouter = require("./routes/paymentRoutes");
 const notificationRouter = require("./routes/notificationRoutes");
 
+// Error handling middlewares
+const { notFound, errorHandler } = require("./middlewares/errorMiddleware");
+
 app.use("/api/auth", authLimiter, authroutes);
 app.use("/api/auditoriums", auditoriumRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRouter);
 app.use("/api/notifications" , notificationRouter);
 
-// Global error handler (does not leak error details in production)
-app.use((err, req, res, next) => {
-  logger.error("Unhandled error:", err);
+// 404 handler for undefined routes
+app.use(notFound);
 
-  // Catch Multer limit / field errors
-  if (err.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({
-      success: false,
-      message: "File size exceeds the 5MB limit",
-    });
-  }
-  if (err.code === "LIMIT_UNEXPECTED_FILE") {
-    return res.status(400).json({
-      success: false,
-      message: "Too many files uploaded. Maximum allowed is 5.",
-    });
-  }
-
-  res.status(err.status || 500).json({
-    success: false,
-    message:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
-  });
-});
+// Global error handler
+app.use(errorHandler);
 
 module.exports = app;
