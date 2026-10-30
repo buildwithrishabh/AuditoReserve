@@ -1,4 +1,5 @@
 const Auditorium = require("../models/auditorium");
+const Booking = require("../models/booking");
 const { getOrSetCache, delPattern, del } = require("../utils/cache");
 const {
   deleteMultipleImagesFromCloudinary,
@@ -29,7 +30,7 @@ exports.createAuditorium = async (req, res, next) => {
       description,
     });
 
-    await delPattern("auditoriums:all");
+    await del("auditoriums:all");
 
     res.status(201).json({
       success: true,
@@ -136,7 +137,7 @@ exports.updateAuditorium = async (req, res, next) => {
     auditorium.images = imageUrls;
 
     await auditorium.save();
-    await delPattern("auditoriums:all");
+    await del("auditoriums:all");
     await del(`auditorium:${req.params.id}`);
 
     res.status(200).json({
@@ -163,6 +164,19 @@ exports.deleteAuditorium = async (req, res, next) => {
       });
     }
 
+    // Check if there are active (pending, approved, or confirmed) bookings
+    const activeBookingsCount = await Booking.countDocuments({
+      auditorium: req.params.id,
+      status: { $in: ["pending", "approved", "confirmed"] },
+    });
+
+    if (activeBookingsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete auditorium. There are ${activeBookingsCount} active booking(s) associated with it. Please cancel or resolve them first.`,
+      });
+    }
+
     // Delete associated images from Cloudinary before database deletion
     if (auditorium.images && auditorium.images.length > 0) {
       await deleteMultipleImagesFromCloudinary(auditorium.images);
@@ -170,7 +184,7 @@ exports.deleteAuditorium = async (req, res, next) => {
 
     await auditorium.deleteOne();
 
-    await delPattern("auditoriums:all");
+    await del("auditoriums:all");
     await del(`auditorium:${req.params.id}`);
 
     res.status(200).json({
