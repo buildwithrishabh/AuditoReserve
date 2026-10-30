@@ -171,7 +171,15 @@ exports.verifyPayment = async (req, res, next) => {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
+    // Cryptographic timing-safe comparison to prevent side-channel timing attacks
+    const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+    const receivedBuffer = Buffer.from(razorpay_signature || "", "utf8");
+
+    const isSignatureValid =
+      expectedBuffer.length === receivedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+
+    if (!isSignatureValid) {
       await Payment.findOneAndUpdate(
         {
           gatewayOrderId: razorpay_order_id,
