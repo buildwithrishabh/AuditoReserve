@@ -1,161 +1,225 @@
 # 🏛️ AuditoReserve — System Architecture & Technical Design
 
-Welcome to the comprehensive architecture specification for **AuditoReserve**. This document outlines the structural patterns, concurrency controls, asynchronous workflows, data pipelines, and distributed mechanisms engineered into the platform.
+Welcome to the comprehensive technical architecture specification for **AuditoReserve**. This document outlines the architectural blueprints, distributed concurrency controls, asynchronous job pipelines, security frameworks, database topologies, and deployment specifications engineered into the backend platform.
 
 ---
 
 ## 📌 Table of Contents
 
 - [1. High-Level Architecture Overview](#1-high-level-architecture-overview)
-- [2. Core Architectural Patterns](#2-core-architectural-patterns)
-- [3. Subsystem Breakdown](#3-subsystem-breakdown)
-  - [3.1 API Gateway & Security Pipeline](#31-api-gateway--security-pipeline)
+- [2. Core Architectural Principles](#2-core-architectural-principles)
+- [3. Subsystem Deep-Dive](#3-subsystem-deep-dive)
+  - [3.1 API Gateway, Security & Idempotency Pipeline](#31-api-gateway-security--idempotency-pipeline)
   - [3.2 Distributed Concurrency & Locking (Redlock)](#32-distributed-concurrency--locking-redlock)
   - [3.3 Asynchronous Queue Processing (BullMQ)](#33-asynchronous-queue-processing-bullmq)
-  - [3.4 Direct Stream Media & CDN Architecture](#34-direct-stream-media--cdn-architecture)
-  - [3.5 Multi-Node Real-Time WebSockets (Redis Adapter)](#35-multi-node-real-time-websockets-redis-adapter)
-  - [3.6 Data Layer & Persistence Topology](#36-data-layer--persistence-topology)
-- [4. End-to-End Sequence Diagrams](#4-end-to-end-sequence-diagrams)
-  - [4.1 Booking Request & Conflict Resolution](#41-booking-request--conflict-resolution)
-  - [4.2 Payment Verification & Async Receipt Pipeline](#42-payment-verification--async-receipt-pipeline)
-  - [4.3 Multi-Instance Real-Time Push Delivery](#43-multi-instance-real-time-push-delivery)
-- [5. Reliability, Idempotency & Fault Tolerance](#5-reliability-idempotency--fault-tolerance)
-- [6. Horizontal Scaling & Deployment Blueprint](#6-horizontal-scaling--deployment-blueprint)
+  - [3.4 Transactional Dual-Engine Email Subsystem](#34-transactional-dual-engine-email-subsystem)
+  - [3.5 Direct Stream Media & Zero-Disk PDF CDN Pipeline](#35-direct-stream-media--zero-disk-pdf-cdn-pipeline)
+  - [3.6 Multi-Node Real-Time WebSockets (Redis Pub/Sub Adapter)](#36-multi-node-real-time-websockets-redis-pubsub-adapter)
+  - [3.7 Data Layer, Schemas & Compound Index Topology](#37-data-layer-schemas--compound-index-topology)
+- [4. End-to-End Sequence Workflows](#4-end-to-end-sequence-workflows)
+  - [4.1 Booking Submission & Admin Conflict-Guarded Approval](#41-booking-submission--admin-conflict-guarded-approval)
+  - [4.2 Payment Verification & Async CDN Invoicing Pipeline](#42-payment-verification--async-cdn-invoicing-pipeline)
+  - [4.3 Dual-Level Auto-Expiry Worker Lifecycle](#43-dual-level-auto-expiry-worker-lifecycle)
+- [5. Reliability, Database Transactions & Fault Tolerance](#5-reliability-database-transactions--fault-tolerance)
+- [6. Automated Verification & Testing Coverage](#6-automated-verification--testing-coverage)
+- [7. Horizontal Scaling & Cloud Deployment Blueprint](#7-horizontal-scaling--cloud-deployment-blueprint)
 
 ---
 
 ## 1. High-Level Architecture Overview
 
-AuditoReserve is designed around a **stateless, asynchronous, event-driven topology**. CPU-heavy and I/O-intensive workloads (PDF rendering, transactional emails, expiration scheduling) are completely isolated from HTTP request-response cycles.
+AuditoReserve operates on a **decoupled, event-driven micro-service topology** separating synchronous HTTP/WebSocket ingress from asynchronous background processing. Computationally intensive tasks (PDF vector document compilation, transactional email dispatches, delayed payment expirations) are strictly offloaded from the Express event loop to independent BullMQ worker services.
 
 ```mermaid
 flowchart TB
-    subgraph ClientLayer ["Client Layer (React 19 + TypeScript + Vite)"]
-        WebClient["Web Browser (React SPA)"]
-        SocketClient["Socket.io Client"]
+    subgraph Clients ["Client Layer (Web & Real-Time)"]
+        Browser["React SPA (Client Browser)"]
+        WSClient["Socket.io WebSocket Client"]
     end
 
-    subgraph Ingress ["Edge & Security"]
+    subgraph EdgeSecurity ["Edge Gateway & Security"]
         ReverseProxy["Reverse Proxy / Nginx / Load Balancer"]
-        RateLimiter["Redis Sliding Window Limiter"]
-        Idempotency["Idempotency Filter (Redis)"]
+        SlidingLimiter["Redis Sliding Window Rate Limiter (Lua)"]
+        IdempotentGate["Idempotency Filter (Redis Key-Lock)"]
+        AuthShield["JWT Cookie & Bearer Guard"]
     end
 
-    subgraph APILayer ["Stateless Application API (Express.js)"]
-        API1["API Instance 1"]
-        API2["API Instance 2"]
-        APIN["API Instance N"]
+    subgraph WebTier ["Stateless API Tier (Express.js)"]
+        API1["API Instance 1 (`server.js`)"]
+        API2["API Instance 2 (`server.js`)"]
+        APIN["API Instance N (`server.js`)"]
     end
 
-    subgraph StateCache ["In-Memory Distributed Cache & Broker (Redis)"]
-        RedisLock["Distributed Locks (Redlock)"]
-        RedisAdapter["Socket.IO Pub/Sub Adapter"]
-        RedisCache["Cache-Aside (Auditoriums)"]
-        BullQueues["BullMQ Job Queues"]
+    subgraph StateBus ["In-Memory Distributed Backbone (Redis 7)"]
+        Redlock["Redlock Distributed Locks"]
+        SocketAdapter["Socket.io Pub/Sub Mesh"]
+        CatalogCache["Auditorium Cache-Aside Store"]
+        BullQueues[("BullMQ Redis Queues
+        • email-queue
+        • booking-expiry
+        • pdf-generation-queue")]
     end
 
-    subgraph Workers ["Background Worker Services (BullMQ)"]
-        EmailW["Email Worker (SMTP / Brevo)"]
-        ExpiryW["Booking Expiry Worker (12h TTL)"]
-        PDFW["PDF Worker (PDFKit Direct Stream)"]
+    subgraph WorkerTier ["Dedicated Asynchronous Workers (`worker.js`)"]
+        EmailWorker["Email Worker (Brevo HTTP + SMTP)"]
+        ExpiryWorker["12h/24h Booking Expiry Worker"]
+        PDFWorker["PDFKit Direct Stream Worker (Concurrency: 2)"]
+        HealthProbe["Embedded Worker Health Server (Port 10000)"]
     end
 
-    subgraph Persistence ["Persistent Storage Layer"]
-        MongoDB[(MongoDB Cluster / Mongoose)]
+    subgraph Persistence ["Persistent Storage Layer (MongoDB 7)"]
+        MongoCluster[("MongoDB Primary / Replica Set
+        • Users (Sparse Token Indexes)
+        • Auditoriums (Cache-Backed)
+        • Bookings (Compound Interval Indexes)
+        • Payments (Idempotent Records)
+        • Notifications (Recipient Compound)")]
     end
 
-    subgraph CloudServices ["External Cloud Services"]
-        Cloudinary["Cloudinary CDN (Raw PDFs + Images)"]
-        Razorpay["Razorpay Payment Gateway"]
+    subgraph CloudInfra ["External Cloud Services"]
+        BrevoAPI["Brevo HTTP Email API / SMTP"]
+        RazorpayGateway["Razorpay Payment Gateway"]
+        CloudinaryCDN["Cloudinary Raw PDF & Image CDN"]
     end
 
-    WebClient -->|HTTPS| ReverseProxy
-    SocketClient <-->|WSS| ReverseProxy
-    ReverseProxy --> RateLimiter
-    RateLimiter --> Idempotency
-    Idempotency --> API1 & API2 & APIN
+    Browser -->|HTTPS| ReverseProxy
+    WSClient <-->|WSS| ReverseProxy
+    ReverseProxy --> SlidingLimiter --> IdempotentGate --> AuthShield
+    AuthShield --> API1 & API2 & APIN
 
-    API1 & API2 & APIN <-->|Lock / Cache / PubSub| StateCache
-    API1 & API2 & APIN -->|Transactions / Queries| MongoDB
-    API1 & API2 & APIN -->|Enqueue Jobs| BullQueues
+    API1 & API2 & APIN <-->|Lock / Cache / PubSub| StateBus
+    API1 & API2 & APIN -->|Transactions & Queries| MongoCluster
+    API1 & API2 & APIN -->|Enqueue Delayed / Instant Jobs| BullQueues
+    API1 & API2 & APIN -->|Create / Verify Orders| RazorpayGateway
 
-    BullQueues --> EmailW & ExpiryW & PDFW
-    EmailW -->|Send Mail| WebClient
-    PDFW -->|Direct Stream Upload| Cloudinary
-    PDFW -->|Update receiptPdfUrl| MongoDB
-    API1 & API2 & APIN -->|Create / Verify Orders| Razorpay
+    BullQueues --> EmailWorker & ExpiryWorker & PDFWorker
+    EmailWorker -->|Send Emails| BrevoAPI
+    ExpiryWorker -->|State Sync & Auto-Cancel| MongoCluster
+    PDFWorker -->|Direct Upload Stream| CloudinaryCDN
+    PDFWorker -->|Persist receiptPdfUrl| MongoCluster
 
-    StateCache <-->|Sync Sockets| API1 & API2 & APIN
+    StateBus <-->|Cross-Node Real-time Sync| API1 & API2 & APIN
+    API1 & API2 & APIN -.->|Proxy Stream Cached PDF| Browser
 ```
 
 ---
 
-## 2. Core Architectural Patterns
+## 2. Core Architectural Principles
 
-1. **Stateless Web Tier:** API nodes hold zero local state, sessions, or disk files. Any request can hit any backend container transparently.
-2. **Event Loop Non-Blocking:** All computationally expensive operations (PDF document assembly, email rendering, delayed timeouts) are offloaded to BullMQ worker threads.
-3. **Cache-Aside Pattern:** High-read queries (such as auditorium listings and venue details) are cached in Redis with automated cache invalidation on mutations and graceful fallback to MongoDB upon cache misses.
-4. **Distributed Concurrency Guard:** Slot conflicts and booking approval states are mediated via distributed Redis locks to guarantee single-winner execution under high concurrent traffic.
-5. **Direct Stream Ingestion:** Media assets (images and dynamically generated PDF receipts) stream straight into Cloudinary without touching local container disks.
+1. **Stateless API Ingress:** API nodes retain no local sessions, state, or temporary files. Session validity is established via cryptographic JWTs (HttpOnly cookies or `Authorization: Bearer` headers), allowing seamless load distribution across arbitrary API instances.
+2. **Decoupled Execution Pipelines:** HTTP controllers maintain execution times $< 25\text{ms}$ by delegating deferred side-effects (PDF assembly, emails, auto-cancellation timers) to background BullMQ queues.
+3. **Optimistic & Distributed Concurrency Guarding:** Reservation requests, administrator approvals, and payment verifications utilize Redis-backed distributed locks (Redlock) combined with MongoDB multi-document transactions to eliminate race conditions and double-booking.
+4. **Cache-Aside with Automated Purge:** High-traffic catalog queries (`/viewAllAuditoriums`, `/viewAuditorium/:id`) read from Redis with automatic database fallback and proactive cache eviction on administrative updates.
+5. **Zero-Disk Media Streaming:** Dynamically generated PDF receipts stream directly from Node.js memory into Cloudinary CDN storage and are proxied directly to clients, preventing ephemeral container disk overflow.
 
 ---
 
-## 3. Subsystem Breakdown
+## 3. Subsystem Deep-Dive
 
-### 3.1 API Gateway & Security Pipeline
+### 3.1 API Gateway, Security & Idempotency Pipeline
 
-Every incoming HTTP request passes through a multi-tier pipeline:
+Every request entering the Express pipeline traverses a layered security pipeline:
 
 ```
-[Request]
-   │
-   ▼
-[Trust Proxy] ──► Configured for reverse proxy / load balancer transparency
-   │
-   ▼
-[Helmet & CORS] ──► Strict security headers & whitelisted origin verification
-   │
-   ▼
-[Redis Sliding Window Rate Limiter] ──► Prevents brute-force on auth & payment endpoints
-   │
-   ▼
-[Idempotency Middleware] ──► Deduplicates mutation calls via `Idempotency-Key`
-   │
-   ▼
-[JWT Authentication & Role Guard] ──► HttpOnly cookie + Bearer token resolution
-   │
-   ▼
+[Incoming Request]
+       │
+       ▼
+[Trust Proxy] ───────────────► Resolves client IP across load balancers / reverse proxies
+       │
+       ▼
+[Helmet & CORS] ────────────► Strict security headers & whitelisted domain check
+       │
+       ▼
+[Atomic Sliding-Window] ─────► Redis Sorted Sets + Lua script per endpoint category
+       │
+       ▼
+[Idempotency Filter] ────────► Redis request lock & cached response replayer
+       │
+       ▼
+[JWT Authentication Guard] ──► Decodes access token from HttpOnly cookie or Bearer header
+       │
+       ▼
+[Role & Verification Guard] ─► Validates student/admin roles & email verification status
+       │
+       ▼
+[Zod Schema Validator] ──────► Strict validation of params, query, and request body
+       │
+       ▼
 [Controller Handler]
 ```
 
-- **Sliding-Window Limiter:** Built using Redis Sorted Sets (`ZADD`, `ZREMRANGEBYSCORE`, `ZCARD`) to provide smooth rate limiting without boundary-reset vulnerabilities.
-- **Idempotency Engine:** Caches payment verification responses using an idempotency key with a 24-hour TTL, safeguarding against double-charges caused by network retries.
+#### Redis Sliding-Window Rate Limiting (Lua-Driven)
+Unlike naive fixed-window limiters that suffer from boundary burst vulnerabilities, AuditoReserve executes an atomic Lua script over Redis Sorted Sets (`ZREMRANGEBYSCORE`, `ZCARD`, `ZADD`, `PEXPIRE`). Each endpoint category operates a distinct rate limit profile:
+
+| Endpoint Domain | Rate Limit Prefix | Window | Max Requests | Key Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth General** | `rl:auth:general` | 15 mins | 60 | IP / Client ID |
+| **Auth Register** | `rl:auth:register` | 15 mins | 5 | IP / Client ID |
+| **Auth Login** | `rl:auth:login` | 15 mins | 10 | IP / Client ID |
+| **Password Reset** | `rl:auth:forget-password` | 15 mins | 5 | IP / Client ID |
+| **Resend Verification**| `rl:auth:resend-verify` | 15 mins | 5 | IP / Client ID |
+| **Token Refresh** | `rl:auth:refresh` | 15 mins | 30 | IP / Client ID |
+| **Auditorium View**| `rl:auditorium:view` | 1 min | 60 | Client ID / IP |
+| **Auditorium Mutate**| `rl:auditorium:mutate`| 1 min | 10 | Client ID / IP |
+| **Booking Create** | `rl:booking:create` | 1 min | 5 | Client ID / IP |
+| **Booking Cancel** | `rl:booking:cancel` | 1 min | 10 | Client ID / IP |
+| **Booking Calendar**| `rl:booking:calendar` | 1 min | 60 | Client ID / IP |
+| **Payment Order** | `rl:payment:order` | 1 min | 6 | Client ID / IP |
+| **Payment Verify** | `rl:payment:verify` | 1 min | 6 | Client ID / IP |
+| **PDF Download** | `rl:payment:download` | 1 min | 10 | Client ID / IP |
+| **Notifications Read**| `rl:notification:read` | 1 min | 60 | Client ID / IP |
+
+#### Per-User Idempotency Engine
+To prevent duplicate financial charges or double-verification of payments caused by client-side retries:
+1. The client supplies an `Idempotency-Key` or `X-Idempotency-Key` header.
+2. The key is scoped per user: `${prefix}:${userId}:${idempotencyKey}`.
+3. If an existing entry has value `"PROCESSING"`, a `409 Conflict` is returned immediately.
+4. If an entry has a cached response, the controller execution is bypassed and the cached payload is returned with header `X-Idempotent-Replayed: true`.
+5. On the first hit, Redis sets `"PROCESSING"` with a 30-second lock timeout. The response is intercepted: status codes $< 500$ are persisted for 24 hours (`EX 86400`); internal server errors ($\ge 500$) automatically release the key to permit immediate retry.
 
 ---
 
 ### 3.2 Distributed Concurrency & Locking (Redlock)
 
-In an auditorium reservation platform, multiple students or administrative staff may attempt to book, approve, or reschedule the same auditorium on identical dates or overlapping time slots.
+In university auditorium management, multiple students and administrators frequently target the same venue for overlapping dates or times. To ensure data consistency across multiple API instances:
 
 ```
-       Request A (Approve Booking 1)          Request B (Approve Booking 2)
-                     │                                      │
-                     ▼                                      ▼
-     [Acquire Lock: lock:booking:auditorium_id:date]
-                     │
-           ┌─────────┴─────────┐
-           ▼                   ▼
-     Lock Acquired        Lock Denied (409 Conflict)
-           │                   │
-     Verify DB Slots           └─► "Auditorium is currently being modified."
-     Update Status
-     Release Lock
+Request A (Admin 1 Approves Booking)      Request B (Admin 2 Approves Booking)
+                │                                         │
+                ▼                                         ▼
+   [Acquire Lock: lock:booking:auditorium_id:date_midnight (TTL: 15s)]
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+   Lock Acquired   Lock Rejected (409 Conflict)
+        │               │
+        │               └─► "Another booking process is running for this auditorium."
+        ▼
+   DB Conflict Check ($lt / $gt)
+   Razorpay Order + Payment Save (Session Transaction)
+   Auto-Decline Competing Pending Requests
+   Enqueue 12h Expiry Timer in BullMQ
+   Release Lock via Atomic Lua Script (Token Verification)
 ```
 
-- **Lock Scope:** `lock:booking:<auditoriumId>:<date>`
-- **Safety Window:** Millisecond-level TTL with unique token verification upon release (`DEL` if value matches release token).
-- **Conflict Engine:** Compares existing `confirmed` and `approved` bookings for same-day interval intersections:
-  $$\text{Overlap} \iff (\text{Start}_A < \text{End}_B) \land (\text{End}_A > \text{Start}_B)$$
+#### Lock Implementation
+- **Acquire:** `redisClient.set(key, lockValue, "NX", "PX", ttlMs)` generates a cryptographically random UUID token (`lockValue`).
+- **Safe Release:** Executed via an atomic Lua script:
+  ```lua
+  if redis.call("GET", KEYS[1]) == ARGV[1] then
+    return redis.call("DEL", KEYS[1])
+  else
+    return 0
+  end
+  ```
+  This ensures that a slow process whose lock expired does not inadvertently release a newly acquired lock held by another process.
+- **Lock Scopes:**
+  - `lock:booking:${auditoriumId}:${bookingDay}` — Enforced during booking creation and admin approval.
+  - `lock:booking:${bookingId}` — Enforced during payment verification vs. `bookingExpiryWorker` auto-cancellation.
+
+#### Overlap Formula
+An interval collision occurs when:
+$$\text{Collision} \iff (\text{Existing.startTime} < \text{New.endTime}) \land (\text{Existing.endTime} > \text{New.startTime})$$
 
 ---
 
@@ -163,257 +227,332 @@ In an auditorium reservation platform, multiple students or administrative staff
 
 AuditoReserve operates three dedicated BullMQ queues backed by Redis:
 
-| Queue Name | Primary Responsibility | Backoff Strategy | Job Deduplication |
+| Queue Identifier | Worker Module | Primary Responsibilities | Concurrency & Retry Policy |
 | :--- | :--- | :--- | :--- |
-| **`email-queue`** | Verification OTPs, booking confirmations, approval & cancellation alerts | Exponential, 5 retries | N/A |
-| **`booking-expiry`** | Enforces the 12-hour payment deadline; auto-expires unpaid bookings | Delayed Job (12 hrs) | `jobId: booking_expire_<id>` |
-| **`pdf-generation-queue`** | Generates PDFKit receipts and streams them directly to Cloudinary | Exponential, 3 retries (5s) | `jobId: receipt_<paymentId>` |
+| **`email-queue`** | `worker/emailWorker.js` | Verification emails, reset password links, booking status updates, payment requests | Standard concurrency; BullMQ retry handlers |
+| **`booking-expiry`** | `worker/bookingExpiryWorker.js` | Enforces 24h pending review expiration and 12h payment deadline expiration | Distributed lock guard (`lock:booking:${bookingId}`); exponential backoff on lock contention |
+| **`pdf-generation-queue`** | `worker/pdfWorker.js` | Streams vector PDFKit invoices to Cloudinary CDN & saves `receiptPdfUrl` | **Concurrency: 2** (prevents memory spikes during vector layout) |
 
-#### Worker Concurrency Management
-- PDF worker concurrency is constrained to `2` to prevent memory and CPU exhaustion from heavy vector layout operations.
-- Graceful shutdown handles `SIGINT` and `SIGTERM`, awaiting completion of active jobs before terminating connections.
+#### Dedicated Worker Architecture (`worker.js`)
+In production environments, background jobs run in a distinct container process launched via `npm run start:worker`. To prevent container orchestration and cloud platforms (such as Render Web Services) from terminating the process due to missing port bindings, `worker.js` includes an ultra-lightweight dummy HTTP server listening on `PORT` (or `10000`):
+- `GET /` $\rightarrow$ `200 OK: "Worker is active and running"`
+- Gracefully handles `SIGINT` and `SIGTERM`, awaiting completion of active jobs, closing worker connections, and shutting down MongoDB and Redis pools safely.
 
 ---
 
-### 3.4 Direct Stream Media & CDN Architecture
+### 3.4 Transactional Dual-Engine Email Subsystem
 
-Generating PDFs traditionally consumes server disk space, risking disk exhaustion and failing in ephemeral container environments (e.g., Render, Railway, AWS ECS).
+To guarantee reliable email delivery across development, staging, and production environments, `service/email.js` implements a resilient dual-engine strategy:
+
+```mermaid
+flowchart TD
+    Job["BullMQ Email Job"] --> CheckEnv{"API Key starts with 'xkeysib-'?"}
+    CheckEnv -- Yes --> BrevoAPI["Direct Brevo HTTP REST API (/v3/smtp/email)"]
+    CheckEnv -- No --> NodemailerSMTP["Nodemailer SMTP Transport (smtp-relay.brevo.com:587)"]
+    BrevoAPI -->|Success| Complete["Log Message ID & Complete"]
+    BrevoAPI -->|Failure| Error["Throw Error -> BullMQ Exponential Backoff"]
+    NodemailerSMTP -->|Success| Complete
+    NodemailerSMTP -->|Failure| Error
+```
+
+1. **Primary: Brevo HTTP REST API (`https://api.brevo.com/v3/smtp/email`)**
+   - Automatically selected when `BREVO_API_KEY` starts with `xkeysib-`.
+   - Bypasses SMTP port blocking (common on cloud hosts like AWS, DigitalOcean, and Render) and executes via standard HTTPS POST with JSON payload.
+2. **Fallback: Nodemailer SMTP Transport**
+   - Activated when standard SMTP credentials (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) are configured.
+
+---
+
+### 3.5 Direct Stream Media & Zero-Disk PDF CDN Pipeline
+
+Traditional PDF receipt generation writes temporary files to server disks, introducing disk exhaustion vulnerabilities and failure modes on stateless or read-only container filesystems.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Worker as BullMQ pdfWorker
-    participant Generator as PDFKit Engine
-    participant Cloudinary as Cloudinary Uploader
-    participant CDN as Cloudinary Global CDN
+    participant Engine as PDFKit Generator
+    participant Cloudinary as Cloudinary API
+    participant CDN as Cloudinary Edge CDN
     participant DB as MongoDB
+    actor Student
+    participant API as Express API
 
-    Worker->>Generator: Initialize PDFDocument instance
-    Generator->>Cloudinary: doc.pipe(cloudinary.uploader.upload_stream)
-    Note over Generator,Cloudinary: Direct in-memory streaming (Zero disk I/O)
-    Generator->>Generator: doc.end()
-    Cloudinary-->>Worker: Returns secure_url (CDN Link)
-    Worker->>DB: Persist payment.receiptPdfUrl = secure_url
-    Note over CDN: Asset cached on worldwide edge nodes
+    Note over Worker,Cloudinary: Background Generation Stage
+    Worker->>DB: Fetch Booking, User & Auditorium details
+    Worker->>Engine: Initialize PDFDocument in memory
+    Engine->>Cloudinary: Direct Stream Pipe (upload_stream: resource_type 'raw')
+    Engine->>Engine: Layout vectors, tables, typography & doc.end()
+    Cloudinary-->>Worker: Return secure_url (CDN HTTPS URL)
+    Worker->>DB: Update Payment { receiptPdfUrl: secure_url }
+
+    Note over Student,API: Fast-Path Client Invoicing Stage
+    Student->>API: GET /api/payments/:bookingId/receipt/download
+    API->>DB: Check payment.receiptPdfUrl
+    alt Pre-rendered CDN URL Exists (Fast Path)
+        API->>Cloudinary: Node.js https.get(receiptPdfUrl)
+        Cloudinary-->>API: Stream chunks
+        API-->>Student: Stream chunks directly as application/pdf (attachment)
+        Note over API,Student: Zero client redirect & zero CORS restriction
+    else CDN URL Pending (Fallback Path)
+        API->>Engine: Stream on-the-fly PDFKit directly to res
+        API-)Worker: Enqueue background Cloudinary upload for future hits
+    end
 ```
 
-When users request a receipt download (`GET /api/payments/:bookingId/receipt/download`):
-- **Fast Path:** Backend inspects `payment.receiptPdfUrl`. If present, it sends an immediate `302 Found` redirecting straight to the CDN edge.
-- **Latency:** Less than **3ms** API processing time with **0% server CPU or streaming bandwidth consumed**.
+- **Receipt Download:** Served via `GET /api/payments/:bookingId/receipt/download`. Streams the pre-generated Cloudinary PDF through Node's HTTPS client directly to the browser response. This eliminates client-side CORS issues associated with 302 redirects to third-party domains while consuming zero server CPU for PDF rendering.
+- **Receipt Preview:** `GET /api/payments/:bookingId/receipt` returns structured JSON data or streams inline PDF if `?format=pdf` is provided.
 
 ---
 
-### 3.5 Multi-Node Real-Time WebSockets (Redis Adapter)
+### 3.6 Multi-Node Real-Time WebSockets (Redis Pub/Sub Adapter)
 
-To scale WebSocket connections across multiple load-balanced API servers, AuditoReserve implements `@socket.io/redis-adapter`.
+To scale WebSocket connections horizontally across distributed application instances, the platform integrates `@socket.io/redis-adapter` with dual Redis clients (`pubClient` and `subClient`):
 
-```mermaid
-flowchart LR
-    subgraph NodeA ["API Server Node A"]
-        Client1["Student (Connected to Node A)"]
-        ServerA["Socket.io Server A"]
-    end
-
-    subgraph NodeB ["API Server Node B"]
-        Admin["Admin (Connected to Node B)"]
-        ServerB["Socket.io Server B"]
-    end
-
-    subgraph PubSub ["Redis Pub/Sub Channel"]
-        RedisBus[("Redis Socket.IO Adapter")]
-    end
-
-    Admin -->|Approves Booking| ServerB
-    ServerB -->|Publish Event| RedisBus
-    RedisBus -->|Broadcast| ServerA
-    ServerA -->|Push notification| Client1
-```
-
-- **User Room Registry:** Clients join private rooms keyed by `user:<userId>`.
-- **Targeted Notifications:** Emitting to `io.to("user:" + recipientId).emit(...)` guarantees delivery irrespective of which server instance holds the client's WebSocket connection.
+1. **Authentication Handshake:** During connection, the socket handshake extracts the access token from either:
+   - `cookie: accessToken`
+   - `auth: { token: "..." }`
+   - `headers: { authorization: "Bearer ..." }`
+   Validates the JWT and binds `socket.userId = decoded.id`.
+2. **User Room Multiplexing:** Sockets automatically join isolated user rooms: `user:<userId>`.
+3. **Cross-Instance Notification Dispatch:** Calling `sendRealTimeNotification(userId, notification)` emits to `io.to("user:" + userId).emit("notification", notification)`. Redis Pub/Sub broadcasts the message across all connected server instances, ensuring real-time arrival regardless of which node terminates the client's WebSocket connection.
 
 ---
 
-### 3.6 Data Layer & Persistence Topology
+### 3.7 Data Layer, Schemas & Compound Index Topology
 
-AuditoReserve utilizes **MongoDB** structured with schemas optimized for transactional integrity and rapid index-assisted queries.
+The database architecture employs **MongoDB 7** with Mongoose ODM schemas structured with indexes optimized for low-latency queries and lock evaluations:
 
-```
-┌──────────────────┐          ┌──────────────────┐
-│       User       │          │   Auditorium     │
-├──────────────────┤          ├──────────────────┤
-│ _id              │          │ _id              │
-│ name, email      │◄────┐    │ name, capacity   │◄────┐
-│ role, department │     │    │ amenities        │     │
-└──────────────────┘     │    │ images, price    │     │
-                         │    └──────────────────┘     │
-                         │                             │
-                  ┌──────┴───────────┐                 │
-                  │     Booking      │                 │
-                  ├──────────────────┤                 │
-                  │ _id              │                 │
-                  │ user             │                 │
-                  │ auditorium       ├─────────────────┘
-                  │ date, startTime  │
-                  │ endTime, status  │
-                  │ paymentId        ├─────────┐
-                  └──────────────────┘         │
-                                               │
-                                      ┌────────┴──────────┐
-                                      │      Payment      │
-                                      ├───────────────────┤
-                                      │ _id, booking      │
-                                      │ gatewayOrderId    │
-                                      │ receipt           │
-                                      │ receiptPdfUrl     │
-                                      │ status, paidAt    │
-                                      └───────────────────┘
-```
+#### 1. `Booking` Schema
+- Fields: `user` (ref: User), `auditorium` (ref: Auditorium), `bookingDate` (Date), `startTime` (String: HH:MM), `endTime` (String: HH:MM), `purpose` (String), `status` (Enum: `pending`, `approved`, `confirmed`, `cancelled`), `totalPrice` (Number), `paymentId` (ref: Payment), `approvedAt` (Date), `paymentDeadline` (Date).
+- **Compound Indexes:**
+  - `{ auditorium: 1, status: 1, bookingDate: 1, startTime: 1, endTime: 1 }` — High-speed slot collision and availability queries.
+  - `{ user: 1, createdAt: -1 }` — Student dashboard personal booking history.
+  - `{ createdAt: -1 }` — Admin operational dashboard listing.
+  - `{ status: 1, paymentDeadline: 1 }` — Rapid discovery for payment auto-expiry background workers.
 
-#### Key Indexes:
-- `booking.index({ auditorium: 1, bookingDate: 1, status: 1 })` — Ultra-fast conflict checks and availability searches.
-- `payment.index({ booking: 1 })` — O(1) receipt and verification lookups.
-- `payment.index({ status: 1, expiresAt: 1 })` — Rapid discovery of expired records.
+#### 2. `Payment` Schema
+- Fields: `user` (ref: User), `booking` (ref: Booking), `amount` (Number), `currency` (String, default: "INR"), `gateway` (String, default: "razorpay"), `gatewayOrderId` (String, unique), `gatewayPaymentId` (String, unique, sparse), `gatewaySignature` (String), `status` (Enum: `created`, `paid`, `failed`, `expired`, `refunded`), `receipt` (String, unique), `expiresAt` (Date), `paidAt` (Date), `failureReason` (String), `receiptPdfUrl` (String, default: null).
+- **Indexes:**
+  - `{ booking: 1 }` — O(1) payment verification lookups.
+  - `{ user: 1, createdAt: -1 }` — User billing history.
+  - `{ status: 1, expiresAt: 1 }` — Expired payment lookups.
+
+#### 3. `Auditorium` Schema
+- Fields: `name` (String), `capacity` (Number), `amenities` ([String]), `images` ([String]), `basePrice` (Number), `description` (String, max 500 chars).
+- **Protection:** Deletion is blocked if active bookings (`pending`, `approved`, `confirmed`) exist; associated Cloudinary assets are automatically purged upon deletion.
+
+#### 4. `User` Schema
+- Fields: `name` (String), `email` (String, unique, lowercase), `password` (String, bcrypt hashed), `role` (Enum: `student`, `admin`), `refreshToken` (String), `isVerified` (Boolean), `verificationToken` (String), `verificationTokenExpires` (Date), `resetPasswordToken` (String), `resetPasswordExpires` (Date).
+- **Sparse Indexes:**
+  - `{ refreshToken: 1 }`, `{ verificationToken: 1 }`, `{ resetPasswordToken: 1 }` (configured as `{ sparse: true }` to conserve memory and index space).
+
+#### 5. `Notification` Schema
+- Fields: `recipient` (ref: User), `type` (Enum: `BOOKING_PENDING`, `BOOKING_APPROVED`, `BOOKING_CANCELLED`, `BOOKING_CONFIRMED`, `PAYMENT_REQUEST`, `PAYMENT_SUCCESS`, `SYSTEM`), `title` (String), `message` (String), `isRead` (Boolean, default: false), `data` (Object with `bookingId`, `paymentId`).
+- **Compound Indexes:**
+  - `{ recipient: 1, createdAt: -1 }` — Feed pagination.
+  - `{ recipient: 1, isRead: 1 }` — Unread count badge query.
 
 ---
 
-## 4. End-to-End Sequence Diagrams
+## 4. End-to-End Sequence Workflows
 
-### 4.1 Booking Request & Conflict Resolution
+### 4.1 Booking Submission & Admin Conflict-Guarded Approval
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Student
     participant API as Express API
-    participant Cache as Redis Lock
+    participant Lock as Redis Lock
     participant DB as MongoDB
     actor Admin
+    participant Queue as BullMQ (expiry/email)
 
-    Student->>API: POST /api/bookings (auditorium, date, timeslot)
-    API->>DB: Create booking with status="pending"
-    API-->>Student: 201 Created (Pending review)
-    API-)Admin: Socket.io Real-time alert: "New Booking Request"
+    Student->>API: POST /api/bookings/createBooking (auditoriumId, date, startTime, endTime, purpose)
+    API->>DB: Check active pending count for student (max 3 allowed)
+    API->>Lock: Acquire lock:booking:auditorium:date
+    Lock-->>API: Lock Acquired
+    API->>DB: Query collisions ($lt/$gt) on active bookings (approved/confirmed)
+    API->>DB: Create Booking record (status='pending')
+    API->>Lock: Release lock
+    API-)Queue: Schedule pending auto-expiry job (24h or event start)
+    API->>DB: Create in-app notification (BOOKING_PENDING)
+    API-->>Student: 201 Created
 
-    Admin->>API: PATCH /api/bookings/:id/status (action="approved")
-    API->>Cache: Acquire Distributed Lock (auditorium + date)
-    Cache-->>API: Lock Granted
-    API->>DB: Query Conflicting Bookings on Date & Slot
-    alt Conflict Detected
-        API->>Cache: Release Lock
-        API-->>Admin: 409 Conflict: "Time slot already reserved"
-    else No Conflict
-        API->>DB: Update Booking (status="approved", paymentDeadline=now+12h)
-        API->>DB: Initialize Payment record (status="created")
-        API->>Cache: Release Lock
-        API-)Queue: Enqueue 12h Expiry Job in BullMQ
-        API-)Student: Push notification: "Booking Approved! Pay within 12h"
-        API-->>Admin: 200 OK (Booking Approved)
+    Admin->>API: PUT /api/bookings/status/:id { status: 'approved' }
+    API->>Lock: Acquire lock:booking:auditorium:date (15s TTL)
+    Lock-->>API: Lock Acquired
+    API->>DB: Query existing approved/confirmed collisions on slot
+    alt Slot Conflict Exists
+        API->>Lock: Release lock
+        API-->>Admin: 400 Bad Request ("Slot conflicts with confirmed booking")
+    else Slot Free
+        API->>API: Generate Razorpay Order via SDK (paise conversion)
+        API->>DB: Session Transaction:
+        Note over API,DB: Save Payment('created') & Update Booking('approved', deadline=now+12h)
+        API->>Lock: Release lock
+        API-)Queue: Remove pending expiry job for this booking
+        API->>DB: Auto-cancel all competing pending requests on this slot
+        API-)Queue: Enqueue 12h Booking Expiry delayed job (BullMQ)
+        API-)Queue: Enqueue Payment Request Email to student
+        API->>DB: Create in-app notification (PAYMENT_REQUEST)
+        API-->>Admin: 200 OK ("Booking approved. Payment email sent.")
     end
 ```
 
 ---
 
-### 4.2 Payment Verification & Async Receipt Pipeline
+### 4.2 Payment Verification & Async CDN Invoicing Pipeline
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Student
     participant API as Express API
-    participant Redis as BullMQ Queue
-    participant Worker as PDF Worker
-    participant Cloud as Cloudinary
+    participant Lock as Redis Lock
     participant DB as MongoDB
+    participant Queue as BullMQ (PDF/Email)
+    participant Worker as PDFKit Worker
+    participant Cloudinary as Cloudinary CDN
 
-    Student->>API: POST /api/payments/verify (Razorpay signatures)
-    API->>API: Validate HMAC-SHA256 Signature
-    API->>DB: Update Payment ("paid") & Booking ("confirmed")
-    API->>Redis: Cancel 12h Expiry Job
-    API->>Redis: Enqueue "generate-receipt" in pdfQueue
-    API-->>Student: 200 OK (Booking Confirmed)
+    Student->>API: POST /api/payments/verify (bookingId, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+    Note over Student,API: Header: Idempotency-Key
+    API->>Lock: Acquire lock:booking:bookingId (15s TTL)
+    Lock-->>API: Lock Acquired
+    API->>API: Verify HMAC-SHA256 signature using crypto.timingSafeEqual
+    alt Valid Signature
+        API->>DB: Session Transaction:
+        Note over API,DB: Update Payment('paid') & Booking('confirmed')
+        API->>Lock: Release lock
+        API-)Queue: Remove 12h Expiry Job (booking_expire_id)
+        API-)Queue: Enqueue Confirmation Email
+        API-)Queue: Enqueue 'generate-receipt' in pdfQueue
+        API->>DB: Create in-app notification (BOOKING_CONFIRMED)
+        API-->>Student: 200 OK (Booking Confirmed)
+    else Invalid Signature
+        API->>DB: Update Payment(status='failed', reason='Invalid signature')
+        API->>Lock: Release lock
+        API-->>Student: 400 Bad Request ("Invalid payment signature")
+    end
 
-    Note over Redis,Worker: Asynchronous Background Execution
-    Redis->>Worker: Pull "generate-receipt" job
-    Worker->>DB: Fetch booking, user, auditorium details
-    Worker->>Cloud: Stream PDF directly to Cloudinary (raw resource)
-    Cloud-->>Worker: Returns secure HTTPS CDN URL
-    Worker->>DB: Update Payment: receiptPdfUrl = secure_url
-    Worker-->>Redis: Mark Job Completed
-
-    Note over Student,Cloud: Instant CDN Delivery
-    Student->>API: GET /api/payments/:id/receipt/download
-    API->>DB: Check payment.receiptPdfUrl
-    API-->>Student: 302 Found -> Redirect to Cloudinary CDN (< 3ms)
+    Note over Queue,Cloudinary: Background Asynchronous Processing
+    Queue->>Worker: Pull 'generate-receipt' job
+    Worker->>DB: Fetch Booking, User, Auditorium details
+    Worker->>Cloudinary: Direct stream PDFKit vector document to upload_stream
+    Cloudinary-->>Worker: Return secure_url
+    Worker->>DB: Persist payment.receiptPdfUrl = secure_url
 ```
 
 ---
 
-### 4.3 Multi-Instance Real-Time Push Delivery
+### 4.3 Dual-Level Auto-Expiry Worker Lifecycle
+
+The platform enforces two distinct levels of automated slot release:
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor UserA as Student (on Server 1)
-    participant S1 as API Server 1
-    participant RedisBus as Redis Pub/Sub
-    participant S2 as API Server 2
-    actor UserB as Admin (on Server 2)
+flowchart TD
+    Start([Booking Lifecycle Event]) --> CheckType{Event Type}
 
-    UserA->>S1: Connect WebSocket -> Joins room "user:student_123"
-    UserB->>S2: Connect WebSocket -> Joins room "user:admin_456"
+    CheckType -->|Student submits request| SchedPending["Schedule pending expiry:
+    Delay = Min(24h, TimeToEventStart)
+    JobId = booking_pending_expire_{id}"]
 
-    Note over UserB,S2: Admin triggers an update
-    UserB->>S2: Approve Student Booking
-    S2->>RedisBus: Publish event { room: "user:student_123", event: "booking_status", data }
-    RedisBus->>S1: Distribute event to Server 1
-    S1->>UserA: Socket push to room "user:student_123"
+    CheckType -->|Admin approves request| SchedApproved["Cancel pending expiry job
+    Schedule 12h payment deadline:
+    Delay = 12 hours
+    JobId = booking_expire_{id}"]
+
+    SchedPending --> TriggerP[Timer Fires in bookingExpiryWorker]
+    SchedApproved --> TriggerA[Timer Fires in bookingExpiryWorker]
+
+    TriggerP --> LockP["Acquire lock:booking:{id}"]
+    LockP --> CheckPStatus{"Booking status == 'pending'?"}
+    CheckPStatus -- Yes --> CancelP["Set status = 'cancelled'
+    Send notification: 'Request Expired'"]
+    CheckPStatus -- No --> SkipP["Skip (Already reviewed)"]
+
+    TriggerA --> LockA["Acquire lock:booking:{id}"]
+    LockA --> CheckAStatus{"Booking status == 'approved'?"}
+    CheckAStatus -- Yes --> CancelA["Set booking status = 'cancelled'
+    Set payment status = 'expired'
+    Enqueue cancellation email
+    Send notification: 'Payment Expired'"]
+    CheckAStatus -- No --> SkipA["Skip (Already paid/cancelled)"]
 ```
 
 ---
 
-## 5. Reliability, Idempotency & Fault Tolerance
+## 5. Reliability, Database Transactions & Fault Tolerance
 
-1. **Idempotent Webhooks & Payments:** Every payment verification request requires an `Idempotency-Key` or relies on Razorpay `order_id` uniqueness. Duplicate attempts resolve instantly from cache.
-2. **BullMQ Automatic Retries:** Network failures communicating with Cloudinary or SMTP hosts trigger an exponential backoff retry policy (3 to 5 attempts).
-3. **Database Transactions:** Multi-document updates (such as updating Booking and creating Payment records) execute within MongoDB sessions to guarantee atomicity.
-4. **Graceful Shutdown Protocol:** 
-   - HTTP server stops accepting new connections.
-   - Active BullMQ workers finish in-flight jobs.
-   - BullMQ queues close connections cleanly.
-   - Redis and MongoDB connection pools terminate.
-   - 10-second watchdog timer prevents process hangs.
+1. **ACID MongoDB Transactions:** Multi-document state transitions (such as approving a booking while creating a Payment record, or confirming a booking while marking payment as paid) execute inside `mongoose.startSession()` transactions with automatic abort on error.
+2. **Cryptographic Timing Attack Defense:** Payment verification uses `crypto.timingSafeEqual` over buffers rather than string equality to defend against timing analysis attacks.
+3. **Graceful Shutdown Protocol (`SIGTERM` / `SIGINT`):**
+   - HTTP listener stops accepting incoming connections.
+   - Active BullMQ workers finish processing in-flight jobs.
+   - BullMQ queues close their connection pools cleanly.
+   - Socket.IO and Redis Pub/Sub adapter instances close.
+   - MongoDB connection pool terminates gracefully.
+   - A 10-second watchdog timer guarantees shutdown in event of unresponsive connections.
+4. **Idempotent Retry Resiliency:** Duplicate payment verification requests return immediate `200 OK` if the booking is already confirmed, eliminating duplicate transactions.
 
 ---
 
-## 6. Horizontal Scaling & Deployment Blueprint
+## 6. Automated Verification & Testing Coverage
 
-AuditoReserve is container-ready and structured for horizontal cloud scaling:
+The backend is backed by an automated test suite executed via Jest and Supertest, consisting of **21 test suites and 136 passing tests** across unit, integration, worker, and security domains:
 
 ```
-                          [ Internet Traffic ]
-                                   │
-                                   ▼
-                         [ Cloudflare / Route 53 ]
-                                   │
-                                   ▼
-                         [ Application Load Balancer ]
-                                   │
-            ┌──────────────────────┴──────────────────────┐
-            ▼                                             ▼
-  [ API Container Node 1 ]                      [ API Container Node 2 ]
-  (Express / WebSockets)                        (Express / WebSockets)
-            │                                             │
-            ├──────────────────────┬──────────────────────┤
-            │                      │                      │
-            ▼                      ▼                      ▼
-    [ Redis Cluster ]     [ MongoDB Replica Set ]   [ Worker Containers ]
-    - Socket.io Adapter   - Primary (Writes)        - Dedicated BullMQ
-    - Redlock & Caching   - Secondaries (Reads)       Workers (Email / PDF)
-    - BullMQ Job Queues
+Test Suites: 21 passed, 21 total
+Tests:       136 passed, 136 total
+Snapshots:   0 total
 ```
 
-### Key Scaling Recommendations:
-- **Separate API and Worker Containers:** In production, run background workers in a distinct container (`npm run worker`) so that PDF vector rendering does not share CPU resources with Express HTTP listeners.
-- **Redis High Availability:** Deploy Redis Sentinel or AWS ElastiCache for automated master-replica failover.
-- **Read-Replica Offloading:** Route high-frequency listing queries to MongoDB secondary replicas with Redis cache-aside guarding all read routes.
+### Coverage Areas:
+- **Integration Tests:**
+  - `authRoutes.test.js`: Domain validation, token rotation, verification tokens, logout, reset password.
+  - `auditoriumRoutes.test.js`: Caching, image upload mocks, active booking deletion guard.
+  - `bookingRoutes.test.js`: Collision checks, time normalization, admin approval, multi-status workflows, calendar queries.
+  - `paymentRoutes.test.js`: Order initialization, signature verification, idempotent re-verification, PDF generation, receipts.
+  - `notificationRoutes.test.js`: Pagination, unread counter, bulk mark read, ownership-scoped deletion.
+  - `concurrencyAndSecurity.test.js`: Simultaneous approval race conditions, concurrent payment submissions with same idempotency key, role escalation prevention, forged JWT signatures, NoSQL injection resistance.
+- **Unit & Worker Tests:**
+  - `bookingExpiryWorker.test.js`, `pdfWorker.test.js`, `emailWorker.test.js`.
+  - `lock.test.js` (Redlock acquisition, token mismatch safety, mutual exclusion).
+  - `rateLimiter.test.js` (Sliding window enforcement, Redis offline fail-open).
+  - `idempotencyMiddleware.test.js` (Processing locks, cached replay, 500 error eviction).
+  - `receiptGenerator.test.js` (Vector PDFKit document validation).
+  - `cloudinaryHelper.test.js`, `jwt.test.js`, `errorMiddleware.test.js`.
+
+---
+
+## 7. Horizontal Scaling & Cloud Deployment Blueprint
+
+AuditoReserve is containerized with Docker and structured for horizontal cloud scaling across container platforms (Render, AWS ECS, Railway, Google Cloud Run):
+
+```
+                                [ Internet Traffic ]
+                                         │
+                                         ▼
+                            [ Cloudflare / ALB Ingress ]
+                                         │
+                 ┌───────────────────────┴───────────────────────┐
+                 ▼                                               ▼
+       [ API Service Container 1 ]                     [ API Service Container 2 ]
+       - Express HTTP & Socket.io                      - Express HTTP & Socket.io
+       - Node 20 Non-root Alpine                       - Node 20 Non-root Alpine
+                 │                                               │
+                 ├───────────────────────┬───────────────────────┤
+                 │                       │                       │
+                 ▼                       ▼                       ▼
+       [ Dedicated Redis 7 ]    [ MongoDB 7 Cluster ]  [ Dedicated Worker Container ]
+       - BullMQ Job Storage     - Primary (Writes)     - node src/worker.js
+       - Redlock Concurrency    - Secondaries (Reads)  - Embedded Port 10000 Health Server
+       - Socket.IO Pub/Sub mesh - Compound Indexes     - BullMQ Email, Expiry & PDF Workers
+       - Sliding Rate Limiter
+```
+
+### Scaling Guidelines:
+1. **Separation of API and Worker Services:** Scale the Express API service on request volume; scale the worker container independently based on BullMQ queue latency and PDF processing load.
+2. **Redis High Availability:** For multi-region production, deploy Redis Sentinel or AWS ElastiCache for automated master-replica failover.
+3. **Database Read Offloading:** Read queries (`/viewAllAuditoriums`, `/calendar`) utilize Redis caching and can safely target secondary MongoDB read-replicas.
