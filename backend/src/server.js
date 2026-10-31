@@ -14,11 +14,6 @@ const pdfQueue = require("./queue/pdfQueue");
 // Connect to database
 connectDB();
 
-// Start Background Queue Workers
-const emailWorker = require("./worker/emailWorker");
-const bookingExpiryWorker = require("./worker/bookingExpiryWorker");
-const pdfWorker = require("./worker/pdfWorker");
-
 const PORT = process.env.PORT || 5000;
 
 const httpServer = http.createServer(app);
@@ -51,15 +46,6 @@ const gracefulShutdown = async (signal) => {
     logger.info("HTTP server closed.");
 
     try {
-      // Close BullMQ workers (waits for active jobs to complete)
-      logger.info("Closing BullMQ workers...");
-      await Promise.all([
-        emailWorker.close(),
-        bookingExpiryWorker.close(),
-        pdfWorker.close(),
-      ]);
-      logger.info("BullMQ workers closed.");
-
       // Close BullMQ Queues
       logger.info("Closing BullMQ queues...");
       await Promise.all([

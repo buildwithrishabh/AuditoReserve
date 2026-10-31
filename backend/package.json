@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:api": "node src/server.js",
+    "start:worker": "node src/worker.js",
     "dev": "nodemon src/server.js",
+    "dev:api": "nodemon src/server.js",
+    "dev:worker": "nodemon src/worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,10 +23,8 @@
     "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^4.21.0",
-    "express-rate-limit": "^7.4.0",
     "helmet": "^8.1.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
@@ -30,13 +32,11 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.7",
     "pdfkit": "^0.20.2",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
-    "winston": "^3.19.0",
-    "zod": "^4.6.7"
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
