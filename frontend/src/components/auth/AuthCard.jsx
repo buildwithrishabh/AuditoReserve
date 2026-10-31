@@ -11,14 +11,14 @@ export function AuthCard({ title, subtitle, children }) {
         initial="hidden"
         animate="visible"
       >
-        <Link to="/" className="brand centered-brand" style={{ display: "flex" }}>
-          <span className="brand-mark">AR</span>
+        <Link to="/" className="brand centered-brand">
+          <span className="brand-mark" aria-hidden="true">AR</span>
           <span>AuditoReserve</span>
         </Link>
-        <motion.h1 variants={slideUp} style={{ fontSize: "24px", textAlign: "center", marginBottom: "8px" }}>
+        <motion.h1 variants={slideUp}>
           {title}
         </motion.h1>
-        <motion.p variants={fadeIn} style={{ textAlign: "center", marginBottom: "20px", fontSize: "14px" }}>
+        <motion.p variants={fadeIn}>
           {subtitle}
         </motion.p>
         <motion.div variants={fadeIn}>
@@ -28,4 +28,5 @@ export function AuthCard({ title, subtitle, children }) {
     </section>
   );
 }
+
 export default AuthCard;

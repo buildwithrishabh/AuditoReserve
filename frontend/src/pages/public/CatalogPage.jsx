@@ -29,25 +29,16 @@ export function CatalogPage() {
 
   return (
     <section>
-      <div 
-        style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "flex-end", 
-          flexWrap: "wrap", 
-          gap: "24px", 
-          marginBottom: "36px" 
-        }}
-      >
-        <div style={{ flex: "1 1 300px" }}>
-          <p className="eyebrow" style={{ margin: "0 0 6px" }}>Campus venues</p>
-          <h1 style={{ margin: 0, fontSize: "32px", fontWeight: 800 }}>Find an auditorium</h1>
-          <p style={{ margin: "8px 0 0", color: "var(--text-muted)", fontSize: "14px", lineHeight: "1.5" }}>
+      <div className="section-heading">
+        <div className="page-header" style={{ margin: 0 }}>
+          <p className="eyebrow">Campus venues</p>
+          <h1 style={{ margin: 0 }}>Find an auditorium</h1>
+          <p style={{ margin: "6px 0 0" }}>
             Browse available campus venues and submit booking requests for your events.
           </p>
         </div>
-        <div className="search-field" style={{ minWidth: "320px", maxWidth: "400px", flex: "1 1 auto" }}>
-          <Search size={18} style={{ color: "var(--text-muted)" }} />
+        <div className="search-field" style={{ minWidth: "300px", maxWidth: "420px", flex: "1 1 auto" }}>
+          <Search size={18} style={{ color: "var(--text-muted)" }} aria-hidden="true" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -58,21 +49,21 @@ export function CatalogPage() {
       </div>
 
       {isLoading && <SkeletonGrid />}
-      
+
       {isError && (
         <ErrorState
           title="Could not load auditoriums"
           onRetry={() => void refetch()}
         />
       )}
-      
+
       {!isLoading && !isError && filteredAuditoriums.length === 0 && (
         <EmptyState
           title="No auditoriums found"
-          message="Try changing your filters or search terms."
+          message="Try changing your search keywords."
         />
       )}
-      
+
       {!isLoading && !isError && filteredAuditoriums.length > 0 && (
         <motion.div
           className="auditorium-grid"
@@ -90,4 +81,5 @@ export function CatalogPage() {
     </section>
   );
 }
+
 export default CatalogPage;

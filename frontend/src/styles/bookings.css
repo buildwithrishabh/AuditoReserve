@@ -1,0 +1,151 @@
+/* ===== AuditoReserve Bookings & Account Styles ===== */
+
+/* Booking List */
+.booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.booking-list.compact {
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+}
+
+/* Booking Row Card */
+.booking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: clamp(16px, 2.5vw, 24px);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-base);
+}
+
+.booking-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.booking-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-main h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.booking-user {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.booking-main p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.booking-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 8px !important;
+}
+
+.booking-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.booking-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.booking-meta strong {
+  color: var(--primary);
+  font-size: var(--text-md);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .booking-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .booking-meta {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: 12px 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .row-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .row-actions .button {
+    flex: 1;
+  }
+}
+
+/* Split Page (New Booking Form + Venue Card) */
+.split-page {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .split-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Account Detail Grid */
+.account-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 620px) {
+  .account-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

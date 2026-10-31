@@ -81,8 +81,8 @@ export function LoginPage() {
         onSubmit={(e) => void handleSubmit(onSubmit)(e)}
       >
         {registeredEmail && (
-          <motion.div variants={cardItem} className="success-box" style={{ marginBottom: "4px" }}>
-            <CheckCircle2 size={16} />
+          <motion.div variants={cardItem} className="success-box" style={{ marginBottom: "12px" }}>
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span>Account created! Verify your email before logging in.</span>
               <button
@@ -93,7 +93,7 @@ export function LoginPage() {
                   background: "none",
                   border: "none",
                   padding: 0,
-                  color: "var(--accent)",
+                  color: "var(--primary)",
                   fontWeight: 700,
                   fontSize: "12px",
                   textAlign: "left",
@@ -110,6 +110,7 @@ export function LoginPage() {
           <TextField
             label="University Email"
             type="email"
+            autoComplete="email"
             error={errors.email?.message}
             {...field("email")}
             placeholder="yourname@tmu.ac.in"
@@ -119,6 +120,7 @@ export function LoginPage() {
           <TextField
             label="Password"
             type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
             error={errors.password?.message}
             {...field("password")}
             placeholder="••••••••"
@@ -142,27 +144,21 @@ export function LoginPage() {
             }
           />
         </motion.div>
-        
-        <motion.div variants={cardItem} style={{ display: "flex", justifyContent: "flex-end", marginTop: "-10px" }}>
+
+        <motion.div variants={cardItem} style={{ display: "flex", justifyContent: "flex-end", marginTop: "-8px", marginBottom: "8px" }}>
           <Link
             to="/forgot-password"
             style={{
               fontSize: "13px",
-              fontWeight: 700,
-              color: "var(--accent)",
+              fontWeight: 600,
+              color: "var(--primary)",
               textDecoration: "none",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.textDecoration = "underline";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.textDecoration = "none";
             }}
           >
             Forgot password?
           </Link>
         </motion.div>
-        
+
         <motion.div variants={cardItem}>
           <FormError message={serverError} />
           {serverError.toLowerCase().includes("verify your email") && (
@@ -174,7 +170,7 @@ export function LoginPage() {
                 background: "none",
                 border: "none",
                 padding: "4px 0",
-                color: "var(--accent)",
+                color: "var(--primary)",
                 fontWeight: 700,
                 fontSize: "13px",
                 textAlign: "left",
@@ -188,7 +184,7 @@ export function LoginPage() {
             </button>
           )}
         </motion.div>
-        
+
         <motion.button
           className="button primary wide"
           disabled={isSubmitting}
@@ -201,11 +197,12 @@ export function LoginPage() {
           {isSubmitting ? "Logging in..." : "Log in"}
         </motion.button>
       </motion.form>
-      
+
       <p className="auth-switch">
         No account? <Link to="/register">Register here</Link>
       </p>
     </AuthCard>
   );
 }
+
 export default LoginPage;

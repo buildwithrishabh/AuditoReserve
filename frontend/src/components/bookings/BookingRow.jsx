@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarDays, Clock, CheckCircle2, XCircle, Download, Loader2, FileText } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle2, XCircle, Download, Loader2, FileText, AlertTriangle } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
 
 export function BookingRow({
@@ -35,37 +35,40 @@ export function BookingRow({
   return (
     <article className="booking-row">
       <div className="booking-main">
-        <div style={{ marginBottom: "6px" }}>
+        <div style={{ marginBottom: "8px" }}>
           <StatusBadge status={booking.status} />
         </div>
         <h3>{auditorium?.name || "Auditorium Facility"}</h3>
         {user && (
           <p className="booking-user">
-            Requested by: {user.name} ({user.email})
+            Requested by: <strong>{user.name}</strong> ({user.email})
           </p>
         )}
-        <p style={{ color: "var(--text-muted)" }}>{booking.purpose}</p>
+        <p>{booking.purpose}</p>
         {booking.status === "approved" && booking.paymentDeadline && (
-          <p className="booking-deadline" style={{ color: "#f6c453", fontSize: "13px", marginTop: "4px", fontWeight: "600" }}>
+          <p className="booking-deadline">
+            <AlertTriangle size={14} aria-hidden="true" />
             Payment deadline: {formatDeadline(booking.paymentDeadline)}
           </p>
         )}
       </div>
+
       <div className="booking-meta">
         <span>
-          <CalendarDays size={16} style={{ color: "var(--accent)" }} />{" "}
+          <CalendarDays size={16} style={{ color: "var(--primary)" }} aria-hidden="true" />{" "}
           {formatDate(booking.bookingDate)}
         </span>
         <span>
-          <Clock size={16} style={{ color: "var(--accent)" }} />{" "}
+          <Clock size={16} style={{ color: "var(--primary)" }} aria-hidden="true" />{" "}
           {booking.startTime} - {booking.endTime}
         </span>
-        <strong>₹{booking.totalPrice}</strong>
+        <strong className="price tabular-nums">₹{booking.totalPrice}</strong>
       </div>
+
       <div className="row-actions">
         {onCancel && (
           <button
-            className="button danger"
+            className="button danger sm"
             type="button"
             onClick={onCancel}
             disabled={isSubmittingAction}
@@ -75,7 +78,7 @@ export function BookingRow({
         )}
         {onPay && (
           <button
-            className="button primary"
+            className="button primary sm"
             type="button"
             onClick={onPay}
             disabled={isSubmittingAction}
@@ -85,7 +88,7 @@ export function BookingRow({
         )}
         {(booking.status === "confirmed") && (onDownloadReceipt || onReceipt) && (
           <button
-            className="button ghost"
+            className="button ghost sm"
             type="button"
             onClick={onDownloadReceipt || onReceipt}
             disabled={isSubmittingAction || isDownloadingReceipt}
@@ -93,15 +96,15 @@ export function BookingRow({
           >
             {isDownloadingReceipt ? (
               <>
-                <Loader2 size={15} className="animate-spin" /> Downloading...
+                <Loader2 size={14} className="animate-spin" /> Downloading...
               </>
             ) : onDownloadReceipt ? (
               <>
-                <Download size={15} /> Download Receipt
+                <Download size={14} /> Download Receipt
               </>
             ) : (
               <>
-                <FileText size={15} /> View Receipt
+                <FileText size={14} /> View Receipt
               </>
             )}
           </button>
@@ -134,4 +137,5 @@ export function BookingRow({
     </article>
   );
 }
+
 export default BookingRow;

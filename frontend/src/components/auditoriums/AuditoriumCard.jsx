@@ -6,9 +6,9 @@ export function ImageFrame({ src, alt, large }) {
   return (
     <div className={`image-frame ${large ? "large" : ""}`}>
       {src ? (
-        <img src={src} alt={alt || "Auditorium"} loading="lazy" decoding="async" />
+        <img src={src} alt={alt || "Auditorium venue"} loading="lazy" decoding="async" />
       ) : (
-        <span style={{ fontSize: large ? "24px" : "14px" }}>
+        <span>
           {alt?.slice(0, 2).toUpperCase() || "AR"}
         </span>
       )}
@@ -20,22 +20,23 @@ export function AuditoriumCard({ auditorium, hideActions }) {
   return (
     <motion.article
       className="auditorium-card"
-      whileHover={{
-        y: -6,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-        transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
-      }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
     >
-      <motion.div whileHover={{ scale: 1.03 }} transition={{ duration: 0.4 }}>
+      <Link to={`/auditoriums/${auditorium._id}`} aria-label={`View details for ${auditorium.name}`}>
         <ImageFrame src={auditorium.images?.[0]} alt={auditorium.name} />
-      </motion.div>
+      </Link>
       <div className="card-body">
         <div className="card-title-row">
-          <h2>{auditorium.name}</h2>
-          <span className="price">₹{auditorium.basePrice}/hr</span>
+          <h2>
+            <Link to={`/auditoriums/${auditorium._id}`} style={{ color: "var(--text)" }}>
+              {auditorium.name}
+            </Link>
+          </h2>
+          <span className="price tabular-nums">₹{auditorium.basePrice}/hr</span>
         </div>
         <div className="meta-row">
-          <Users size={16} style={{ color: "var(--accent)" }} />
+          <Users size={15} style={{ color: "var(--primary)" }} aria-hidden="true" />
           <span>{auditorium.capacity} seats</span>
         </div>
         <p className="line-clamp-5">{auditorium.description}</p>
@@ -44,29 +45,24 @@ export function AuditoriumCard({ auditorium, hideActions }) {
             <span key={amenity}>{amenity}</span>
           ))}
           {auditorium.amenities.length > 3 && (
-            <span key="more" style={{ opacity: 0.85 }}>
+            <span key="more">
               +{auditorium.amenities.length - 3} more
             </span>
           )}
         </div>
       </div>
       {!hideActions && (
-        <motion.div
-          className="card-actions"
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Link className="button ghost" to={`/auditoriums/${auditorium._id}`}>
+        <div className="card-actions">
+          <Link className="button ghost sm" to={`/auditoriums/${auditorium._id}`}>
             View details
           </Link>
-          <Link className="button primary" to={`/bookings/new/${auditorium._id}`}>
+          <Link className="button primary sm" to={`/bookings/new/${auditorium._id}`}>
             Request booking
           </Link>
-        </motion.div>
+        </div>
       )}
     </motion.article>
   );
 }
+
 export default AuditoriumCard;

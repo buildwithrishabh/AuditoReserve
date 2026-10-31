@@ -71,6 +71,7 @@ export function RegisterPage() {
           <TextField
             label="Full Name"
             type="text"
+            autoComplete="name"
             error={errors.name?.message}
             {...field("name")}
             placeholder="John Doe"
@@ -80,15 +81,22 @@ export function RegisterPage() {
           <TextField
             label="University Email"
             type="email"
+            autoComplete="email"
             error={errors.email?.message}
             {...field("email")}
             placeholder={domain ? `student@${domain}` : "yourname@university.edu"}
           />
+          {domain && (
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--text-subtle)" }}>
+              Must end with @{domain}
+            </p>
+          )}
         </motion.div>
         <motion.div variants={cardItem}>
           <TextField
             label="Password"
             type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
             error={errors.password?.message}
             {...field("password")}
             placeholder="At least 6 characters"
@@ -112,11 +120,11 @@ export function RegisterPage() {
             }
           />
         </motion.div>
-        
+
         <motion.div variants={cardItem}>
           <FormError message={serverError} />
         </motion.div>
-        
+
         <motion.button
           className="button primary wide"
           disabled={isSubmitting}
@@ -129,11 +137,12 @@ export function RegisterPage() {
           {isSubmitting ? "Creating account..." : "Register"}
         </motion.button>
       </motion.form>
-      
+
       <p className="auth-switch">
         Already registered? <Link to="/login">Log in here</Link>
       </p>
     </AuthCard>
   );
 }
+
 export default RegisterPage;

@@ -19,7 +19,7 @@ export function AccountPage() {
 
   return (
     <motion.section
-      style={{ maxWidth: "680px", margin: "0 auto" }}
+      style={{ maxWidth: "640px", margin: "0 auto" }}
       variants={staggerContainerFast}
       initial="hidden"
       animate="visible"
@@ -33,62 +33,61 @@ export function AccountPage() {
       <motion.div
         className="panel"
         variants={cardItem}
-        style={{ display: "grid", gap: "24px", padding: "36px" }}
+        style={{ display: "flex", flexDirection: "column", gap: "24px" }}
       >
-        <motion.div variants={cardItem} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div
             style={{
               width: "56px",
               height: "56px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, rgba(124, 115, 230, 0.15), rgba(79, 70, 229, 0.08))",
+              background: "var(--primary-light)",
+              color: "var(--primary)",
               display: "grid",
               placeItems: "center",
-              border: "1px solid rgba(124, 115, 230, 0.3)",
-              boxShadow: "0 4px 16px rgba(124, 115, 230, 0.15)",
+              border: "1px solid var(--ring)",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
-            <User size={28} style={{ color: "var(--accent)" }} />
+            <User size={28} />
           </div>
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>
               Full Name
             </span>
-            <h2 style={{ margin: "0", fontSize: "20px" }}>{user?.name || "Active Session"}</h2>
+            <h2 style={{ margin: 0, fontSize: "1.25rem" }}>{user?.name || "Active Session"}</h2>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div className="account-detail-grid" variants={staggerContainerFast}>
-          <motion.div
-            variants={cardItem}
+        <div className="account-detail-grid">
+          <div
             style={{
               border: "1px solid var(--border)",
               borderRadius: "var(--radius-md)",
               padding: "16px",
-              background: "var(--background)",
+              background: "var(--surface-2)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <Mail size={16} style={{ color: "var(--accent)" }} />
-              <span style={{ fontWeight: "700", fontSize: "13px" }}>Email address</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+              <Mail size={16} style={{ color: "var(--primary)" }} />
+              <span style={{ fontWeight: 700, fontSize: "13px" }}>Email address</span>
             </div>
-            <p style={{ margin: "0", fontSize: "14px", fontWeight: "500", color: "var(--text)" }}>
+            <p style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--text)" }}>
               {user?.email}
             </p>
-          </motion.div>
+          </div>
 
-          <motion.div
-            variants={cardItem}
+          <div
             style={{
               border: "1px solid var(--border)",
               borderRadius: "var(--radius-md)",
               padding: "16px",
-              background: "var(--background)",
+              background: "var(--surface-2)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <ShieldCheck size={16} style={{ color: "var(--accent)" }} />
-              <span style={{ fontWeight: "700", fontSize: "13px" }}>Permission Role</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+              <ShieldCheck size={16} style={{ color: "var(--primary)" }} />
+              <span style={{ fontWeight: 700, fontSize: "13px" }}>Permission Role</span>
             </div>
             <div style={{ display: "flex", alignItems: "center" }}>
               <StatusBadge
@@ -96,22 +95,20 @@ export function AccountPage() {
                 label={user?.role}
               />
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
-        <motion.button
-          className="button danger"
+        <button
+          className="button danger wide"
           type="button"
           onClick={handleLogout}
-          variants={cardItem}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          style={{ width: "100%", marginTop: "12px", gap: "10px" }}
+          style={{ marginTop: "8px", gap: "10px" }}
         >
           <LogOut size={16} /> Log out from session
-        </motion.button>
+        </button>
       </motion.div>
     </motion.section>
   );
 }
+
 export default AccountPage;

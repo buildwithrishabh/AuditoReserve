@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { Building2, CalendarDays, Clock, CheckCircle2 } from "lucide-react";
 import { getAllAuditoriums } from "../../api/auditoriums";
 import { getAllBookings } from "../../api/bookings";
 import { BookingRow } from "../../components/bookings/BookingRow";
@@ -9,24 +10,33 @@ import { EmptyState } from "../../components/common/ErrorState";
 import { RefreshButton } from "../../components/common/RefreshButton";
 import { staggerContainerFast, cardItem, slideUp } from "../../lib/animations";
 
-function MetricCard({ title, value, tone }) {
-  return (
+function MetricCard({ title, value, icon: Icon, tone, linkTo }) {
+  const content = (
     <motion.div
       className={`metric ${tone || ""}`}
       variants={cardItem}
-      whileHover={{ y: -4, boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
     >
-      <p>{title}</p>
-      <motion.strong
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+        <p style={{ margin: 0 }}>{title}</p>
+        {Icon && <Icon size={18} style={{ color: "var(--text-muted)" }} aria-hidden="true" />}
+      </div>
+      <strong className="tabular-nums">
         {value}
-      </motion.strong>
+      </strong>
     </motion.div>
   );
+
+  if (linkTo) {
+    return (
+      <Link to={linkTo} style={{ textDecoration: "none", display: "block" }}>
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
 
 export function AdminDashboard() {
@@ -54,10 +64,10 @@ export function AdminDashboard() {
   return (
     <section>
       <div className="dashboard-header-row">
-        <div className="page-header">
+        <div className="page-header" style={{ margin: 0 }}>
           <p className="eyebrow">Admin console</p>
-          <h1>Dashboard</h1>
-          <p>Review venue inventory stats and pending student requests.</p>
+          <h1 style={{ margin: 0 }}>Dashboard</h1>
+          <p style={{ margin: "4px 0 0" }}>Review venue inventory stats and pending student requests.</p>
         </div>
         <div className="dashboard-header-actions">
           <RefreshButton label="Refresh dashboard" title="Refresh dashboard data" />
@@ -74,19 +84,43 @@ export function AdminDashboard() {
           initial="hidden"
           animate="visible"
         >
-          <motion.div className="metric-grid" variants={staggerContainerFast}>
-            <MetricCard title="Auditoriums" value={auditoriums.length} />
-            <MetricCard title="Total bookings" value={totalBookingsCount} />
-            <MetricCard title="Pending requests" value={pending.length} tone="accent" />
-            <MetricCard title="Confirmed" value={confirmed.length} tone="success" />
-          </motion.div>
+          <div className="metric-grid">
+            <MetricCard
+              title="Auditoriums"
+              value={auditoriums.length}
+              icon={Building2}
+              linkTo="/admin/auditoriums"
+            />
+            <MetricCard
+              title="Total bookings"
+              value={totalBookingsCount}
+              icon={CalendarDays}
+              linkTo="/admin/bookings"
+            />
+            <MetricCard
+              title="Pending requests"
+              value={pending.length}
+              icon={Clock}
+              tone="accent"
+              linkTo="/admin/bookings"
+            />
+            <MetricCard
+              title="Confirmed"
+              value={confirmed.length}
+              icon={CheckCircle2}
+              tone="success"
+              linkTo="/admin/bookings"
+            />
+          </div>
 
           <motion.div className="panel" variants={slideUp}>
-            <div className="section-heading">
-              <h2 style={{ fontSize: "18px", margin: "0" }}>Recent pending requests</h2>
-              <Link to="/admin/bookings">View all requests</Link>
+            <div className="section-heading" style={{ marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "1.1rem", margin: 0 }}>Recent pending requests</h2>
+              <Link to="/admin/bookings" style={{ fontSize: "13px", fontWeight: 600, color: "var(--primary)" }}>
+                View all requests &rarr;
+              </Link>
             </div>
-            
+
             <motion.div
               className="booking-list compact"
               variants={staggerContainerFast}
@@ -98,7 +132,7 @@ export function AdminDashboard() {
                   <BookingRow booking={booking} />
                 </motion.div>
               ))}
-              
+
               {pending.length === 0 && (
                 <EmptyState
                   title="No pending requests"
@@ -112,4 +146,5 @@ export function AdminDashboard() {
     </section>
   );
 }
+
 export default AdminDashboard;

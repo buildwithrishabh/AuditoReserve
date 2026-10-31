@@ -49,6 +49,15 @@ export function AuditoriumDetailPage() {
 
   return (
     <motion.section variants={fadeIn} initial="hidden" animate="visible">
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--text-muted)" }}>
+        <Link to="/" style={{ color: "var(--text-muted)" }}>Home</Link>
+        <span>/</span>
+        <Link to="/auditoriums" style={{ color: "var(--text-muted)" }}>Auditoriums</Link>
+        <span>/</span>
+        <span style={{ color: "var(--text)", fontWeight: 600 }}>{auditorium.name}</span>
+      </nav>
+
       <div className="detail-grid">
         <motion.div
           className="gallery"
@@ -59,14 +68,15 @@ export function AuditoriumDetailPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeImgIndex}
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
               <ImageFrame src={activeImage} alt={auditorium.name} large />
             </motion.div>
           </AnimatePresence>
+
           {allImages.length > 1 && (
             <motion.div
               className="thumbnail-row"
@@ -75,67 +85,62 @@ export function AuditoriumDetailPage() {
               animate="visible"
             >
               {allImages.map((image, index) => (
-                <motion.img
+                <button
                   key={image}
-                  src={image}
-                  alt=""
-                  className={index === activeImgIndex ? "active-thumb" : ""}
+                  type="button"
+                  className="thumbnail-btn"
                   onClick={() => setActiveImgIndex(index)}
-                  variants={cardItem}
-                  whileHover={{ scale: 1.05, borderColor: "var(--accent)" }}
-                  whileTap={{ scale: 0.95 }}
-                  style={{ cursor: "pointer" }}
-                />
+                  aria-label={`View photo ${index + 1}`}
+                  aria-pressed={index === activeImgIndex}
+                  style={{ border: "none", padding: 0, background: "none" }}
+                >
+                  <motion.img
+                    src={image}
+                    alt=""
+                    className={index === activeImgIndex ? "active-thumb" : ""}
+                    variants={cardItem}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                  />
+                </button>
               ))}
             </motion.div>
           )}
         </motion.div>
-        
+
         <motion.aside
           className="detail-panel panel"
           variants={slideLeft}
           initial="hidden"
           animate="visible"
         >
-          <motion.p variants={fadeIn} className="eyebrow">Venue Profile</motion.p>
-          <motion.h1 variants={slideLeft} style={{ fontSize: "28px", marginBottom: "14px" }}>
-            {auditorium.name}
-          </motion.h1>
-          <motion.p variants={fadeIn}>{auditorium.description}</motion.p>
-          
-          <motion.div
-            className="fact-list"
-            variants={staggerContainerFast}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.span variants={cardItem}>
-              <Users size={17} style={{ color: "var(--accent)" }} />{" "}
-              {auditorium.capacity} seats capacity
-            </motion.span>
-            <motion.span variants={cardItem}>
-              <MapPin size={17} style={{ color: "var(--accent)" }} /> Campus
-              facility infrastructure
-            </motion.span>
-            <motion.span variants={cardItem}>
-              <Clock size={17} style={{ color: "var(--accent)" }} /> ₹
-              {auditorium.basePrice} base price per hour
-            </motion.span>
-          </motion.div>
+          <p className="eyebrow">Venue Profile</p>
+          <h1>{auditorium.name}</h1>
+          <p>{auditorium.description}</p>
 
-          <motion.h3 variants={fadeIn} style={{ marginTop: "20px", marginBottom: "8px" }}>Amenities</motion.h3>
-          <motion.div
-            className="amenities"
-            variants={staggerContainerFast}
-            initial="hidden"
-            animate="visible"
-          >
+          <div className="fact-list">
+            <span>
+              <Users size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
+              <strong>{auditorium.capacity} seats</strong> capacity
+            </span>
+            <span>
+              <MapPin size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
+              Campus facility infrastructure
+            </span>
+            <span>
+              <Clock size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
+              <strong className="tabular-nums">₹{auditorium.basePrice}</strong> base price per hour
+            </span>
+          </div>
+
+          <h3 style={{ marginTop: "16px", marginBottom: "8px" }}>Amenities</h3>
+          <div className="amenities">
             {auditorium.amenities.map((amenity) => (
-              <motion.span key={amenity} variants={cardItem}>{amenity}</motion.span>
+              <span key={amenity}>{amenity}</span>
             ))}
-          </motion.div>
+          </div>
 
-          <motion.div variants={fadeIn} style={{ marginTop: "28px" }}>
+          <div style={{ marginTop: "28px" }}>
             {user?.role === "student" ? (
               <Link
                 className="button primary wide"
@@ -155,14 +160,16 @@ export function AuditoriumDetailPage() {
                 Log in to request booking
               </Link>
             )}
-          </motion.div>
-          <motion.p variants={fadeIn} className="note">
+          </div>
+
+          <p className="note">
             Booking requests require administrator review. Availability conflicts
             are evaluated at the time of submission.
-          </motion.p>
+          </p>
         </motion.aside>
       </div>
     </motion.section>
   );
 }
+
 export default AuditoriumDetailPage;

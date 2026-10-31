@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Menu, User, X } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, User, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../hooks/useTheme";
 import { Footer } from "./Footer";
 import { pageTransition } from "../../lib/animations";
 import { NotificationCenter } from "./NotificationCenter";
 
 const navItems = [
   { label: "Home", to: "/" },
+  { label: "Auditoriums", to: "/auditoriums" },
   { label: "About", to: "/#about" },
   { label: "Features", to: "/#features" },
   { label: "Contact", to: "/#contact" },
@@ -16,6 +18,7 @@ const navItems = [
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,25 +50,45 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       <header className="topbar">
         <Link to="/" className="brand">
-          <span className="brand-mark">AR</span>
+          <span className="brand-mark" aria-hidden="true">AR</span>
           <span className="brand-name">AuditoReserve</span>
         </Link>
 
         <nav className="nav-links" aria-label="Main navigation">
           {navItems.map((item) => (
-            <Link key={item.label} to={item.to}>{item.label}</Link>
+            <Link key={item.label} to={item.to}>
+              {item.label}
+            </Link>
           ))}
           {user?.role === "student" && (
-            <NavLink to="/bookings" className={({ isActive }) => isActive ? "active" : ""}>My bookings</NavLink>
+            <NavLink to="/bookings" className={({ isActive }) => (isActive ? "active" : "")}>
+              My bookings
+            </NavLink>
           )}
           {user?.role === "admin" && (
-            <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Admin Panel</NavLink>
+            <NavLink to="/admin" className={({ isActive }) => (isActive ? "active" : "")}>
+              Admin Panel
+            </NavLink>
           )}
         </nav>
 
         <div className="topbar-actions">
+          <button
+            type="button"
+            className="icon-button theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            title={isDark ? "Light theme" : "Dark theme"}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
           {user ? (
             <>
               <NotificationCenter />
@@ -77,22 +100,46 @@ export function AppLayout() {
               >
                 <User size={18} />
               </NavLink>
-              <button className="icon-button danger-icon" type="button" onClick={handleLogout} aria-label="Log out" title="Log out">
+              <button
+                className="icon-button danger-icon"
+                type="button"
+                onClick={handleLogout}
+                aria-label="Log out"
+                title="Log out"
+              >
                 <LogOut size={18} />
               </button>
             </>
           ) : (
             <>
-              <Link className="button primary" to="/login">Login</Link>
-              <Link className="button ghost" to="/register">Sign up</Link>
+              <Link className="button ghost sm" to="/login">
+                Login
+              </Link>
+              <Link className="button primary sm" to="/register">
+                Sign up
+              </Link>
             </>
           )}
         </div>
 
         <div className="mobile-header-actions">
+          <button
+            type="button"
+            className="icon-button theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           {user && <NotificationCenter />}
-          <button className="mobile-menu-btn" type="button" aria-label="Toggle menu" onClick={() => setMenuOpen((o) => !o)}>
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          <button
+            className="mobile-menu-btn"
+            type="button"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
@@ -100,32 +147,48 @@ export function AppLayout() {
         <AnimatePresence>
           {menuOpen && (
             <motion.div
-              className="mobile-dropdown open"
+              className="mobile-dropdown"
               initial={{ opacity: 0, y: -10, scaleY: 0.97 }}
               animate={{ opacity: 1, y: 0, scaleY: 1 }}
               exit={{ opacity: 0, y: -10, scaleY: 0.97 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               style={{ transformOrigin: "top" }}
             >
-              <nav>
+              <nav aria-label="Mobile navigation">
                 {navItems.map((item) => (
-                  <Link key={item.label} to={item.to} className="mobile-dropdown-link" onClick={() => setMenuOpen(false)}>{item.label}</Link>
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className="mobile-dropdown-link"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
                 ))}
                 {user?.role === "student" && (
-                  <NavLink to="/bookings" className={({ isActive }) => `mobile-dropdown-link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>My bookings</NavLink>
+                  <NavLink
+                    to="/bookings"
+                    className={({ isActive }) => `mobile-dropdown-link ${isActive ? "active" : ""}`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    My bookings
+                  </NavLink>
                 )}
                 {user?.role === "admin" && (
-                  <NavLink to="/admin" className={({ isActive }) => `mobile-dropdown-link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Admin Panel</NavLink>
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) => `mobile-dropdown-link ${isActive ? "active" : ""}`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Admin Panel
+                  </NavLink>
                 )}
               </nav>
 
               <div className="mobile-dropdown-divider" />
 
               {user ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0, transition: { delay: 0.08 } }}
-                >
+                <div>
                   <Link to="/account" className="mobile-dropdown-user" onClick={() => setMenuOpen(false)}>
                     <div className="mobile-dropdown-avatar">
                       <User size={18} />
@@ -136,19 +199,19 @@ export function AppLayout() {
                     </div>
                   </Link>
                   <button className="mobile-dropdown-logout" type="button" onClick={handleLogout}>
-                    <LogOut size={18} />
+                    <LogOut size={16} />
                     Log out
                   </button>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div
-                  className="mobile-dropdown-auth"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0, transition: { delay: 0.08 } }}
-                >
-                  <Link className="button primary w-full" to="/login" onClick={() => setMenuOpen(false)}>Login</Link>
-                  <Link className="button ghost w-full" to="/register" onClick={() => setMenuOpen(false)}>Sign up</Link>
-                </motion.div>
+                <div className="mobile-dropdown-auth">
+                  <Link className="button primary w-full" to="/login" onClick={() => setMenuOpen(false)}>
+                    Login
+                  </Link>
+                  <Link className="button ghost w-full" to="/register" onClick={() => setMenuOpen(false)}>
+                    Sign up
+                  </Link>
+                </div>
               )}
             </motion.div>
           )}
@@ -162,13 +225,13 @@ export function AppLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setMenuOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      <main className="main-wrap">
+      <main id="main-content" className="main-wrap">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -185,4 +248,5 @@ export function AppLayout() {
     </div>
   );
 }
+
 export default AppLayout;

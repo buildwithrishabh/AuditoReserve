@@ -54,9 +54,8 @@ export function CalendarView({
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startDayOfWeek = getDay(monthStart); // 0 = Sunday, 1 = Monday, etc.
+  const startDayOfWeek = getDay(monthStart);
 
-  // Helper to find bookings for a specific day
   const getBookingsForDay = (date) => {
     return bookings.filter((b) => isSameDay(new Date(b.bookingDate), date));
   };
@@ -73,9 +72,9 @@ export function CalendarView({
   return (
     <div className={`calendar-card ${compact ? "compact" : ""}`}>
       {/* Month Selector Header */}
-      <div className="calendar-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="calendar-header">
         <h3>Availability Calendar</h3>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button 
             type="button"
             className="icon-button" 
@@ -83,9 +82,9 @@ export function CalendarView({
             title="Previous Month"
             aria-label="Previous Month"
           >
-            <ChevronLeft size={compact ? 14 : 18} />
+            <ChevronLeft size={compact ? 15 : 18} />
           </button>
-          <span style={{ fontWeight: 700, minWidth: "120px", textAlign: "center", fontSize: "14px" }}>
+          <span style={{ fontWeight: 700, minWidth: "110px", textAlign: "center", fontSize: "13.5px" }}>
             {format(currentMonth, "MMMM yyyy")}
           </span>
           <button 
@@ -95,26 +94,25 @@ export function CalendarView({
             title="Next Month"
             aria-label="Next Month"
           >
-            <ChevronRight size={compact ? 14 : 18} />
+            <ChevronRight size={compact ? 15 : 18} />
           </button>
         </div>
       </div>
 
       {/* Weekday Names Header */}
-      <div className="calendar-grid-weekdays" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center", fontWeight: 700 }}>
+      <div className="calendar-grid-weekdays">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} style={{ fontSize: "12px", color: "var(--text-muted)", padding: "4px 0" }}>{day}</div>
+          <div key={day}>{day}</div>
         ))}
       </div>
 
       {/* Days Grid */}
       {isLoading ? (
-        <div className="calendar-loader-container">
-          <div className="route-loader" />
+        <div className="full-state" style={{ minHeight: "180px", padding: 0 }}>
+          <div className="route-loader" style={{ width: "28px", height: "28px" }} />
         </div>
       ) : (
-        <div className="calendar-grid-days" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
-          {/* Fill offset empty spaces before the 1st of month */}
+        <div className="calendar-grid-days">
           {Array.from({ length: startDayOfWeek }).map((_, i) => (
             <div key={`empty-${i}`} />
           ))}
@@ -130,33 +128,30 @@ export function CalendarView({
                 type="button"
                 onClick={() => handleDateClick(day)}
                 className={`calendar-day-btn ${isSelected ? "selected" : ""} ${hasBookings ? "has-bookings" : ""}`}
+                aria-label={`${format(day, "d MMMM yyyy")}${hasBookings ? `, ${dayBookings.length} booking${dayBookings.length > 1 ? "s" : ""}` : ", available"}`}
               >
-                <span style={{ fontSize: "14px", fontWeight: 600 }}>{format(day, "d")}</span>
-                
-                {/* Indicator Dot */}
-                {hasBookings && (
-                  <span className="booking-indicator" />
-                )}
+                <span>{format(day, "d")}</span>
+                {hasBookings && <span className="booking-indicator" aria-hidden="true" />}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Daily Timeline Drawer / Info Panel */}
+      {/* Daily Timeline Drawer */}
       <AnimatePresence mode="wait">
         {selectedDate && (
           <motion.div
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
-            animate={{ opacity: 1, height: "auto", marginTop: 24 }}
+            animate={{ opacity: 1, height: "auto", marginTop: 16 }}
             exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
             style={{ overflow: "hidden" }}
           >
             <div className="timeline-panel">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                 <h4>
-                  <Calendar size={16} style={{ color: "var(--accent)" }} /> Bookings for {format(selectedDate, "MMMM d, yyyy")}
+                  <Calendar size={15} style={{ color: "var(--primary)" }} /> Bookings for {format(selectedDate, "MMMM d, yyyy")}
                 </h4>
                 <button 
                   type="button"
@@ -177,7 +172,7 @@ export function CalendarView({
                 <div className="timeline-booking-list">
                   {selectedDayBookings.map((b) => (
                     <div key={b._id} className="timeline-booking-item">
-                      <Clock className="time-icon" size={16} />
+                      <Clock className="time-icon" size={15} />
                       <div className="timeline-booking-details">
                         <span className="timeline-booking-time">
                           {b.startTime} - {b.endTime}
@@ -197,3 +192,5 @@ export function CalendarView({
     </div>
   );
 }
+
+export default CalendarView;
