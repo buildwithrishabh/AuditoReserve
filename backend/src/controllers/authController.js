@@ -26,11 +26,11 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // checking valid emaildomain
-    const emailDomain = email.split("@")[1]?.trim();
-    const allowedDomain = process.env.UNIVERSITY_DOMAIN?.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailDomain = normalizedEmail.split("@")[1]?.trim().toLowerCase();
+    const allowedDomain = process.env.UNIVERSITY_DOMAIN?.trim().toLowerCase();
 
-    if (emailDomain !== allowedDomain) {
+    if (allowedDomain && emailDomain !== allowedDomain) {
       return res.status(400).json({
         success: false,
         message: "Please use your university email to register",
@@ -38,7 +38,7 @@ exports.register = async (req, res, next) => {
     }
 
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(400).json({
@@ -52,8 +52,8 @@ exports.register = async (req, res, next) => {
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -95,8 +95,16 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Please fill all fields",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(400).json({
@@ -235,11 +243,24 @@ exports.refresh = async (req, res, next) => {
 // ================= LOGOUT =================
 exports.logout = async (req, res, next) => {
   try {
-    const token = req.cookies.refreshToken;
+    const token = req.cookies?.refreshToken;
+    const isProduction = process.env.NODE_ENV === "production";
 
     if (!token) {
-      return res.status(204).json({
-        message: "No refresh token found",
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+      });
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
       });
     }
 
@@ -255,7 +276,6 @@ exports.logout = async (req, res, next) => {
       await user.save();
     }
 
-    const isProduction = process.env.NODE_ENV === "production";
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: isProduction,
@@ -265,7 +285,7 @@ exports.logout = async (req, res, next) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
-    }); // Also clear access token if you are using it in cookies!
+    });
 
     res.status(200).json({
       success: true,
@@ -328,8 +348,8 @@ exports.forgetPass = async (req, res, next) => {
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -426,7 +446,8 @@ exports.resendVerificationEmail = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({

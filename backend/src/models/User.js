@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please add an email"],
     unique: true,
+    lowercase: true,
+    trim: true,
   },
   password: {
     type: String,
@@ -22,7 +24,6 @@ const userSchema = new mongoose.Schema({
   },
   refreshToken: {
     type: String,
-    default: "",
   },
   isVerified: {
     type: Boolean,
@@ -36,7 +37,6 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: {
     type: String,
-    default: "",
   },
   resetPasswordExpires: {
     type: Date,
@@ -52,6 +52,5 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ refreshToken: 1 }, { sparse: true });
 userSchema.index({ verificationToken: 1 }, { sparse: true });
 userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
-
 
 module.exports = mongoose.model("User", userSchema);

@@ -34,7 +34,16 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({limit: "10mb"}));
+
+
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 app.use(cookieParser());
 
@@ -63,7 +72,7 @@ app.use("/api/auth", authLimiter, authroutes);
 app.use("/api/auditoriums", auditoriumRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRouter);
-app.use("/api/notifications" , notificationRouter);
+app.use("/api/notifications", notificationRouter);
 
 // 404 handler for undefined routes
 app.use(notFound);

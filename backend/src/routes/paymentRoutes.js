@@ -15,8 +15,6 @@ const {
 
 const idempotency = require("../middlewares/idempotencyMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
-const validate = require("../middlewares/validateMiddleware");
-const { verifyPaymentSchema } = require("../validators/paymentValidator");
 
 // Limiters for payment routes
 const paymentOrderLimiter = slidingWindowLimiter({
@@ -61,7 +59,6 @@ paymentRouter.post(
   isverified,
   authorizeRole("student"),
   paymentVerifyLimiter,
-  validate(verifyPaymentSchema),
   idempotency({ required: true, ttl: 86400, prefix: "idem:verify" }),
   verifyPayment,
 );

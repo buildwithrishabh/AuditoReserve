@@ -17,12 +17,6 @@ const {
   isverified,
 } = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
-const validate = require("../middlewares/validateMiddleware");
-const {
-  createBookingSchema,
-  calendarQuerySchema,
-  updateBookingStatusSchema,
-} = require("../validators/bookingValidator");
 
 // Limiters for booking routes
 const bookingCreateLimiter = slidingWindowLimiter({
@@ -54,14 +48,7 @@ const userBookingsLimiter = slidingWindowLimiter({
 // ======================================
 
 // Get Calendar Bookings (for availability checks)
-router.get(
-  "/calendar",
-  protect,
-  isverified,
-  calendarLimiter,
-  validate({ query: calendarQuerySchema }),
-  getCalendarBooking,
-);
+router.get("/calendar", protect, isverified, calendarLimiter, getCalendarBooking);
 
 // Create Booking
 router.post(
@@ -70,7 +57,6 @@ router.post(
   isverified,
   authorizeRole("student"),
   bookingCreateLimiter,
-  validate(createBookingSchema),
   createBooking,
 );
 
@@ -107,7 +93,6 @@ router.put(
   protect,
   isverified,
   authorizeRole("admin"),
-  validate(updateBookingStatusSchema),
   updateBookingStatus,
 );
 

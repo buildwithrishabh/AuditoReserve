@@ -18,14 +18,6 @@ const {
   protect,
 } = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
-const validate = require("../middlewares/validateMiddleware");
-const {
-  registerSchema,
-  loginSchema,
-  forgetPasswordSchema,
-  resetPasswordSchema,
-  resendVerificationSchema,
-} = require("../validators/authValidator");
 
 // Limiters for auth routes
 const registerLimiter = slidingWindowLimiter({
@@ -58,29 +50,14 @@ const refreshLimiter = slidingWindowLimiter({
   prefix: "rl:auth:refresh",
 });
 
-authroutes.post("/register", registerLimiter, validate(registerSchema), register);
+authroutes.post("/register", registerLimiter, register);
 authroutes.get("/verify-email", verifyEmail);
-authroutes.post(
-  "/resend-verification",
-  resendVerifyLimiter,
-  validate(resendVerificationSchema),
-  resendVerificationEmail,
-);
-authroutes.post("/login", loginLimiter, validate(loginSchema), login);
+authroutes.post("/resend-verification", resendVerifyLimiter, resendVerificationEmail);
+authroutes.post("/login", loginLimiter, login);
 authroutes.post("/refresh", refreshLimiter, refresh);
 authroutes.post("/logout", logout);
-authroutes.post(
-  "/forget-password",
-  passwordResetLimiter,
-  validate(forgetPasswordSchema),
-  forgetPass,
-);
-authroutes.post(
-  "/reset-password/:token",
-  passwordResetLimiter,
-  validate(resetPasswordSchema),
-  resetPassword,
-);
+authroutes.post("/forget-password", passwordResetLimiter, forgetPass);
+authroutes.post("/reset-password/:token", passwordResetLimiter, resetPassword);
 authroutes.get("/me", protect, getMe);
 
 module.exports = authroutes;
