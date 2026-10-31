@@ -1,0 +1,15 @@
+process.env.NODE_ENV = "test";
+process.env.PORT = "5001";
+process.env.JWT_ACCESS_SECRET = "test_jwt_access_secret_key_1234567890123456";
+process.env.JWT_REFRESH_SECRET = "test_jwt_refresh_secret_key_1234567890123456";
+process.env.UNIVERSITY_DOMAIN = "tmu.ac.in";
+process.env.FRONTEND_URL = "http://localhost:5173";
+process.env.FROM_EMAIL = "notifications@auditoreserve.com";
+process.env.FROM_NAME = "AuditoReserve";
+process.env.RAZORPAY_KEY_ID = "rzp_test_mock_key_id";
+process.env.RAZORPAY_SECRET_KEY = "rzp_test_mock_secret_key_123";
+process.env.CLOUDINARY_CLOUD_NAME = "mock_cloud_name";
+process.env.CLOUDINARY_API_KEY = "mock_api_key";
+process.env.CLOUDINARY_API_SECRET = "mock_api_secret";
+process.env.MONGODB_URI = process.env.MONGODB_TEST_URI || "mongodb://127.0.0.1:27017/auditoreserve_test?retryWrites=false";
+process.env.LOG_LEVEL = "error";
