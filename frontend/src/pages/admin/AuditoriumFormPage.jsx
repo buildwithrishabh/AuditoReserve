@@ -1,17 +1,26 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
+import {
+  Building2,
+  Coins,
+  Sparkles,
+  Image as ImageIcon,
+  ArrowLeft,
+  Save,
+  Info,
+} from "lucide-react";
 import { getSingleAuditorium, createAuditorium, updateAuditorium } from "../../api/auditoriums";
 import { useToast } from "../../hooks/useToast";
 import { getErrorMessage } from "../../api/client";
 import { TextField, FormError } from "../../components/common/FormControls";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState } from "../../components/common/ErrorState";
-import { staggerContainerFast, cardItem, slideUp, fadeIn } from "../../lib/animations";
+import { staggerContainerFast } from "../../lib/animations";
 
 const auditoriumSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -53,6 +62,7 @@ export function AuditoriumFormPage({ mode }) {
   const {
     register: field,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     reset,
   } = useForm({
@@ -69,7 +79,13 @@ export function AuditoriumFormPage({ mode }) {
       : undefined,
   });
 
-  // Clean up object URLs to prevent leaks
+  const rawAmenities = useWatch({ control, name: "amenities" }) || "";
+  const parsedAmenities = rawAmenities
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  // Clean up object URLs to prevent memory leaks
   useEffect(() => {
     return () => {
       imagePreviews.forEach((url) => URL.revokeObjectURL(url));
@@ -79,12 +95,8 @@ export function AuditoriumFormPage({ mode }) {
   const { ref, onChange, ...imagesField } = field("images");
 
   const handleImageChange = (e) => {
-    // Forward event to react-hook-form
     void onChange(e);
-    
-    // Revoke old previews
     imagePreviews.forEach((url) => URL.revokeObjectURL(url));
-    
     const files = e.target.files;
     if (files && files.length > 0) {
       const urls = Array.from(files).map((file) => URL.createObjectURL(file));
@@ -150,129 +162,181 @@ export function AuditoriumFormPage({ mode }) {
       variants={staggerContainerFast}
       initial="hidden"
       animate="visible"
+      className="admin-form-page"
     >
-      <motion.div className="page-header" variants={slideUp}>
-        <p className="eyebrow">Venue setup</p>
-        <h1>{mode === "create" ? "Create auditorium" : "Edit auditorium"}</h1>
-        <p>Define venue specifications, capacity parameters and upload image attachments.</p>
-      </motion.div>
+      <div className="section-heading">
+        <div className="page-header" style={{ margin: 0 }}>
+          <span className="eyebrow">Venue Setup</span>
+          <h1 style={{ margin: "4px 0 0" }}>{mode === "create" ? "Create auditorium" : "Edit auditorium"}</h1>
+          <p style={{ margin: "4px 0 0" }}>Configure campus auditorium specs, capacity limits, and media assets.</p>
+        </div>
+        <Link to="/admin/auditoriums" className="button ghost sm">
+          <ArrowLeft size={16} /> Back to venues
+        </Link>
+      </div>
 
-      <motion.form
-        className="panel form admin-form"
-        variants={staggerContainerFast}
+      <form
+        className="admin-form-container"
         onSubmit={(e) => void handleSubmit(onSubmit)(e)}
       >
-        <motion.div variants={cardItem}>
+        {/* Card 1: Basic Information */}
+        <div className="card admin-form-card">
+          <div className="card-section-head">
+            <Building2 size={18} className="head-icon" />
+            <div>
+              <h3>Basic Identification</h3>
+              <p>Official venue title and operational description.</p>
+            </div>
+          </div>
+
           <TextField
             label="Venue Name"
             type="text"
             error={errors.name?.message}
             {...field("name")}
-            placeholder="Main Audi or Conference Room A"
+            placeholder="e.g. Tagore Memorial Hall or Science Auditorium B"
           />
-        </motion.div>
 
-        <motion.div variants={cardItem} className="form-row">
-          <TextField
-            label="Seating Capacity"
-            type="number"
-            error={errors.capacity?.message}
-            {...field("capacity")}
-            placeholder="e.g. 250"
-          />
-          <TextField
-            label="Base Price per Hour (₹)"
-            type="number"
-            error={errors.basePrice?.message}
-            {...field("basePrice")}
-            placeholder="e.g. 1500"
-          />
-        </motion.div>
+          <label className={`field ${errors.description ? "has-error" : ""}`}>
+            <span>Facility Description</span>
+            <textarea
+              rows={4}
+              {...field("description")}
+              placeholder="Describe seating configuration, stage dimensions, acoustic qualities, and authorized department usage..."
+            />
+            {errors.description?.message && (
+              <small>{errors.description.message}</small>
+            )}
+          </label>
+        </div>
 
-        <motion.div variants={cardItem}>
+        {/* Card 2: Capacity & Pricing */}
+        <div className="card admin-form-card">
+          <div className="card-section-head">
+            <Coins size={18} className="head-icon" />
+            <div>
+              <h3>Capacity & Pricing Rules</h3>
+              <p>Seat threshold and hourly billing tariff.</p>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <TextField
+              label="Audience Seating Capacity"
+              type="number"
+              error={errors.capacity?.message}
+              {...field("capacity")}
+              placeholder="e.g. 450"
+            />
+            <TextField
+              label="Base Hourly Rate (₹ / hr)"
+              type="number"
+              error={errors.basePrice?.message}
+              {...field("basePrice")}
+              placeholder="e.g. 3500"
+            />
+          </div>
+        </div>
+
+        {/* Card 3: Amenities & AV Specs */}
+        <div className="card admin-form-card">
+          <div className="card-section-head">
+            <Sparkles size={18} className="head-icon" />
+            <div>
+              <h3>Facility Amenities</h3>
+              <p>List equipped AV systems, lighting, and stage features.</p>
+            </div>
+          </div>
+
           <TextField
             label="Amenities (comma-separated)"
-            placeholder="Projector, Stage, Sound system, AC, Wi-Fi"
+            placeholder="e.g. HD Projector, Stage Lighting, Dolby Sound, Podium Mic, Central AC, Wi-Fi"
             error={errors.amenities?.message}
             {...field("amenities")}
           />
-        </motion.div>
 
-        <motion.div variants={cardItem}>
-          <label className={`field ${errors.description ? "has-error" : ""}`}>
-            <span>Description</span>
-            <textarea
-              rows={5}
-              {...field("description")}
-              placeholder="Detailed features, location notes or operational limits of this facility..."
-            />
-            {errors.description?.message && (
-              <small style={{ color: "var(--danger)", fontWeight: "600", marginTop: "4px" }}>
-                {errors.description.message}
-              </small>
-            )}
-          </label>
-        </motion.div>
+          {parsedAmenities.length > 0 && (
+            <div className="amenities-live-preview">
+              <span className="preview-label">Live Chips Preview:</span>
+              <div className="amenities-chips-wrap">
+                {parsedAmenities.map((amenity) => (
+                  <span key={amenity} className="amenity-chip">
+                    {amenity}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-        <motion.div variants={cardItem}>
-          <label className="field">
-            <span>Images</span>
+        {/* Card 4: Multi-Photo Uploads */}
+        <div className="card admin-form-card">
+          <div className="card-section-head">
+            <ImageIcon size={18} className="head-icon" />
+            <div>
+              <h3>Auditorium Photography</h3>
+              <p>High-resolution imagery of the stage, seating hall, and exterior.</p>
+            </div>
+          </div>
+
+          <div className="file-dropzone-box">
             <input
+              id="auditorium-images-input"
               type="file"
               accept="image/*"
               multiple
               ref={ref}
               onChange={handleImageChange}
               {...imagesField}
+              style={{ display: "none" }}
             />
-            <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
-              Upload up to 5 images. On edit, leave blank to retain existing images.
-            </p>
-          </label>
-        </motion.div>
+            <label htmlFor="auditorium-images-input" className="dropzone-label">
+              <ImageIcon size={32} className="dropzone-icon" />
+              <strong>Click to upload venue images</strong>
+              <span>Select up to 5 image files (PNG, JPG, WebP)</span>
+            </label>
+          </div>
 
-        {imagePreviews.length > 0 && (
-          <motion.div variants={fadeIn} style={{ marginTop: "10px" }}>
-            <span style={{ fontSize: "13px", fontWeight: "700", display: "block", marginBottom: "8px" }}>
-              Upload Previews ({imagePreviews.length} files selected):
-            </span>
-            <motion.div
-              className="image-previews"
-              variants={staggerContainerFast}
-              initial="hidden"
-              animate="visible"
-            >
-              {imagePreviews.map((url, i) => (
-                <motion.div
-                  key={i}
-                  className="preview-thumbnail"
-                  variants={cardItem}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <img src={url} alt={`Upload preview ${i + 1}`} />
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-        )}
+          {mode === "edit" && auditorium?.images?.length > 0 && imagePreviews.length === 0 && (
+            <div className="existing-images-note">
+              <Info size={14} />
+              <span>{auditorium.images.length} existing image(s) attached. Leaving the file picker empty will preserve existing images.</span>
+            </div>
+          )}
 
-        <motion.div variants={cardItem}>
-          <FormError message={serverError} />
-        </motion.div>
+          {imagePreviews.length > 0 && (
+            <div className="image-previews-container">
+              <span className="preview-header-label">Selected New Images ({imagePreviews.length}):</span>
+              <div className="image-previews-grid">
+                {imagePreviews.map((url, i) => (
+                  <div key={i} className="preview-thumbnail-card">
+                    <img src={url} alt={`Upload preview ${i + 1}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-        <motion.button
-          className="button primary"
-          disabled={isSubmitting}
-          type="submit"
-          variants={cardItem}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          style={{ marginTop: "12px", width: "fit-content", minWidth: "160px" }}
-        >
-          {isSubmitting ? "Saving venue..." : "Save auditorium"}
-        </motion.button>
-      </motion.form>
+        <FormError message={serverError} />
+
+        {/* Sticky Actions Bar */}
+        <div className="form-action-bar">
+          <Link to="/admin/auditoriums" className="button ghost">
+            Cancel
+          </Link>
+          <button
+            className="button primary"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            <Save size={16} />
+            {isSubmitting ? "Saving venue..." : mode === "create" ? "Create auditorium" : "Save changes"}
+          </button>
+        </div>
+      </form>
     </motion.section>
   );
 }
+
 export default AuditoriumFormPage;

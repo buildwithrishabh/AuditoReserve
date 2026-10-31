@@ -61,11 +61,22 @@ export function AppLayout() {
         </Link>
 
         <nav className="nav-links" aria-label="Main navigation">
-          {navItems.map((item) => (
-            <Link key={item.label} to={item.to}>
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) =>
+            item.to.includes("#") ? (
+              <a key={item.label} href={item.to}>
+                {item.label}
+              </a>
+            ) : (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                end={item.to === "/"}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                {item.label}
+              </NavLink>
+            )
+          )}
           {user?.role === "student" && (
             <NavLink to="/bookings" className={({ isActive }) => (isActive ? "active" : "")}>
               My bookings

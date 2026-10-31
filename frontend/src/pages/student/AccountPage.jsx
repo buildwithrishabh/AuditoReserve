@@ -1,9 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
 import { StatusBadge } from "../../components/common/StatusBadge";
-import { User, Mail, ShieldCheck, LogOut } from "lucide-react";
+import { Mail, ShieldCheck, LogOut, CalendarDays, ExternalLink } from "lucide-react";
 import { staggerContainerFast, cardItem, slideUp } from "../../lib/animations";
 
 export function AccountPage() {
@@ -17,45 +17,57 @@ export function AccountPage() {
     navigate("/login");
   };
 
+  const getInitials = (name) => {
+    if (!name) return "AR";
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
   return (
     <motion.section
-      style={{ maxWidth: "640px", margin: "0 auto" }}
+      className="account-page-container"
       variants={staggerContainerFast}
       initial="hidden"
       animate="visible"
+      style={{ maxWidth: "680px", margin: "0 auto" }}
     >
       <motion.div className="page-header" variants={slideUp} style={{ textAlign: "center" }}>
-        <p className="eyebrow">User profile</p>
-        <h1>Account details</h1>
-        <p>Information about the currently authenticated session.</p>
+        <span className="eyebrow">Academic Identity</span>
+        <h1>Account Profile</h1>
+        <p>Authenticated session and university permissions.</p>
       </motion.div>
 
-      <motion.div
-        className="panel"
-        variants={cardItem}
-        style={{ display: "flex", flexDirection: "column", gap: "24px" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      <motion.div className="card" variants={cardItem} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* User Hero Row */}
+        <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
           <div
             style={{
-              width: "56px",
-              height: "56px",
+              width: "60px",
+              height: "60px",
               borderRadius: "50%",
-              background: "var(--primary-light)",
-              color: "var(--primary)",
+              background: "var(--ink)",
+              color: "#ffffff",
               display: "grid",
               placeItems: "center",
-              border: "1px solid var(--ring)",
+              fontWeight: 800,
+              fontSize: "1.25rem",
+              letterSpacing: "-0.02em",
+              border: "2px solid var(--border)",
               boxShadow: "var(--shadow-sm)",
+              flexShrink: 0,
             }}
           >
-            <User size={28} />
+            {getInitials(user?.name)}
           </div>
           <div>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }}>
-              Full Name
+            <h2 style={{ margin: 0, fontSize: "1.35rem" }}>{user?.name || "Authenticated User"}</h2>
+            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+              University Faculty / Student Member
             </span>
-            <h2 style={{ margin: 0, fontSize: "1.25rem" }}>{user?.name || "Active Session"}</h2>
           </div>
         </div>
 
@@ -70,9 +82,11 @@ export function AccountPage() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
               <Mail size={16} style={{ color: "var(--primary)" }} />
-              <span style={{ fontWeight: 700, fontSize: "13px" }}>Email address</span>
+              <span style={{ fontWeight: 700, fontSize: "0.8125rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-subtle)" }}>
+                Email Address
+              </span>
             </div>
-            <p style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--text)" }}>
+            <p style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600, color: "var(--text)" }}>
               {user?.email}
             </p>
           </div>
@@ -87,7 +101,9 @@ export function AccountPage() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
               <ShieldCheck size={16} style={{ color: "var(--primary)" }} />
-              <span style={{ fontWeight: 700, fontSize: "13px" }}>Permission Role</span>
+              <span style={{ fontWeight: 700, fontSize: "0.8125rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-subtle)" }}>
+                Assigned Role
+              </span>
             </div>
             <div style={{ display: "flex", alignItems: "center" }}>
               <StatusBadge
@@ -98,13 +114,33 @@ export function AccountPage() {
           </div>
         </div>
 
+        {/* Quick Portal Navigation */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "8px", borderTop: "1px solid var(--border)" }}>
+          {user?.role === "student" && (
+            <Link to="/bookings" className="button ghost wide" style={{ justifyContent: "space-between" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <CalendarDays size={16} /> View my booking history
+              </span>
+              <ExternalLink size={15} />
+            </Link>
+          )}
+          {user?.role === "admin" && (
+            <Link to="/admin" className="button ghost wide" style={{ justifyContent: "space-between" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <ShieldCheck size={16} /> Open administrative dashboard
+              </span>
+              <ExternalLink size={15} />
+            </Link>
+          )}
+        </div>
+
         <button
           className="button danger wide"
           type="button"
           onClick={handleLogout}
-          style={{ marginTop: "8px", gap: "10px" }}
+          style={{ gap: "10px" }}
         >
-          <LogOut size={16} /> Log out from session
+          <LogOut size={16} /> End authenticated session
         </button>
       </motion.div>
     </motion.section>

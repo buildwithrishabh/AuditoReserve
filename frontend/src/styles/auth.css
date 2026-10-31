@@ -1,46 +1,181 @@
-/* ===== AuditoReserve Authentication Pages Styles ===== */
+/* ===== AuditoReserve "Campus Ink" Authentication Styles ===== */
 
-.auth-page {
+.auth-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  min-height: calc(100vh - var(--header-height) - 100px);
+  margin: calc(-1 * clamp(24px, 4vw, 40px)) calc(-1 * var(--container-pad));
+  background: var(--bg);
+}
+
+@media (max-width: 960px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+    margin: 0;
+    min-height: auto;
+    padding: clamp(24px, 4vw, 48px) 0;
+  }
+}
+
+/* Left Brand Panel on Desktop */
+.auth-brand-panel {
+  background-color: var(--ink);
+  color: var(--ink-contrast);
+  padding: clamp(40px, 6vw, 72px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--ink-border);
+}
+
+@media (max-width: 960px) {
+  .auth-brand-panel {
+    display: none;
+  }
+}
+
+.brand-panel-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: #ffffff;
+  text-decoration: none;
+  margin-bottom: clamp(32px, 6vw, 64px);
+}
+.auth-brand-logo .brand-mark {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.brand-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.brand-panel-content h2 {
+  color: #ffffff;
+  font-size: clamp(1.75rem, 2.5vw, 2.35rem);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.brand-panel-content p {
+  color: var(--ink-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 0 var(--space-4);
+}
+
+.auth-benefit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.auth-benefit-item .benefit-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.auth-benefit-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.auth-benefit-item strong {
+  font-size: 0.9375rem;
+  color: #ffffff;
+}
+.auth-benefit-item span {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.brand-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--ink-border);
+  margin-top: var(--space-8);
+}
+
+/* Right Form Container */
+.auth-form-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - var(--header-height) - 140px);
-  padding: clamp(24px, 4vw, 48px) 0;
+  padding: clamp(28px, 5vw, 56px) clamp(20px, 4vw, 48px);
 }
 
 .auth-card {
   width: min(440px, 100%);
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-xl);
   padding: clamp(28px, 5vw, 40px);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-lg);
   text-align: left;
 }
 
-.centered-brand {
+.mobile-auth-brand {
+  display: none;
   justify-content: center;
   margin-bottom: var(--space-6);
 }
 
-.auth-card h1 {
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  text-align: center;
-  margin-bottom: 6px;
+@media (max-width: 960px) {
+  .mobile-auth-brand {
+    display: flex;
+  }
 }
 
-.auth-card > p {
-  text-align: center;
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+.auth-card-header {
   margin-bottom: var(--space-6);
+}
+
+.auth-card-title {
+  font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.auth-card-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.auth-card-body form {
+  display: flex;
+  flex-direction: column;
 }
 
 .auth-switch {
   text-align: center;
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
   color: var(--text-muted);
   margin-top: var(--space-6);
   margin-bottom: 0;
@@ -55,4 +190,3 @@
 .auth-switch a:hover {
   color: var(--primary-hover);
 }
-

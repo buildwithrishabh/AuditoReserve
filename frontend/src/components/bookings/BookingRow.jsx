@@ -1,17 +1,33 @@
+import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays, Clock, CheckCircle2, XCircle, Download, Loader2, FileText, AlertTriangle } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Download,
+  Loader2,
+  FileText,
+  AlertTriangle,
+  CalendarPlus,
+  ExternalLink,
+} from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
+import { generateGoogleCalendarUrl, downloadIcsFile } from "../../utils/calendarSync";
 
 export function BookingRow({
   booking,
   onCancel,
   onPay,
-  onReceipt,
+  onViewReceipt,
   onDownloadReceipt,
   isDownloadingReceipt = false,
   adminActions,
   isSubmittingAction = false,
 }) {
+  const [calendarMenuOpen, setCalendarMenuOpen] = useState(false);
+  const [currentTime] = useState(() => Date.now());
+
   const auditorium =
     typeof booking.auditorium === "string" ? undefined : booking.auditorium;
   const user = typeof booking.user === "string" ? undefined : booking.user;
@@ -32,37 +48,46 @@ export function BookingRow({
     return format(date, "dd MMM yyyy, hh:mm a");
   };
 
+  const isDeadlineUrgent = () => {
+    if (!booking.paymentDeadline) return false;
+    const deadline = new Date(booking.paymentDeadline).getTime();
+    return deadline - currentTime < 2 * 60 * 60 * 1000 && deadline > currentTime;
+  };
+
+  const auditoriumName = auditorium?.name || "Campus Auditorium";
+
   return (
-    <article className="booking-row">
+    <article className="card booking-row">
       <div className="booking-main">
-        <div style={{ marginBottom: "8px" }}>
+        <div className="booking-header-line">
           <StatusBadge status={booking.status} />
+          {booking.status === "approved" && booking.paymentDeadline && (
+            <span className={`booking-deadline-badge ${isDeadlineUrgent() ? "urgent" : ""}`}>
+              <AlertTriangle size={13} aria-hidden="true" />
+              Pay before {formatDeadline(booking.paymentDeadline)}
+            </span>
+          )}
         </div>
-        <h3>{auditorium?.name || "Auditorium Facility"}</h3>
+
+        <h3 className="booking-venue-title">{auditoriumName}</h3>
         {user && (
           <p className="booking-user">
             Requested by: <strong>{user.name}</strong> ({user.email})
           </p>
         )}
-        <p>{booking.purpose}</p>
-        {booking.status === "approved" && booking.paymentDeadline && (
-          <p className="booking-deadline">
-            <AlertTriangle size={14} aria-hidden="true" />
-            Payment deadline: {formatDeadline(booking.paymentDeadline)}
-          </p>
-        )}
+        <p className="booking-purpose">{booking.purpose}</p>
       </div>
 
       <div className="booking-meta">
-        <span>
-          <CalendarDays size={16} style={{ color: "var(--primary)" }} aria-hidden="true" />{" "}
-          {formatDate(booking.bookingDate)}
+        <span className="meta-item">
+          <CalendarDays size={16} className="meta-icon" aria-hidden="true" />
+          <strong className="meta-value">{formatDate(booking.bookingDate)}</strong>
         </span>
-        <span>
-          <Clock size={16} style={{ color: "var(--primary)" }} aria-hidden="true" />{" "}
-          {booking.startTime} - {booking.endTime}
+        <span className="meta-item">
+          <Clock size={16} className="meta-icon" aria-hidden="true" />
+          <span className="meta-value tabular-nums">{booking.startTime} &ndash; {booking.endTime}</span>
         </span>
-        <strong className="price tabular-nums">₹{booking.totalPrice}</strong>
+        <span className="price-tag tabular-nums">&#8377;{booking.totalPrice}</span>
       </div>
 
       <div className="row-actions">
@@ -73,9 +98,10 @@ export function BookingRow({
             onClick={onCancel}
             disabled={isSubmittingAction}
           >
-            Cancel
+            Cancel request
           </button>
         )}
+
         {onPay && (
           <button
             className="button primary sm"
@@ -86,31 +112,81 @@ export function BookingRow({
             Pay Now
           </button>
         )}
-        {(booking.status === "confirmed") && (onDownloadReceipt || onReceipt) && (
-          <button
-            className="button ghost sm"
-            type="button"
-            onClick={onDownloadReceipt || onReceipt}
-            disabled={isSubmittingAction || isDownloadingReceipt}
-            title={onDownloadReceipt ? "Download Receipt" : "View Receipt"}
-          >
-            {isDownloadingReceipt ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Downloading...
-              </>
-            ) : onDownloadReceipt ? (
-              <>
-                <Download size={14} /> Download Receipt
-              </>
-            ) : (
-              <>
-                <FileText size={14} /> View Receipt
-              </>
+
+        {booking.status === "confirmed" && (
+          <div className="confirmed-action-group">
+            {onViewReceipt && (
+              <button
+                className="button ghost sm"
+                type="button"
+                onClick={onViewReceipt}
+                title="View verified electronic receipt in modal"
+              >
+                <FileText size={14} /> View receipt
+              </button>
             )}
-          </button>
+
+            {onDownloadReceipt && (
+              <button
+                className="button ghost sm"
+                type="button"
+                onClick={onDownloadReceipt}
+                disabled={isDownloadingReceipt}
+                title="Download official PDF receipt"
+              >
+                {isDownloadingReceipt ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download size={14} /> PDF
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Calendar Sync Dropdown */}
+            <div className="calendar-sync-dropdown-wrapper">
+              <button
+                type="button"
+                className="button ghost sm calendar-sync-btn"
+                onClick={() => setCalendarMenuOpen((prev) => !prev)}
+                title="Sync to Calendar"
+                aria-expanded={calendarMenuOpen}
+              >
+                <CalendarPlus size={14} /> Sync
+              </button>
+
+              {calendarMenuOpen && (
+                <div className="calendar-sync-menu">
+                  <a
+                    href={generateGoogleCalendarUrl(booking, auditoriumName)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="calendar-menu-item"
+                    onClick={() => setCalendarMenuOpen(false)}
+                  >
+                    <ExternalLink size={13} /> Google Calendar
+                  </a>
+                  <button
+                    type="button"
+                    className="calendar-menu-item"
+                    onClick={() => {
+                      downloadIcsFile(booking, auditoriumName);
+                      setCalendarMenuOpen(false);
+                    }}
+                  >
+                    <Download size={13} /> Download .ics file
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
+
         {adminActions && (
-          <>
+          <div className="admin-actions-cell">
             <button
               className="icon-button success-icon"
               type="button"
@@ -131,7 +207,7 @@ export function BookingRow({
             >
               <XCircle size={18} />
             </button>
-          </>
+          </div>
         )}
       </div>
     </article>

@@ -12,6 +12,7 @@ import { loadRazorpayScript } from "../../lib/razorpay";
 import { useToast } from "../../hooks/useToast";
 import { BookingRow } from "../../components/bookings/BookingRow";
 import { StatusTabs } from "../../components/bookings/StatusTabs";
+import { BookingReceiptModal } from "../../components/bookings/BookingReceiptModal";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState, EmptyState } from "../../components/common/ErrorState";
@@ -27,6 +28,7 @@ export function StudentBookingsPage() {
   const [page, setPage] = useState(1);
   const [cancellingBookingId, setCancellingBookingId] = useState(null);
   const [downloadingBookingId, setDownloadingBookingId] = useState(null);
+  const [viewingReceiptBookingId, setViewingReceiptBookingId] = useState(null);
 
   const {
     data,
@@ -120,7 +122,7 @@ export function StudentBookingsPage() {
             }
           },
           theme: {
-            color: "#7c73e6",
+            color: "#1d4ed8",
           },
         };
 
@@ -165,17 +167,19 @@ export function StudentBookingsPage() {
   return (
     <section>
       <div className="dashboard-header-row">
-        <div className="page-header">
-          <p className="eyebrow">Student workspace</p>
-          <h1>My bookings</h1>
-          <p>Track auditorium requests and confirmed reservations.</p>
+        <div className="page-header" style={{ margin: 0 }}>
+          <span className="eyebrow">Student workspace</span>
+          <h1 style={{ margin: 0 }}>My bookings</h1>
+          <p style={{ margin: "6px 0 0" }}>Track auditorium requests, complete payments, and download certified receipts.</p>
         </div>
         <div className="dashboard-header-actions">
           <RefreshButton label="Refresh" queryKey={["my-bookings"]} title="Refresh my bookings" />
         </div>
       </div>
 
-      <StatusTabs value={status} onChange={handleStatusChange} includeAll />
+      <div style={{ margin: "20px 0" }}>
+        <StatusTabs value={status} onChange={handleStatusChange} includeAll />
+      </div>
 
       {isLoading && (
         <FullPageState
@@ -223,6 +227,11 @@ export function StudentBookingsPage() {
                         ? () => handleCancelClick(booking._id)
                         : undefined
                     }
+                    onViewReceipt={
+                      booking.status === "confirmed"
+                        ? () => setViewingReceiptBookingId(booking._id)
+                        : undefined
+                    }
                     onDownloadReceipt={
                       booking.status === "confirmed"
                         ? () => handleDownloadReceipt(booking._id)
@@ -256,7 +265,14 @@ export function StudentBookingsPage() {
         onConfirm={handleConfirmCancel}
         onCancel={() => setCancellingBookingId(null)}
       />
+
+      <BookingReceiptModal
+        isOpen={Boolean(viewingReceiptBookingId)}
+        bookingId={viewingReceiptBookingId}
+        onClose={() => setViewingReceiptBookingId(null)}
+      />
     </section>
   );
 }
+
 export default StudentBookingsPage;

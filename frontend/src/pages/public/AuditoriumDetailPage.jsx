@@ -2,13 +2,24 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, MapPin, Clock, ChevronRight } from "lucide-react";
+import {
+  Users,
+  MapPin,
+  Clock,
+  ChevronRight,
+  ChevronLeft,
+  ShieldCheck,
+  Sparkles,
+  CalendarCheck,
+  ArrowRight,
+  Building2,
+} from "lucide-react";
 import { getSingleAuditorium } from "../../api/auditoriums";
 import { useAuth } from "../../hooks/useAuth";
 import { ImageFrame } from "../../components/auditoriums/AuditoriumCard";
 import { FullPageState } from "../../components/common/LoadingSkeleton";
 import { ErrorState } from "../../components/common/ErrorState";
-import { slideLeft, slideRight, staggerContainerFast, cardItem, fadeIn } from "../../lib/animations";
+import { staggerContainerFast, fadeIn } from "../../lib/animations";
 
 export function AuditoriumDetailPage() {
   const { id = "" } = useParams();
@@ -47,126 +58,196 @@ export function AuditoriumDetailPage() {
   const allImages = auditorium.images || [];
   const activeImage = allImages[activeImgIndex];
 
+  const handlePrevImage = () => {
+    setActiveImgIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setActiveImgIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  };
+
   return (
-    <motion.section variants={fadeIn} initial="hidden" animate="visible">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--text-muted)" }}>
-        <Link to="/" style={{ color: "var(--text-muted)" }}>Home</Link>
-        <span>/</span>
-        <Link to="/auditoriums" style={{ color: "var(--text-muted)" }}>Auditoriums</Link>
-        <span>/</span>
-        <span style={{ color: "var(--text)", fontWeight: 600 }}>{auditorium.name}</span>
+    <motion.section variants={fadeIn} initial="hidden" animate="visible" className="auditorium-detail-page">
+      {/* Breadcrumb Trail */}
+      <nav aria-label="Breadcrumb" className="detail-breadcrumb">
+        <Link to="/">Home</Link>
+        <span className="crumb-sep">/</span>
+        <Link to="/auditoriums">Auditoriums</Link>
+        <span className="crumb-sep">/</span>
+        <span className="crumb-current">{auditorium.name}</span>
       </nav>
 
       <div className="detail-grid">
-        <motion.div
-          className="gallery"
-          variants={slideRight}
-          initial="hidden"
-          animate="visible"
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeImgIndex}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <ImageFrame src={activeImage} alt={auditorium.name} large />
-            </motion.div>
-          </AnimatePresence>
-
-          {allImages.length > 1 && (
-            <motion.div
-              className="thumbnail-row"
-              variants={staggerContainerFast}
-              initial="hidden"
-              animate="visible"
-            >
-              {allImages.map((image, index) => (
-                <button
-                  key={image}
-                  type="button"
-                  className="thumbnail-btn"
-                  onClick={() => setActiveImgIndex(index)}
-                  aria-label={`View photo ${index + 1}`}
-                  aria-pressed={index === activeImgIndex}
-                  style={{ border: "none", padding: 0, background: "none" }}
+        {/* Left Column: Gallery & Venue Specs */}
+        <div className="detail-main-col">
+          {/* Main Gallery Display */}
+          <div className="gallery-container">
+            <div className="gallery-main-frame">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeImgIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="gallery-image-wrapper"
                 >
-                  <motion.img
-                    src={image}
-                    alt=""
-                    className={index === activeImgIndex ? "active-thumb" : ""}
-                    variants={cardItem}
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                  />
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </motion.div>
+                  <ImageFrame src={activeImage} alt={auditorium.name} large />
+                </motion.div>
+              </AnimatePresence>
 
-        <motion.aside
-          className="detail-panel panel"
-          variants={slideLeft}
-          initial="hidden"
-          animate="visible"
-        >
-          <p className="eyebrow">Venue Profile</p>
-          <h1>{auditorium.name}</h1>
-          <p>{auditorium.description}</p>
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="gallery-nav-btn gallery-nav-btn--prev"
+                    onClick={handlePrevImage}
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="gallery-nav-btn gallery-nav-btn--next"
+                    onClick={handleNextImage}
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+            </div>
 
-          <div className="fact-list">
-            <span>
-              <Users size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
-              <strong>{auditorium.capacity} seats</strong> capacity
-            </span>
-            <span>
-              <MapPin size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
-              Campus facility infrastructure
-            </span>
-            <span>
-              <Clock size={18} style={{ color: "var(--primary)" }} aria-hidden="true" />
-              <strong className="tabular-nums">₹{auditorium.basePrice}</strong> base price per hour
-            </span>
-          </div>
-
-          <h3 style={{ marginTop: "16px", marginBottom: "8px" }}>Amenities</h3>
-          <div className="amenities">
-            {auditorium.amenities.map((amenity) => (
-              <span key={amenity}>{amenity}</span>
-            ))}
-          </div>
-
-          <div style={{ marginTop: "28px" }}>
-            {user?.role === "student" ? (
-              <Link
-                className="button primary wide"
-                to={`/bookings/new/${auditorium._id}`}
+            {/* Thumbnail Row */}
+            {allImages.length > 1 && (
+              <motion.div
+                className="thumbnail-row"
+                variants={staggerContainerFast}
+                initial="hidden"
+                animate="visible"
               >
-                Request booking <ChevronRight size={18} />
-              </Link>
-            ) : user?.role === "admin" ? (
-              <Link
-                className="button primary wide"
-                to={`/admin/auditoriums/${auditorium._id}/edit`}
-              >
-                Edit auditorium details
-              </Link>
-            ) : (
-              <Link className="button primary wide" to="/login">
-                Log in to request booking
-              </Link>
+                {allImages.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    className={`thumbnail-btn ${index === activeImgIndex ? "active" : ""}`}
+                    onClick={() => setActiveImgIndex(index)}
+                    aria-label={`View photo ${index + 1}`}
+                    aria-pressed={index === activeImgIndex}
+                  >
+                    <img src={image} alt="" />
+                  </button>
+                ))}
+              </motion.div>
             )}
           </div>
 
-          <p className="note">
-            Booking requests require administrator review. Availability conflicts
-            are evaluated at the time of submission.
-          </p>
-        </motion.aside>
+          {/* Venue Description & Specs */}
+          <div className="card venue-info-card">
+            <span className="eyebrow">
+              <Building2 size={13} aria-hidden="true" />
+              Venue Specifications
+            </span>
+            <h1 className="venue-title">{auditorium.name}</h1>
+            <p className="venue-desc">
+              {auditorium.description ||
+                "This university facility features professional stage infrastructure, acoustic paneling, and audiovisual equipment suitable for department symposiums, student society presentations, and ceremonial convocations."}
+            </p>
+
+            <div className="venue-spec-grid">
+              <div className="spec-card">
+                <Users size={20} className="spec-icon" />
+                <div>
+                  <span className="spec-label">Capacity</span>
+                  <strong className="spec-value tabular-nums">{auditorium.capacity} seats</strong>
+                </div>
+              </div>
+              <div className="spec-card">
+                <Clock size={20} className="spec-icon" />
+                <div>
+                  <span className="spec-label">Rate</span>
+                  <strong className="spec-value tabular-nums">&#8377;{auditorium.basePrice} / hr</strong>
+                </div>
+              </div>
+              <div className="spec-card">
+                <MapPin size={20} className="spec-icon" />
+                <div>
+                  <span className="spec-label">Location</span>
+                  <strong className="spec-value">Campus Main Complex</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Amenities Grid */}
+            <div className="venue-amenities-section">
+              <h3>Included Venue Amenities</h3>
+              <div className="amenity-badges-grid">
+                {auditorium.amenities?.map((amenity) => (
+                  <div key={amenity} className="amenity-badge-item">
+                    <Sparkles size={14} className="amenity-icon" />
+                    <span>{amenity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Sticky Booking Card */}
+        <aside className="detail-sidebar-col">
+          <div className="card sticky-booking-card">
+            <div className="booking-card-price-header">
+              <span className="price-label">Hourly Reservation Rate</span>
+              <div className="price-callout">
+                <strong className="price-number tabular-nums">&#8377;{auditorium.basePrice}</strong>
+                <span className="price-period">per hour</span>
+              </div>
+            </div>
+
+            <div className="booking-card-divider" />
+
+            <div className="booking-checklist">
+              <div className="check-item">
+                <CalendarCheck size={16} className="check-icon" />
+                <span>Conflict-free calendar slot verification</span>
+              </div>
+              <div className="check-item">
+                <Clock size={16} className="check-icon" />
+                <span>12-hour payment window upon approval</span>
+              </div>
+              <div className="check-item">
+                <ShieldCheck size={16} className="check-icon" />
+                <span>Verified university coordinator security clearance</span>
+              </div>
+            </div>
+
+            <div className="booking-card-action">
+              {user?.role === "student" ? (
+                <Link
+                  className="button primary lg wide"
+                  to={`/bookings/new/${auditorium._id}`}
+                >
+                  Request this venue <ArrowRight size={18} />
+                </Link>
+              ) : user?.role === "admin" ? (
+                <Link
+                  className="button primary lg wide"
+                  to={`/admin/auditoriums/${auditorium._id}/edit`}
+                >
+                  Edit auditorium details
+                </Link>
+              ) : (
+                <Link className="button primary lg wide" to="/login">
+                  Sign in to request booking
+                </Link>
+              )}
+            </div>
+
+            <p className="booking-card-note">
+              No immediate charges. Booking requests are reviewed by facilities administration before payment is requested.
+            </p>
+          </div>
+        </aside>
       </div>
     </motion.section>
   );

@@ -100,7 +100,7 @@ export function AdminLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="sidebar-user-pill">
             <p>{user?.name}</p>
             <NotificationCenter />
           </div>
