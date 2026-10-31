@@ -15,6 +15,13 @@ const {
 
 const idempotency = require("../middlewares/idempotencyMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const {
+  createPaymentOrderSchema,
+  verifyPaymentSchema,
+  receiptParamSchema,
+  downloadReceiptSchema,
+} = require("../validators/paymentValidators");
 
 // Limiters for payment routes
 const paymentOrderLimiter = slidingWindowLimiter({
@@ -50,6 +57,7 @@ paymentRouter.post(
   authorizeRole("student"),
   paymentOrderLimiter,
   idempotency({ ttl: 86400, prefix: "idem:order" }),
+  validate(createPaymentOrderSchema),
   createPaymentOrder,
 );
 
@@ -60,6 +68,7 @@ paymentRouter.post(
   authorizeRole("student"),
   paymentVerifyLimiter,
   idempotency({ required: true, ttl: 86400, prefix: "idem:verify" }),
+  validate(verifyPaymentSchema),
   verifyPayment,
 );
 
@@ -68,6 +77,7 @@ paymentRouter.get(
   protect,
   isverified,
   receiptLimiter,
+  validate(receiptParamSchema),
   getReceipt,
 );
 
@@ -76,6 +86,7 @@ paymentRouter.get(
   protect,
   isverified,
   pdfDownloadLimiter,
+  validate(downloadReceiptSchema),
   downloadReceipt,
 );
 

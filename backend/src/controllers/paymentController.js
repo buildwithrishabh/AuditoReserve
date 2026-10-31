@@ -322,7 +322,11 @@ exports.getReceipt = async (req, res, next) => {
       });
     }
 
-    const isOwner = booking.user._id.toString() === req.user.id;
+    const isOwner = booking.user?._id
+      ? booking.user._id.toString() === req.user.id
+      : booking.user
+        ? booking.user.toString() === req.user.id
+        : false;
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
@@ -425,7 +429,11 @@ exports.downloadReceipt = async (req, res, next) => {
       });
     }
 
-    const isOwner = booking.user._id.toString() === req.user.id;
+    const isOwner = booking.user?._id
+      ? booking.user._id.toString() === req.user.id
+      : booking.user
+        ? booking.user.toString() === req.user.id
+        : false;
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {

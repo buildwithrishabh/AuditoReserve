@@ -1,7 +1,7 @@
 const express = require("express");
 const authroutes = express.Router();
 
-// routes
+// controllers
 const {
   register,
   login,
@@ -14,10 +14,17 @@ const {
   resendVerificationEmail,
 } = require("../controllers/authController");
 
-const {
-  protect,
-} = require("../middlewares/authMiddleware");
+const { protect } = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const {
+  registerSchema,
+  loginSchema,
+  verifyEmailSchema,
+  forgetPassSchema,
+  resetPasswordSchema,
+  resendVerificationSchema,
+} = require("../validators/authValidators");
 
 // Limiters for auth routes
 const registerLimiter = slidingWindowLimiter({
@@ -50,15 +57,29 @@ const refreshLimiter = slidingWindowLimiter({
   prefix: "rl:auth:refresh",
 });
 
-authroutes.post("/register", registerLimiter, register);
-authroutes.get("/verify-email", verifyEmail);
-authroutes.post("/resend-verification", resendVerifyLimiter, resendVerificationEmail);
-authroutes.post("/login", loginLimiter, login);
+authroutes.post("/register", registerLimiter, validate(registerSchema), register);
+authroutes.get("/verify-email", validate(verifyEmailSchema), verifyEmail);
+authroutes.post(
+  "/resend-verification",
+  resendVerifyLimiter,
+  validate(resendVerificationSchema),
+  resendVerificationEmail
+);
+authroutes.post("/login", loginLimiter, validate(loginSchema), login);
 authroutes.post("/refresh", refreshLimiter, refresh);
 authroutes.post("/logout", logout);
-authroutes.post("/forget-password", passwordResetLimiter, forgetPass);
-authroutes.post("/reset-password/:token", passwordResetLimiter, resetPassword);
+authroutes.post(
+  "/forget-password",
+  passwordResetLimiter,
+  validate(forgetPassSchema),
+  forgetPass
+);
+authroutes.post(
+  "/reset-password/:token",
+  passwordResetLimiter,
+  validate(resetPasswordSchema),
+  resetPassword
+);
 authroutes.get("/me", protect, getMe);
 
 module.exports = authroutes;
-

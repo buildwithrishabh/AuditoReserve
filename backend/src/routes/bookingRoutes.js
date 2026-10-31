@@ -17,6 +17,14 @@ const {
   isverified,
 } = require("../middlewares/authMiddleware");
 const { slidingWindowLimiter } = require("../middlewares/rateLimiter");
+const validate = require("../middlewares/validateMiddleware");
+const {
+  createBookingSchema,
+  updateBookingStatusSchema,
+  cancelBookingSchema,
+  calendarBookingSchema,
+  listBookingsQuerySchema,
+} = require("../validators/bookingValidators");
 
 // Limiters for booking routes
 const bookingCreateLimiter = slidingWindowLimiter({
@@ -48,7 +56,14 @@ const userBookingsLimiter = slidingWindowLimiter({
 // ======================================
 
 // Get Calendar Bookings (for availability checks)
-router.get("/calendar", protect, isverified, calendarLimiter, getCalendarBooking);
+router.get(
+  "/calendar",
+  protect,
+  isverified,
+  calendarLimiter,
+  validate(calendarBookingSchema),
+  getCalendarBooking
+);
 
 // Create Booking
 router.post(
@@ -57,6 +72,7 @@ router.post(
   isverified,
   authorizeRole("student"),
   bookingCreateLimiter,
+  validate(createBookingSchema),
   createBooking,
 );
 
@@ -67,6 +83,7 @@ router.get(
   isverified,
   authorizeRole("student"),
   userBookingsLimiter,
+  validate(listBookingsQuerySchema),
   getUserBookings,
 );
 
@@ -77,6 +94,7 @@ router.put(
   isverified,
   authorizeRole("student"),
   bookingCancelLimiter,
+  validate(cancelBookingSchema),
   cancelBooking,
 );
 
@@ -85,7 +103,14 @@ router.put(
 // ======================================
 
 // Get All Bookings
-router.get("/all", protect, isverified, authorizeRole("admin"), getAllBookings);
+router.get(
+  "/all",
+  protect,
+  isverified,
+  authorizeRole("admin"),
+  validate(listBookingsQuerySchema),
+  getAllBookings
+);
 
 // Update Booking Status
 router.put(
@@ -93,6 +118,7 @@ router.put(
   protect,
   isverified,
   authorizeRole("admin"),
+  validate(updateBookingStatusSchema),
   updateBookingStatus,
 );
 

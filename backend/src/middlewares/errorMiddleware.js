@@ -12,6 +12,20 @@ const notFound = (req, res) => {
 const errorHandler = (err, req, res, next) => {
   logger.error("Unhandled error:", err);
 
+  // Catch Zod Validation Error
+  if (err.name === "ZodError" || err.issues) {
+    const issues = err.issues || err.errors || [];
+    const message = issues[0]?.message || "Validation failed";
+    return res.status(400).json({
+      success: false,
+      message,
+      errors: issues.map((val) => ({
+        field: val.path?.join("."),
+        message: val.message,
+      })),
+    });
+  }
+
   // Catch Mongoose Invalid ObjectID (CastError)
   if (err.name === "CastError") {
     return res.status(400).json({
