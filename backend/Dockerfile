@@ -1,37 +1,35 @@
-# ==========================================
-# AuditoReserve Backend Production Dockerfile
-# ==========================================
-FROM node:20-alpine AS base
+# ---------------------------------------------------
+# Stage: Base Image
+# ---------------------------------------------------
+FROM node:20-alpine
 
-# Install curl for container health check
-RUN apk add --no-cache curl
-
+# Set working directory inside container
 WORKDIR /app
 
-# Set production environment
+# Set Node environment to production
 ENV NODE_ENV=production
 
-# Copy dependency manifests first for optimal layer caching
+# Install curl for healthchecks
+RUN apk add --no-cache curl
+
+# Copy dependency manifests first to leverage Docker layer caching
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev --ignore-scripts
+# Install only production dependencies
+RUN npm ci --omit=dev
 
 # Copy application source code
-COPY src ./src
+COPY . .
 
-# Create logs directory and assign permissions to non-root node user
+# Ensure logs directory exists and set ownership to unprivileged node user
 RUN mkdir -p logs && chown -R node:node /app
 
-# Switch to non-root user for security
+# Run as non-root user for security
 USER node
 
-# Expose backend server port
+# Expose default port (Render will inject PORT at runtime)
 EXPOSE 5000
 
-# Health check against /api/health
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health || exit 1
+# Default command to run the backend API
+CMD ["npm", "start"]
 
-# Start production server
-CMD ["node", "src/server.js"]
