@@ -5143,3 +5143,364 @@ tbody td strong {
     font-size: 10px;
   }
 }
+
+/* ==========================================================================
+   Responsive layout refinements
+   Keep shared layouts fluid at every width, including long content and zoom.
+   ========================================================================== */
+
+img,
+svg {
+  max-width: 100%;
+}
+
+.page-container,
+.dash-content,
+.panel,
+.panel-header,
+.dash-heading,
+.form-layout > *,
+.booking-flow > *,
+.payment-layout > *,
+.detail-layout > * {
+  min-width: 0;
+}
+
+.dash-content {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.stat-value-wrap,
+.venue-card-footer,
+.dash-heading-actions,
+.panel-header,
+.section-inline,
+.admin-toolbar,
+.drawer-actions {
+  min-width: 0;
+}
+
+.stat-value-wrap strong,
+.venue-name,
+.panel-header h2,
+.dash-heading h1,
+.page-top h1,
+.detail-info h1 {
+  overflow-wrap: anywhere;
+}
+
+.table-scroll {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+  min-width: 620px;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+@media (min-width: 1440px) {
+  .page-container {
+    max-width: 1360px;
+    padding-inline: 40px;
+  }
+
+  .dash-content {
+    padding-inline: 40px;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .sidebar {
+    width: 224px;
+  }
+
+  .dash-content {
+    padding: 24px;
+  }
+
+  .dash-topbar {
+    padding-inline: 24px;
+  }
+
+  .booking-flow,
+  .payment-layout,
+  .detail-layout {
+    gap: 20px;
+  }
+
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  }
+
+  .booking-flow,
+  .payment-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    width: 100%;
+    margin: 20px auto 48px;
+    padding-inline: clamp(14px, 4vw, 24px);
+  }
+
+  .dash-content {
+    padding: 20px clamp(14px, 4vw, 24px) 32px;
+  }
+
+  .dash-heading h1,
+  .page-top h1 {
+    font-size: clamp(22px, 5vw, 28px);
+    line-height: 1.2;
+  }
+
+  .dash-heading-actions {
+    width: 100%;
+  }
+
+  .dash-heading-actions > .button,
+  .dash-heading-actions > a,
+  .dash-heading-actions > button {
+    min-height: 42px;
+  }
+
+  .dashboard-bottom-grid {
+    gap: 16px;
+  }
+
+  .stats-grid,
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .booking-flow,
+  .payment-layout,
+  .form-layout,
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .booking-summary {
+    position: static;
+  }
+
+  .detail-gallery {
+    height: clamp(230px, 48vw, 360px);
+  }
+
+  .calendar-day {
+    min-height: 40px;
+  }
+
+  .progress-steps {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .catalog-toolbar > *,
+  .admin-toolbar > * {
+    min-width: 0;
+  }
+
+  .footer-inner {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .card-grid,
+  .stats-grid,
+  .admin-stats,
+  .occasions-grid,
+  .feature-cards-grid,
+  .steps-grid,
+  .metrics-strip-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-top {
+    align-items: flex-start;
+  }
+
+  .page-top p {
+    max-width: 42rem;
+  }
+
+  .catalog-toolbar {
+    align-items: stretch;
+  }
+
+  .catalog-toolbar .search-field {
+    flex-basis: 100%;
+  }
+
+  .catalog-count {
+    width: 100%;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panel-header > * {
+    min-width: 0;
+  }
+
+  .tabs {
+    width: 100%;
+    scrollbar-width: thin;
+  }
+
+  .tabs button {
+    min-height: 42px;
+    padding-inline: 12px;
+  }
+
+  .table-scroll table {
+    min-width: 680px;
+  }
+
+  .booking-form-panel,
+  .payment-panel,
+  .payment-aside,
+  .auditorium-edit-panel,
+  .success-panel {
+    padding: 18px 14px;
+  }
+
+  .notification-row {
+    align-items: flex-start;
+  }
+
+  .notification-row .mark-read {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .admin-toolbar > * {
+    flex: 1 1 100%;
+  }
+
+  .activity-feed-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .activity-status-col {
+    margin-left: 50px;
+  }
+
+  .admin-venue-row {
+    align-items: flex-start;
+    gap: 12px;
+    padding-inline: 14px;
+  }
+
+  .admin-venue-row img {
+    width: 60px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline: 12px;
+  }
+
+  .booking-drawer {
+    width: 100%;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .drawer-actions {
+    flex-wrap: wrap;
+  }
+
+  .drawer-actions > * {
+    flex: 1 1 140px;
+    min-height: 44px;
+  }
+
+  .auth-modal-backdrop {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .auth-modal-card {
+    width: 100%;
+    max-width: 440px;
+    margin-block: auto;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .stats-grid,
+  .admin-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-title-clean {
+    font-size: clamp(25px, 8vw, 30px);
+  }
+
+  .booking-form-panel,
+  .payment-panel,
+  .payment-aside,
+  .auditorium-edit-panel {
+    padding-inline: 12px;
+  }
+
+  .calendar-grid,
+  .calendar-weekdays {
+    gap: 2px;
+  }
+
+  .calendar-day {
+    min-height: 36px;
+    font-size: 11px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .button,
+  .icon-button,
+  .nav-links > a:not(.button),
+  .side-nav a,
+  .table-action,
+  .calendar-day,
+  .tabs button,
+  .filter-chip button {
+    min-height: 44px;
+  }
+
+  .venue-card:hover,
+  .stat-card:hover,
+  .quick-action-card:hover {
+    transform: none;
+  }
+}
