@@ -4791,6 +4791,14 @@ tbody td strong {
     border: 0;
   }
 
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 45;
+    border: 0;
+  }
+
   .amenity-strip {
     flex-direction: column;
     align-items: flex-start;
@@ -4905,5 +4913,231 @@ tbody td strong {
 
   .detail-gallery {
     height: 210px;
+  }
+}
+
+/* Responsive refinements for intermediate and compact viewports */
+@media (max-width: 900px) {
+  .site-header {
+    height: 58px;
+  }
+
+  .nav-wrap {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .desktop-only-nav-action {
+    display: none !important;
+  }
+
+  .mobile-menu {
+    display: grid;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 58px;
+    left: 0;
+    right: 0;
+    display: none;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px 20px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+  }
+
+  .nav-links.nav-open {
+    display: flex;
+  }
+
+  .mobile-only-nav-action {
+    display: inline-flex !important;
+  }
+
+  .nav-links > a:not(.button),
+  .nav-links .nav-text-button {
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .dashboard-shell {
+    position: relative;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(280px, calc(100vw - 48px));
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 250ms var(--ease-default);
+    z-index: 50;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 45;
+    border: 0;
+  }
+
+  .dash-topbar {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 20px;
+  }
+
+  .dash-content {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-badge-clean {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 4px;
+  }
+
+  .hero-title-clean {
+    font-size: clamp(27px, 8vw, 36px);
+    line-height: 1.15;
+  }
+
+  .hero-trust-clean {
+    justify-content: center;
+  }
+
+  .trust-pill {
+    white-space: normal;
+  }
+
+  .calendar-month {
+    gap: 8px;
+  }
+
+  .calendar-day {
+    min-width: 0;
+    padding: 0;
+  }
+
+  .dash-topbar {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .dash-topbar .breadcrumbs {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dash-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .dash-heading-actions {
+    flex-wrap: wrap;
+  }
+
+  .dash-heading-actions > * {
+    max-width: 100%;
+  }
+
+  .panel-header,
+  .admin-toolbar,
+  .section-inline {
+    flex-wrap: wrap;
+  }
+
+  .admin-toolbar > * {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .payment-panel,
+  .payment-aside,
+  .booking-form-panel,
+  .auditorium-edit-panel,
+  .success-panel {
+    padding: 20px 16px;
+  }
+
+  .notification-row {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .notification-row .mark-read {
+    flex-shrink: 0;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    justify-content: center;
+    text-align: center;
+  }
+
+  .booking-drawer {
+    padding: 22px 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .nav-wrap {
+    padding: 0 12px;
+  }
+
+  .brand {
+    gap: 7px;
+  }
+
+  .hero-centered {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .page-container {
+    padding: 0 12px;
+  }
+
+  .dash-content {
+    padding: 18px 12px;
+  }
+
+  .stat-card {
+    padding: 18px 16px;
+  }
+
+  .calendar-weekdays span {
+    font-size: 10px;
   }
 }
