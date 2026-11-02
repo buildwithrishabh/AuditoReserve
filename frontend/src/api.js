@@ -6,40 +6,56 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// In-Memory Access Token Storage (Never persisted to localStorage or sessionStorage)
+let inMemoryAccessToken = null
+
+export const setAccessToken = (token) => {
+  inMemoryAccessToken = token || null
+}
+
+export const getAccessToken = () => inMemoryAccessToken
+
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('accessToken')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (inMemoryAccessToken) {
+    config.headers.Authorization = `Bearer ${inMemoryAccessToken}`
+  }
   return config
 })
 
-let refreshing
-api.interceptors.response.use((response) => response, async (error) => {
-  const original = error.config
-  const isAuthBypass =
-    original?.url?.includes('/auth/login') ||
-    original?.url?.includes('/auth/register') ||
-    original?.url?.includes('/auth/refresh') ||
-    original?.url?.includes('/auth/forget-password') ||
-    original?.url?.includes('/auth/reset-password')
+let refreshing = null
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config
+    const isAuthBypass =
+      original?.url?.includes('/auth/login') ||
+      original?.url?.includes('/auth/register') ||
+      original?.url?.includes('/auth/refresh') ||
+      original?.url?.includes('/auth/forget-password') ||
+      original?.url?.includes('/auth/reset-password')
 
-  if (error.response?.status === 401 && !original?._retried && !isAuthBypass) {
-    original._retried = true
-    try {
-      refreshing ||= api.post('/auth/refresh').finally(() => { refreshing = null })
-      const { data } = await refreshing
-      if (data.accessToken) {
-        sessionStorage.setItem('accessToken', data.accessToken)
-        if (original.headers) {
-          original.headers.Authorization = `Bearer ${data.accessToken}`
+    if (error.response?.status === 401 && !original?._retried && !isAuthBypass) {
+      original._retried = true
+      try {
+        refreshing ||= api.post('/auth/refresh').finally(() => {
+          refreshing = null
+        })
+        const { data } = await refreshing
+        if (data.accessToken) {
+          setAccessToken(data.accessToken)
+          if (original.headers) {
+            original.headers.Authorization = `Bearer ${data.accessToken}`
+          }
         }
+        return api(original)
+      } catch (refreshErr) {
+        setAccessToken(null)
+        return Promise.reject(refreshErr)
       }
-      return api(original)
-    } catch {
-      sessionStorage.removeItem('accessToken')
     }
+    return Promise.reject(error)
   }
-  return Promise.reject(error)
-})
+)
 
 export const getError = (error) => {
   if (error?.response?.data?.message) {

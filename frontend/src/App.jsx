@@ -45,7 +45,7 @@ import {
   X,
   Zap
 } from 'lucide-react'
-import { api, getError } from './api'
+import { api, getError, getAccessToken, setAccessToken } from './api'
 
 // ============================================================================
 // Utility Helpers
@@ -121,10 +121,16 @@ function useUser() {
     queryKey: ['me'],
     queryFn: async () => {
       try {
+        if (!getAccessToken()) {
+          const { data: refreshData } = await api.post('/auth/refresh')
+          if (refreshData.accessToken) setAccessToken(refreshData.accessToken)
+          return refreshData.user
+        }
         const { data } = await api.get('/auth/me')
-        if (data.accessToken) sessionStorage.setItem('accessToken', data.accessToken)
+        if (data.accessToken) setAccessToken(data.accessToken)
         return data.user
       } catch {
+        setAccessToken(null)
         return null
       }
     },
@@ -153,7 +159,7 @@ function useUser() {
       'http://localhost:5000'
     const socket = io(socketUrl, {
       withCredentials: true,
-      auth: { token: sessionStorage.getItem('accessToken') },
+      auth: { token: getAccessToken() },
     })
 
     socket.on('notification', (n) => {
@@ -172,7 +178,7 @@ function useUser() {
     try {
       await api.post('/auth/logout')
     } finally {
-      sessionStorage.removeItem('accessToken')
+      setAccessToken(null)
       qc.setQueryData(['me'], null)
       navigate('/')
     }
@@ -1377,7 +1383,7 @@ function AuthPage({ kind }) {
     onSuccess: (d) => {
       setError('')
       if (kind === 'login') {
-        if (d.accessToken) sessionStorage.setItem('accessToken', d.accessToken)
+        if (d.accessToken) setAccessToken(d.accessToken)
         qc.setQueryData(['me'], d.user)
         nav(d.user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard')
       } else if (kind === 'register') {
