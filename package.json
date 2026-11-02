@@ -1,0 +1,26 @@
+{
+  "name": "auditorium-booking-system",
+  "version": "1.0.0",
+  "description": "Enterprise-Grade Campus Auditorium Reservation & Facility Management Platform",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:worker": "cd backend && npm run dev:worker",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "preview:frontend": "cd frontend && npm run preview",
+    "test:backend": "cd backend && npm test"
+  },
+  "keywords": [
+    "auditorium-booking",
+    "campus-reservation",
+    "react",
+    "express",
+    "redis",
+    "bullmq",
+    "socketio"
+  ],
+  "author": "Rishabh Kumar",
+  "license": "ISC"
+}
+
