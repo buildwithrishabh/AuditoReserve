@@ -24,14 +24,49 @@ const authLimiter = slidingWindowLimiter({
 });
 
 // Middlewares
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+
+// Dynamic CORS allowing FRONTEND_URL, localhost, and all Vercel deployments (*.vercel.app)
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://audito-reserve.vercel.app",
+]
+  .filter(Boolean)
+  .flatMap((url) => url.split(",").map((s) => s.trim().replace(/\/$/, "")));
+
 app.use(
   cors({
-    origin: (process.env.FRONTEND_URL || "http://localhost:5173").replace(
-      /\/$/,
-      "",
-    ),
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Check configured origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Automatically permit any Vercel deployment (*.vercel.app)
+      try {
+        const hostname = new URL(origin).hostname;
+        if (hostname === "vercel.app" || hostname.endsWith(".vercel.app")) {
+          return callback(null, true);
+        }
+      } catch (err) {
+        // invalid URL
+      }
+
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      return callback(new Error(`CORS policy does not allow access from ${origin}`));
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "idempotency-key"],
   }),
 );
 

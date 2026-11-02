@@ -27,4 +27,12 @@ api.interceptors.response.use((response) => response, async (error) => {
   return Promise.reject(error)
 })
 
-export const getError = (error) => error?.response?.data?.message || 'Something went wrong. Please try again.'
+export const getError = (error) => {
+  if (error?.response?.data?.message) {
+    return error.response.data.message
+  }
+  if (error?.message === 'Network Error' || !error?.response) {
+    return 'Unable to reach backend server. Please ensure VITE_API_URL is configured in Vercel and your backend is running.'
+  }
+  return error?.message || 'Something went wrong. Please try again.'
+}

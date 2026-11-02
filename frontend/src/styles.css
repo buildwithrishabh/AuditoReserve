@@ -504,29 +504,38 @@ a {
 
 .hero-section-wrap {
   position: relative;
-  background-color: #0f172a;
+  background-color: #ffffff;
   background-image: 
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 70%, #ffffff 100%),
-    url('/hero-bg.jpg');
-  background-size: cover;
-  background-position: center 25%;
-  background-repeat: no-repeat;
+    radial-gradient(ellipse 80% 50% at 50% -12%, rgba(5, 150, 105, 0.14) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(circle at 50% 30%, rgba(16, 185, 129, 0.05) 0%, transparent 60%),
+    linear-gradient(to right, rgba(226, 232, 240, 0.75) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.75) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+  background-position: 0 0, 0 0, center center, center center;
   border-bottom: 1px solid var(--border-light);
   overflow: hidden;
+}
+
+.hero-section-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.15) 35%, rgba(255, 255, 255, 0.85) 85%, #ffffff 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .hero-section-wrap::after {
   content: '';
   position: absolute;
-  top: 18%;
+  top: 0;
   left: 50%;
-  transform: translate(-50%, -20%);
-  width: min(840px, 92vw);
-  height: 380px;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.35) 60%, transparent 100%);
-  filter: blur(24px);
+  transform: translateX(-50%);
+  width: min(900px, 92vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(5, 150, 105, 0.5) 50%, transparent 100%);
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .hero-centered {
@@ -2618,13 +2627,13 @@ select.input:focus {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   animation: auth-fade-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y: auto;
 }
@@ -2636,16 +2645,18 @@ select.input:focus {
 
 .auth-modal-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 390px;
+  max-height: calc(100vh - 32px);
   background: #ffffff;
   border: 1px solid var(--border-medium);
-  border-radius: var(--radius-xl);
-  padding: 32px 30px;
-  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.22), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px 18px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.2), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
   position: relative;
   display: flex;
   flex-direction: column;
   animation: auth-card-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
 }
 
 @keyframes auth-card-pop {
@@ -2661,10 +2672,10 @@ select.input:focus {
 
 .auth-modal-close {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 32px;
-  height: 32px;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   background: transparent;
   border: 1px solid transparent;
@@ -2685,32 +2696,32 @@ select.input:focus {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .auth-modal-brand-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
 .auth-modal-header {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .auth-modal-header h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .auth-modal-header p {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .auth-segmented-tabs {
@@ -2721,15 +2732,15 @@ select.input:focus {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 3px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .auth-segmented-tabs button {
-  height: 32px;
+  height: 30px;
   border: 0;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -2748,22 +2759,22 @@ select.input:focus {
 }
 
 .auth-success {
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: var(--success-bg);
   border: 1px solid var(--success-border);
   border-radius: var(--radius-md);
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 12.5px;
   color: var(--success-text);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .form-stack {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 11px;
 }
 
 .password-field {
@@ -2773,7 +2784,8 @@ select.input:focus {
 }
 
 .password-field .input {
-  padding-right: 40px;
+  padding-right: 38px;
+  height: 36px;
 }
 
 .password-field button {
@@ -2794,13 +2806,14 @@ select.input:focus {
 
 .auth-submit {
   width: 100%;
-  height: 40px;
-  margin-top: 6px;
+  height: 38px;
+  margin-top: 2px;
+  font-size: 13px;
 }
 
 .auth-modal-footer {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-light);
   display: flex;
   align-items: center;
@@ -2811,7 +2824,7 @@ select.input:focus {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--brand-800);
   transition: color var(--transition-fast);
@@ -2823,11 +2836,11 @@ select.input:focus {
 }
 
 .auth-terms {
-  margin-top: 14px;
-  font-size: 11.5px;
+  margin-top: 10px;
+  font-size: 11px;
   color: var(--text-muted);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .auth-modal-trust {
@@ -2835,8 +2848,8 @@ select.input:focus {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 16px;
-  font-size: 11.5px;
+  margin-top: 10px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
