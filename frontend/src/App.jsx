@@ -1745,6 +1745,13 @@ function DashboardShell({ auth, title, subtitle, children }) {
           </div>
         </div>
       </aside>
+      {menu && (
+        <div
+          className="sidebar-scrim"
+          onClick={() => setMenu(false)}
+          aria-hidden="true"
+        />
+      )}
 
       <main className="dash-main">
         <header className="dash-topbar">
