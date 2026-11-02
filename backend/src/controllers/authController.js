@@ -162,6 +162,7 @@ exports.login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -233,6 +234,7 @@ exports.refresh = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -502,14 +504,21 @@ exports.resendVerificationEmail = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
+    const token =
+      req.cookies?.accessToken ||
+      (req.headers?.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : undefined);
+
     res.status(200).json({
       success: true,
-      accessToken: req.cookies.accessToken,
+      accessToken: token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {

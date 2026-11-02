@@ -224,8 +224,8 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
 
   const isConfirmed = status === "confirmed";
   const actionLink = isConfirmed
-    ? `${process.env.FRONTEND_URL}/bookings?receipt=${bookingId}`
-    : `${process.env.FRONTEND_URL}/bookings`;
+    ? `${process.env.FRONTEND_URL}/student/my-bookings?receipt=${bookingId}`
+    : `${process.env.FRONTEND_URL}/student/my-bookings`;
   const actionText = isConfirmed ? "View & Download Receipt" : "View Bookings";
 
   return {
@@ -256,7 +256,7 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
 
 
 exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
-  const paymentLink = `${process.env.FRONTEND_URL}/bookings?pay=${booking._id}`;
+  const paymentLink = `${process.env.FRONTEND_URL}/student/payment/${booking._id}`;
   
   const rawDeadline = payment?.expiresAt || booking?.paymentDeadline;
   const deadlineDate = rawDeadline

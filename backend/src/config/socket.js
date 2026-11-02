@@ -9,13 +9,39 @@ let io;
 let pubClient;
 let subClient;
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://audito-reserve.vercel.app",
+]
+  .filter(Boolean)
+  .flatMap((url) => url.split(",").map((s) => s.trim().replace(/\/$/, "")));
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const hostname = new URL(origin).hostname;
+    if (hostname === "vercel.app" || hostname.endsWith(".vercel.app")) {
+      return true;
+    }
+  } catch (err) {
+    // invalid URL
+  }
+  return false;
+};
+
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: (process.env.FRONTEND_URL || "http://localhost:5173").replace(
-        /\/$/,
-        "",
-      ),
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          return callback(null, true);
+        }
+        logger.warn(`[Socket] CORS blocked request from origin: ${origin}`);
+        return callback(new Error(`CORS policy does not allow socket access from ${origin}`));
+      },
       credentials: true,
     },
     pingInterval: 10000,

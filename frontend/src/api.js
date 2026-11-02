@@ -15,14 +15,28 @@ api.interceptors.request.use((config) => {
 let refreshing
 api.interceptors.response.use((response) => response, async (error) => {
   const original = error.config
-  if (error.response?.status === 401 && !original?._retried && !original?.url?.includes('/auth/')) {
+  const isAuthBypass =
+    original?.url?.includes('/auth/login') ||
+    original?.url?.includes('/auth/register') ||
+    original?.url?.includes('/auth/refresh') ||
+    original?.url?.includes('/auth/forget-password') ||
+    original?.url?.includes('/auth/reset-password')
+
+  if (error.response?.status === 401 && !original?._retried && !isAuthBypass) {
     original._retried = true
     try {
       refreshing ||= api.post('/auth/refresh').finally(() => { refreshing = null })
       const { data } = await refreshing
-      if (data.accessToken) sessionStorage.setItem('accessToken', data.accessToken)
+      if (data.accessToken) {
+        sessionStorage.setItem('accessToken', data.accessToken)
+        if (original.headers) {
+          original.headers.Authorization = `Bearer ${data.accessToken}`
+        }
+      }
       return api(original)
-    } catch { sessionStorage.removeItem('accessToken') }
+    } catch {
+      sessionStorage.removeItem('accessToken')
+    }
   }
   return Promise.reject(error)
 })

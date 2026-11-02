@@ -147,7 +147,11 @@ function useUser() {
 
   useEffect(() => {
     if (!data) return
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') ||
+      'http://localhost:5000'
+    const socket = io(socketUrl, {
       withCredentials: true,
       auth: { token: sessionStorage.getItem('accessToken') },
     })
@@ -1056,7 +1060,6 @@ function Detail({ auth }) {
           params: { auditoriumId: id, month: month.toISOString().slice(0, 7) },
         })
       ).data.bookings || [],
-    enabled: !!user,
   })
 
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
@@ -1340,7 +1343,9 @@ function Detail({ auth }) {
 
 function AuthPage({ kind }) {
   const nav = useNavigate()
-  const { token } = useParams()
+  const { token: pathToken } = useParams()
+  const [searchParams] = useSearchParams()
+  const token = pathToken || searchParams.get('token')
   const [visible, setVisible] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [message, setMessage] = useState('')
@@ -1496,10 +1501,15 @@ function AuthPage({ kind }) {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="you@university.edu"
+                  placeholder="student@tmu.ac.in"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
+                {kind === 'register' && (
+                  <span className="field-hint" style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Institutional (@tmu.ac.in) email required
+                  </span>
+                )}
               </label>
             )}
 
@@ -2709,7 +2719,7 @@ function AdminDashboard({ auth }) {
                     />
                     <StatCard
                       title="Total Bookings"
-                      value={list.length}
+                      value={bq.data?.pagination?.totalItems ?? list.length}
                       icon="calendar"
                       note="All-time reservations"
                     />
@@ -3169,6 +3179,9 @@ function AuditoriumForm({ auth }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!edit && (!form.images || form.images.length === 0)) {
+        throw new Error('Please upload at least one image of the auditorium.')
+      }
       const data = new FormData()
       ;['name', 'capacity', 'basePrice', 'description', 'amenities'].forEach((k) =>
         data.append(k, form[k])
@@ -3396,8 +3409,10 @@ export default function App() {
         <Route path="/login" element={<AuthPage kind="login" />} />
         <Route path="/register" element={<AuthPage kind="register" />} />
         <Route path="/forgot-password" element={<AuthPage kind="forgot" />} />
+        <Route path="/reset-password" element={<AuthPage kind="reset" />} />
         <Route path="/reset-password/:token" element={<AuthPage kind="reset" />} />
         <Route path="/verify-email" element={<VerifyPage />} />
+        <Route path="/bookings" element={<Navigate to="/student/my-bookings" replace />} />
 
         {/* Student Routes */}
         <Route path="/student/dashboard" element={<StudentDashboard user={auth.user} auth={auth} />} />

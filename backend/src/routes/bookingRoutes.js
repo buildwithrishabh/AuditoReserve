@@ -58,8 +58,6 @@ const userBookingsLimiter = slidingWindowLimiter({
 // Get Calendar Bookings (for availability checks)
 router.get(
   "/calendar",
-  protect,
-  isverified,
   calendarLimiter,
   validate(calendarBookingSchema),
   getCalendarBooking

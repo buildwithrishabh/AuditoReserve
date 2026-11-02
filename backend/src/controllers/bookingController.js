@@ -788,7 +788,7 @@ exports.getCalendarBooking = async (req, res, next) => {
         $lte: endDate,
       },
     })
-      .select("bookingDate startTime endTime purpose status")
+      .select("bookingDate startTime endTime status")
       .sort({ bookingDate: 1, startTime: 1 });
 
     res.status(200).json({
