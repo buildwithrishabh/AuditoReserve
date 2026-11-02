@@ -459,7 +459,15 @@ function Status({ value }) {
   )
 }
 
-function StatCard({ title, value, icon, change, note = 'Across your reservations' }) {
+function StatCard({
+  title,
+  value,
+  icon,
+  change,
+  note = 'Across your reservations',
+  badge,
+  highlight,
+}) {
   const icons = {
     calendar: CalendarDays,
     clock: Clock3,
@@ -467,21 +475,27 @@ function StatCard({ title, value, icon, change, note = 'Across your reservations
     confirmed: DoorOpen,
     zap: Zap,
     shield: ShieldCheck,
+    building: Building2,
+    users: Users,
+    rupee: () => <span className="stat-rupee-sign">₹</span>,
   }
   const Icon = icons[icon] || CalendarDays
+  const isRupee = icon === 'rupee'
+
   return (
-    <div className="stat-card">
+    <div className={`stat-card ${highlight ? `stat-card-${highlight}` : ''}`}>
       <div className="stat-top">
         <span className="stat-label">{title}</span>
-        <div className="stat-icon-wrap">
-          <Icon size={16} />
+        <div className={`stat-icon-wrap ${isRupee ? 'stat-icon-rupee' : ''}`}>
+          {isRupee ? <Icon /> : <Icon size={16} />}
         </div>
       </div>
       <div className="stat-value-wrap">
         <strong>{value}</strong>
+        {badge && <span className="stat-badge-tag">{badge}</span>}
         {change && <span className="stat-trend-tag">{change}</span>}
       </div>
-      <span className="stat-foot">{note}</span>
+      {note && <span className="stat-foot">{note}</span>}
     </div>
   )
 }
@@ -2670,8 +2684,8 @@ function AdminDashboard({ auth }) {
         subtitle="CAMPUS OPERATIONS"
         children={{
           actions: (
-            <Link className="button button-secondary" to="/admin/auditoriums/new">
-              Add auditorium <ArrowRight size={14} />
+            <Link className="button" to="/admin/auditoriums/new">
+              <Plus size={14} /> Add auditorium
             </Link>
           ),
           content: (
@@ -2687,24 +2701,50 @@ function AdminDashboard({ auth }) {
               ) : (
                 <>
                   <div className="stats-grid admin-stats">
-                    <StatCard title="Total Venues" value={aq.data?.length ?? '—'} icon="calendar" />
-                    <StatCard title="Total Bookings" value={list.length} icon="confirmed" />
-                    <StatCard title="Pending Review" value={pending.length} icon="clock" />
-                    <div className="stat-card">
-                      <div className="stat-top">
-                        <span>Confirmed Revenue</span>
-                        <span className="currency-mark">₹</span>
-                      </div>
-                      <strong className="revenue-value">{money(revenue)}</strong>
-                      <span className="stat-foot">From confirmed bookings</span>
-                    </div>
+                    <StatCard
+                      title="Total Venues"
+                      value={aq.data?.length ?? '—'}
+                      icon="building"
+                      note="Active campus venues"
+                    />
+                    <StatCard
+                      title="Total Bookings"
+                      value={list.length}
+                      icon="calendar"
+                      note="All-time reservations"
+                    />
+                    <StatCard
+                      title="Pending Review"
+                      value={pending.length}
+                      icon="clock"
+                      note={
+                        pending.length > 0
+                          ? `${pending.length} require administrative decision`
+                          : 'All requests reviewed'
+                      }
+                      badge={pending.length > 0 ? `${pending.length} pending` : null}
+                      highlight={pending.length > 0 ? 'warning' : null}
+                    />
+                    <StatCard
+                      title="Confirmed Revenue"
+                      value={money(revenue)}
+                      icon="rupee"
+                      note="From confirmed bookings"
+                    />
                   </div>
 
-                  <div className="panel">
+                  <div className="panel review-panel">
                     <div className="panel-header">
-                      <div>
-                        <h2>Awaiting Administrative Review</h2>
-                        <p>Pending requests that require an approval decision.</p>
+                      <div className="panel-title-group">
+                        <div className="panel-title-with-badge">
+                          <h2>Awaiting Administrative Review</h2>
+                          {pending.length > 0 ? (
+                            <span className="count-badge warning">{pending.length} pending</span>
+                          ) : (
+                            <span className="count-badge success">All clear</span>
+                          )}
+                        </div>
+                        <p>Pending student booking requests requiring approval or decline decisions.</p>
                       </div>
                       <Link className="text-link" to="/admin/bookings">
                         All bookings <ArrowRight size={14} />
@@ -2715,77 +2755,160 @@ function AdminDashboard({ auth }) {
                       <BookingTable
                         bookings={pending.slice(0, 5)}
                         onAction={(b) => (
-                          <div className="action-group" style={{ justifyContent: 'flex-end' }}>
+                          <div className="action-group" style={{ justifyContent: 'flex-end', gap: '8px' }}>
                             <button
-                              className="table-action"
+                              className="table-action action-approve"
                               disabled={action.isPending}
                               onClick={() => action.mutate({ id: b._id, status: 'approved' })}
                             >
-                              Approve
+                              <Check size={13} /> Approve
                             </button>
                             <button
-                              className="table-action subtle"
+                              className="table-action subtle action-decline"
                               disabled={action.isPending}
                               onClick={() => action.mutate({ id: b._id, status: 'cancelled' })}
                             >
-                              Decline
+                              <X size={13} /> Decline
                             </button>
                           </div>
                         )}
                       />
                     ) : (
-                      <div className="empty-panel">
-                        <div className="state-icon success-icon">
-                          <Check size={20} />
+                      <div className="admin-all-clear">
+                        <div className="all-clear-badge">
+                          <CheckCircle2 size={24} />
                         </div>
-                        <div>
+                        <div className="all-clear-text">
                           <h3>No pending requests</h3>
-                          <p>All student reservation requests have been reviewed.</p>
+                          <p>
+                            All student reservation requests have been reviewed. Incoming booking requests
+                            will appear here immediately for decision.
+                          </p>
                         </div>
+                        <Link to="/admin/bookings" className="button button-secondary button-small">
+                          View all bookings <ArrowRight size={13} />
+                        </Link>
                       </div>
                     )}
                   </div>
 
                   <div className="dashboard-bottom-grid">
-                    <div className="panel">
+                    <div className="panel activity-panel">
                       <div className="panel-header">
                         <div>
                           <h2>Recent Campus Activity</h2>
                           <p>Latest booking requests received across campus.</p>
                         </div>
+                        {list.length > 4 && (
+                          <Link className="text-link" to="/admin/bookings">
+                            View all ({list.length}) <ArrowRight size={14} />
+                          </Link>
+                        )}
                       </div>
 
                       {list.length ? (
-                        <div className="activity-list">
-                          {list.slice(0, 4).map((b) => (
-                            <div className="activity-row" key={b._id}>
-                              <span className="activity-mark">
-                                <CalendarDays size={15} />
-                              </span>
-                              <span>
-                                <strong>
-                                  {b.user?.name || 'A student'} requested{' '}
-                                  {b.auditorium?.name || 'a venue'}
-                                </strong>
-                                <small>{timeAgo(b.createdAt)}</small>
-                              </span>
-                              <Status value={b.status} />
-                            </div>
-                          ))}
+                        <div className="activity-feed">
+                          {list.slice(0, 5).map((b) => {
+                            const studentName = b.user?.name || 'A student'
+                            const initials = studentName
+                              .split(' ')
+                              .map((n) => n[0])
+                              .slice(0, 2)
+                              .join('')
+                              .toUpperCase()
+                            return (
+                              <div className="activity-feed-item" key={b._id}>
+                                <div className="activity-user-avatar" title={studentName}>
+                                  {initials}
+                                </div>
+                                <div className="activity-details">
+                                  <div className="activity-main-line">
+                                    <span className="activity-user-name">{studentName}</span>
+                                    <span className="activity-action-desc">requested</span>
+                                    <span className="activity-venue-name">{b.auditorium?.name || 'Venue'}</span>
+                                  </div>
+                                  <div className="activity-sub-line">
+                                    <span className="activity-time">
+                                      <Clock3 size={12} /> {timeAgo(b.createdAt)}
+                                    </span>
+                                    <span className="activity-divider">·</span>
+                                    <span className="activity-date">{dateText(b.bookingDate)}</span>
+                                    {b.totalPrice ? (
+                                      <>
+                                        <span className="activity-divider">·</span>
+                                        <span className="activity-price">{money(b.totalPrice)}</span>
+                                      </>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <div className="activity-status-col">
+                                  <Status value={b.status} />
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       ) : (
-                        <p className="muted-copy">No recent booking activity.</p>
+                        <div className="empty-inline">
+                          <CalendarDays size={20} className="muted-icon" />
+                          <span className="muted-copy">No recent booking activity recorded yet.</span>
+                        </div>
                       )}
                     </div>
 
-                    <div className="admin-shortcuts">
-                      <span className="eyebrow">QUICK MANAGEMENT</span>
-                      <Link to="/admin/auditoriums">
-                        <DoorOpen size={16} /> Manage auditoriums <ArrowRight size={14} />
-                      </Link>
-                      <Link to="/admin/bookings">
-                        <CalendarDays size={16} /> Review all bookings <ArrowRight size={14} />
-                      </Link>
+                    <div className="panel quick-actions-panel">
+                      <div className="panel-header">
+                        <div>
+                          <h2>Quick Operations</h2>
+                          <p>Administrative shortcuts and facility controls.</p>
+                        </div>
+                      </div>
+
+                      <div className="quick-actions-grid">
+                        <Link to="/admin/auditoriums/new" className="quick-action-card">
+                          <div className="quick-action-icon action-emerald">
+                            <Plus size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Add Auditorium</strong>
+                            <span>Publish a new venue with pricing & capacity</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+
+                        <Link to="/admin/auditoriums" className="quick-action-card">
+                          <div className="quick-action-icon action-blue">
+                            <DoorOpen size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Manage Venues ({aq.data?.length ?? 0})</strong>
+                            <span>Update amenities, pricing, slots & availability</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+
+                        <Link to="/admin/bookings" className="quick-action-card">
+                          <div className="quick-action-icon action-purple">
+                            <CalendarCheck size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Review All Bookings ({list.length})</strong>
+                            <span>Filter, inspect and export all campus reservations</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+
+                        <Link to="/notifications" className="quick-action-card">
+                          <div className="quick-action-icon action-amber">
+                            <Bell size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Notifications</strong>
+                            <span>Review system activity and student requests</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </>
