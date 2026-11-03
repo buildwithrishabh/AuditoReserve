@@ -15,6 +15,7 @@
   --surface-raised: #1a2236;
   --surface-subtle: #151d2f;
   --surface-muted: #1f293d;
+  --input-surface: #0b1018;
 
   /* Crisp Dark Typography */
   --text-primary: #f8fafc;     /* Slate-50 high contrast */
@@ -93,6 +94,7 @@
   --surface-raised: #ffffff;
   --surface-subtle: #f1f5f9;
   --surface-muted: #e2e8f0;
+  --input-surface: #f8fafc;
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -5609,8 +5611,7 @@ button {
    AuditoReserve unified institutional dark system
    ====================================================================== */
 :root,
-[data-theme="dark"],
-[data-theme="light"] {
+[data-theme="dark"] {
   color-scheme: dark;
   --font-sans: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --bg-page: #080b12;
@@ -5683,13 +5684,12 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -.02em; }
 .hero-section-wrap::before { background: linear-gradient(180deg, rgba(8,11,18,.05), rgba(8,11,18,.52) 74%, var(--bg-page)); }
 .hero-section-wrap::after { background: var(--border-medium); }
 .hero-title-gradient { background: none; color: var(--brand-400); -webkit-text-fill-color: currentColor; }
-.hero-badge-clean, .quick-search-card, .metric-box, .venue-card, .occasion-card,
+.quick-search-card, .metric-box, .venue-card, .occasion-card,
 .highlight-feature-card, .step, .form-tip, .search-field, .filter-toggle,
 .custom-dropdown-menu, .panel, .stat-card, .booking-card, .booking-form-panel,
-.payment-panel, .payment-aside, .success-panel, .auth-card, .auth-modal-card,
-.drawer-details, .booking-drawer, .detail-facts, .detail-info,
-.catalog-filter-panel, .notification-row, .dashboard-bottom-grid > *,
-.admin-venue-row, .faq-item, .quick-action-card {
+.payment-panel, .payment-aside, .success-panel, .auth-modal-card,
+.drawer-details, .booking-drawer, .detail-facts, .filter-panel,
+.notification-row, .state-panel, .receipt-card, .faq-item, .quick-action-card {
   background-color: var(--surface);
   border-color: var(--border-light);
   box-shadow: var(--shadow-xs);
@@ -5704,7 +5704,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -.02em; }
 .button-secondary:hover, .button-hero-secondary:hover, .button-light:hover { background: var(--surface-muted); border-color: var(--border-dark); color: var(--text-primary); }
 .closing-cta { background: var(--surface); border: 1px solid var(--border-medium); box-shadow: none; }
 .closing-cta .button-light { background: var(--brand-700); border-color: var(--brand-700); color: white; }
-.footer { background: #070a10; border-top-color: var(--border-light); }
+.footer { background: var(--surface); border-top-color: var(--border-light); }
 .page-container, .dash-content { color: var(--text-primary); }
 .dash-topbar, .sidebar { background: var(--surface); border-color: var(--border-light); }
 .dashboard-shell { background: var(--bg-page); }
@@ -5712,7 +5712,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -.02em; }
 input, select, textarea, .quick-search-input, .quick-search-select,
 .search-field input, .form-control, .form-input, .form-select {
   color: var(--text-primary);
-  background-color: #0b1018;
+  background-color: var(--input-surface);
   border-color: var(--border-medium);
 }
 input::placeholder, textarea::placeholder, .search-field input::placeholder { color: var(--text-tertiary); }
@@ -5739,7 +5739,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .status-confirmed { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
 .status-cancelled, .status-rejected, .status-expired { background: var(--error-bg); color: var(--error-text); border-color: var(--error-border); }
 .skeleton { background: linear-gradient(90deg, var(--surface-subtle), var(--surface-raised), var(--surface-subtle)); }
-.nav-links.nav-open { background: #0c111a; }
+.nav-links.nav-open { background: var(--surface); }
 .sidebar-scrim, .drawer-scrim, .auth-modal-backdrop { background: rgba(2,5,10,.72); backdrop-filter: blur(3px); }
 .auth-modal-card, .booking-drawer { background: var(--surface-raised); }
 .calendar-day { color: var(--text-secondary); }
@@ -5756,4 +5756,42 @@ a, button { transition-duration: 150ms; }
 @media (max-width: 640px) {
   .hero-section-wrap { background-size: 36px 36px; }
   .quick-search-card { padding: 14px; }
+}
+
+/* Route-specific refinements for controls used by the current app. */
+.auth-segmented-tabs { background: var(--surface-subtle); border-color: var(--border-light); }
+.auth-segmented-tabs button { color: var(--text-muted); }
+.auth-segmented-tabs button.active { background: var(--surface-raised); color: var(--text-primary); box-shadow: var(--shadow-xs); }
+.auth-modal-card { border-color: var(--border-medium); }
+.input, .textarea, .select-compact, .quick-search-input, .quick-search-select,
+.custom-dropdown-btn, .capacity-preset-btn, .preset { background: var(--input-surface); border-color: var(--border-medium); color: var(--text-primary); }
+.custom-dropdown-item { color: var(--text-secondary); }
+.custom-dropdown-item:hover, .custom-dropdown-item.selected { background: var(--brand-50); color: var(--brand-400); }
+.filter-panel { border: 1px solid var(--border-light); box-shadow: none; }
+.catalog-layout.filters-open { align-items: start; }
+.table-action { background: var(--surface-raised); border-color: var(--border-medium); color: var(--text-secondary); }
+.calendar-day { border: 1px solid transparent; border-radius: var(--radius-sm); }
+.calendar-day:hover:not(:disabled) { border-color: var(--border-medium); }
+.calendar-day.day-has-bookings::after { background: var(--warning); }
+.legend-available { background: var(--success); }
+.legend-booked { background: var(--warning); }
+.legend-selected { background: var(--brand-500); }
+.calendar-legend { color: var(--text-muted); }
+.booking-card { border-color: var(--border-medium); }
+.secure-note, .submission-note { color: var(--text-muted); }
+.state-panel { border: 1px solid var(--border-light); }
+.empty-inline, .filter-note, .sign-in-note { color: var(--text-muted); }
+.focus-ring:focus-visible, .icon-button:focus-visible, .table-action:focus-visible { outline-offset: 3px; }
+
+@media (max-width: 768px) {
+  .table-scroll { overflow-x: auto; border-radius: var(--radius-md); }
+  .table-scroll table { min-width: 620px; }
+  .calendar-month { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .calendar-day { min-height: 40px; }
+  .nav-links.nav-open { max-height: calc(100dvh - 58px); overflow-y: auto; }
+  .filter-panel { padding: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
