@@ -248,7 +248,7 @@ function Header({ auth }) {
           <Brand />
         </div>
 
-        <nav className={`nav-links ${open ? 'nav-open' : ''}`}>
+        <nav id="primary-nav" className={`nav-links ${open ? 'nav-open' : ''}`}>
           {user ? (
             <>
               <NavLink
@@ -347,7 +347,9 @@ function Header({ auth }) {
           )}
           <button
             className="icon-button mobile-menu"
-            aria-label="Toggle navigation"
+            aria-label={open ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={open}
+            aria-controls="primary-nav"
             onClick={() => setOpen(!open)}
           >
             {open ? <X size={20} /> : <Menu size={20} />}
@@ -1437,7 +1439,14 @@ function AuthPage({ kind }) {
         if (e.target === e.currentTarget) nav('/')
       }}
     >
-      <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="auth-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-title"
+        aria-describedby="auth-description"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           className="auth-modal-close"
@@ -1457,8 +1466,8 @@ function AuthPage({ kind }) {
         </div>
 
         <div className="auth-modal-header">
-          <h2>{titles[kind][0]}</h2>
-          <p>{titles[kind][1]}</p>
+          <h2 id="auth-title">{titles[kind][0]}</h2>
+          <p id="auth-description">{titles[kind][1]}</p>
         </div>
 
         {['login', 'register'].includes(kind) && (
@@ -1751,7 +1760,7 @@ function DashboardShell({ auth, title, subtitle, children }) {
 
   return (
     <div className="dashboard-shell">
-      <aside className={`sidebar ${menu ? 'sidebar-open' : ''}`}>
+      <aside id="workspace-nav" aria-label="Workspace navigation" className={`sidebar ${menu ? 'sidebar-open' : ''}`}>
         <Brand />
         <div className="side-org">
           <div className="org-avatar">AR</div>
@@ -1814,7 +1823,9 @@ function DashboardShell({ auth, title, subtitle, children }) {
           <button
             className="icon-button mobile-menu"
             onClick={() => setMenu(!menu)}
-            aria-label="Open sidebar"
+            aria-label={menu ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={menu}
+            aria-controls="workspace-nav"
           >
             <Menu size={18} />
           </button>
