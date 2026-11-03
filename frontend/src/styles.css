@@ -5604,3 +5604,156 @@ button {
   border-color: var(--border-dark);
   transform: translateY(-1px);
 }
+
+/* ======================================================================
+   AuditoReserve unified institutional dark system
+   ====================================================================== */
+:root,
+[data-theme="dark"],
+[data-theme="light"] {
+  color-scheme: dark;
+  --font-sans: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --bg-page: #080b12;
+  --surface: #0f141d;
+  --surface-raised: #151b26;
+  --surface-subtle: #111823;
+  --surface-muted: #202938;
+  --text-primary: #edf1f7;
+  --text-secondary: #b0bac9;
+  --text-muted: #8290a3;
+  --text-tertiary: #667386;
+  --text-inverse: #080b12;
+  --border-light: rgba(151, 166, 190, .12);
+  --border-medium: rgba(151, 166, 190, .20);
+  --border-dark: rgba(151, 166, 190, .32);
+  --border-focus: #818cf8;
+  --header-bg: rgba(8, 11, 18, .96);
+  --brand-950: #10132a;
+  --brand-900: #1b2040;
+  --brand-850: #282c54;
+  --brand-800: #4f55a7;
+  --brand-700: #626bd1;
+  --brand-600: #7782e5;
+  --brand-500: #9ba5f4;
+  --brand-400: #b8bffa;
+  --brand-300: #d1d5ff;
+  --brand-200: #e0e2ff;
+  --brand-100: #eceeff;
+  --brand-50: rgba(119, 130, 229, .12);
+  --success: #35a879;
+  --success-bg: rgba(42, 150, 105, .12);
+  --success-border: rgba(69, 185, 133, .28);
+  --success-text: #82d2ad;
+  --warning: #d49a42;
+  --warning-bg: rgba(201, 139, 47, .12);
+  --warning-border: rgba(212, 154, 66, .28);
+  --warning-text: #e8bd74;
+  --error: #d66c77;
+  --error-bg: rgba(194, 76, 89, .12);
+  --error-border: rgba(214, 108, 119, .28);
+  --error-text: #e69aa2;
+  --info: #67a9d2;
+  --info-bg: rgba(69, 139, 187, .12);
+  --info-border: rgba(103, 169, 210, .28);
+  --info-text: #9ac8e4;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
+  --shadow-sm: 0 4px 12px rgba(0,0,0,.18);
+  --shadow-md: 0 10px 24px rgba(0,0,0,.22);
+  --shadow-lg: 0 18px 40px rgba(0,0,0,.28);
+  --shadow-xl: 0 24px 60px rgba(0,0,0,.36);
+}
+
+html, body { background: var(--bg-page); }
+body { font-size: 14px; }
+h1, h2, h3, h4, h5, h6 { letter-spacing: -.02em; }
+.eyebrow, .text-link, .nav-links > a.active, .brand-accent,
+.stat-trend-tag, .metric-box:hover .metric-icon-wrap { color: var(--brand-500); }
+.site-header { background: var(--header-bg); backdrop-filter: none; }
+.nav-links > a.active { background: var(--brand-50); }
+.hero-section-wrap {
+  background-color: var(--bg-page);
+  background-image: linear-gradient(rgba(148,163,184,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.hero-section-wrap::before { background: linear-gradient(180deg, rgba(8,11,18,.05), rgba(8,11,18,.52) 74%, var(--bg-page)); }
+.hero-section-wrap::after { background: var(--border-medium); }
+.hero-title-gradient { background: none; color: var(--brand-400); -webkit-text-fill-color: currentColor; }
+.hero-badge-clean, .quick-search-card, .metric-box, .venue-card, .occasion-card,
+.highlight-feature-card, .step, .form-tip, .search-field, .filter-toggle,
+.custom-dropdown-menu, .panel, .stat-card, .booking-card, .booking-form-panel,
+.payment-panel, .payment-aside, .success-panel, .auth-card, .auth-modal-card,
+.drawer-details, .booking-drawer, .detail-facts, .detail-info,
+.catalog-filter-panel, .notification-row, .dashboard-bottom-grid > *,
+.admin-venue-row, .faq-item, .quick-action-card {
+  background-color: var(--surface);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-xs);
+}
+.trust-pill { background: var(--surface-raised); border-color: var(--border-light); color: var(--text-secondary); box-shadow: none; backdrop-filter: none; }
+.trust-pill svg { color: var(--brand-400); }
+.feature-icon-badge, .occasion-icon-wrap, .metric-icon-wrap, .stat-icon-wrap,
+.step-number, .upload-plus, .count-chip, .count-badge { background: var(--brand-50); color: var(--brand-400); border-color: var(--border-light); }
+.button, .button-hero-primary { background: var(--brand-700); border-color: var(--brand-700); box-shadow: none; }
+.button:hover, .button-hero-primary:hover { background: var(--brand-600); border-color: var(--brand-600); box-shadow: none; transform: translateY(-1px); }
+.button-secondary, .button-hero-secondary, .button-light { background: var(--surface-raised); border-color: var(--border-medium); color: var(--text-primary); box-shadow: none; }
+.button-secondary:hover, .button-hero-secondary:hover, .button-light:hover { background: var(--surface-muted); border-color: var(--border-dark); color: var(--text-primary); }
+.closing-cta { background: var(--surface); border: 1px solid var(--border-medium); box-shadow: none; }
+.closing-cta .button-light { background: var(--brand-700); border-color: var(--brand-700); color: white; }
+.footer { background: #070a10; border-top-color: var(--border-light); }
+.page-container, .dash-content { color: var(--text-primary); }
+.dash-topbar, .sidebar { background: var(--surface); border-color: var(--border-light); }
+.dashboard-shell { background: var(--bg-page); }
+.side-nav a.active { color: var(--brand-400); background: var(--brand-50); }
+input, select, textarea, .quick-search-input, .quick-search-select,
+.search-field input, .form-control, .form-input, .form-select {
+  color: var(--text-primary);
+  background-color: #0b1018;
+  border-color: var(--border-medium);
+}
+input::placeholder, textarea::placeholder, .search-field input::placeholder { color: var(--text-tertiary); }
+input:focus, select:focus, textarea:focus { border-color: var(--brand-500); box-shadow: 0 0 0 3px rgba(119,130,229,.14); }
+select option { color: var(--text-primary); background: var(--surface-raised); }
+table { color: var(--text-secondary); }
+th { background: var(--surface-subtle); color: var(--text-muted); }
+td, th { border-color: var(--border-light); }
+tbody tr:hover { background: rgba(255,255,255,.025); }
+.table-scroll, .table-wrap { border-color: var(--border-light); }
+.stat-card-warning { background: var(--surface); border-color: var(--warning-border); }
+.stat-card-warning .stat-icon-wrap, .stat-badge-tag, .count-badge.warning { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.count-badge.success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+.admin-all-clear { background: var(--success-bg); border-color: var(--success-border); }
+.all-clear-badge { background: rgba(42,150,105,.2); color: var(--success-text); }
+.all-clear-text h3, .all-clear-text p { color: var(--success-text); }
+.table-action.action-approve { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+.table-action.action-approve:hover { background: var(--success); color: #07130e; }
+.table-action.action-decline { background: var(--error-bg); color: var(--error-text); border-color: var(--error-border); }
+.table-action.action-decline:hover { background: var(--error); color: #18090b; }
+.toast { background: var(--surface-raised); border: 1px solid var(--border-medium); color: var(--text-primary); }
+.status-pending { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.status-approved { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.status-confirmed { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+.status-cancelled, .status-rejected, .status-expired { background: var(--error-bg); color: var(--error-text); border-color: var(--error-border); }
+.skeleton { background: linear-gradient(90deg, var(--surface-subtle), var(--surface-raised), var(--surface-subtle)); }
+.nav-links.nav-open { background: #0c111a; }
+.sidebar-scrim, .drawer-scrim, .auth-modal-backdrop { background: rgba(2,5,10,.72); backdrop-filter: blur(3px); }
+.auth-modal-card, .booking-drawer { background: var(--surface-raised); }
+.calendar-day { color: var(--text-secondary); }
+.calendar-day:hover { background: var(--surface-raised); }
+.calendar-day.selected, .calendar-day.active { background: var(--brand-700); color: white; }
+.calendar-day.disabled { color: var(--text-tertiary); opacity: .48; }
+.calendar-day.day-has-bookings::after { background: var(--warning); }
+.calendar-day.selected.day-has-bookings::after { background: rgba(255,255,255,.8); }
+a, button { transition-duration: 150ms; }
+
+@media (max-width: 900px) {
+  .nav-links.nav-open { border-bottom-color: var(--border-medium); }
+}
+@media (max-width: 640px) {
+  .hero-section-wrap { background-size: 36px 36px; }
+  .quick-search-card { padding: 14px; }
+}

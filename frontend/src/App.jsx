@@ -42,8 +42,6 @@ import {
   Sparkles,
   Star,
   Users,
-  Sun,
-  Moon,
   X,
   Zap
 } from 'lucide-react'
@@ -213,39 +211,6 @@ function Brand({ inverse = false }) {
   )
 }
 
-function ThemeToggle({ className = '' }) {
-  const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem('ar_theme') || 'dark';
-    } catch {
-      return 'dark';
-    }
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    try {
-      localStorage.setItem('ar_theme', theme);
-    } catch {}
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  return (
-    <button
-      type="button"
-      className={`theme-toggle-btn ${className}`}
-      onClick={toggleTheme}
-      title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      aria-label="Toggle color theme"
-    >
-      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-    </button>
-  );
-}
-
 function Header({ auth }) {
   const [open, setOpen] = useState(false)
   const user = auth?.user
@@ -334,7 +299,6 @@ function Header({ auth }) {
         </nav>
 
         <div className="nav-right">
-          <ThemeToggle />
           {user ? (
             <button
               className="nav-text-button desktop-only-nav-action"
@@ -1834,7 +1798,6 @@ function DashboardShell({ auth, title, subtitle, children }) {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
-            <ThemeToggle />
             <span className="live-status">
               <i /> System operational
             </span>
