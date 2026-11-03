@@ -1810,14 +1810,6 @@ function DashboardShell({ auth, title, subtitle, children }) {
           </div>
         </div>
       </aside>
-      {menu && (
-        <div
-          className="sidebar-scrim"
-          onClick={() => setMenu(false)}
-          aria-hidden="true"
-        />
-      )}
-
       <main className="dash-main">
         <header className="dash-topbar">
           <button
@@ -1987,7 +1979,7 @@ function StudentDashboard({ user, auth }) {
 function BookingTable({ bookings, student = false, onAction }) {
   return (
     <div className="table-scroll">
-      <table>
+      <table className="booking-table">
         <thead>
           <tr>
             <th>Auditorium</th>
@@ -2001,27 +1993,27 @@ function BookingTable({ bookings, student = false, onAction }) {
         <tbody>
           {bookings.map((b) => (
             <tr key={b._id}>
-              <td>
+              <td data-label="Auditorium">
                 <strong>{b.auditorium?.name || 'Auditorium'}</strong>
                 <span className="cell-sub">{b.purpose || 'Campus reservation'}</span>
               </td>
-              <td>
+              <td data-label="Date and time">
                 <strong>{dateText(b.bookingDate)}</strong>
                 <span className="cell-sub">
                   {b.startTime} – {b.endTime}
                 </span>
               </td>
               {!student && (
-                <td>
+                <td data-label="Requested by">
                   <strong>{b.user?.name || 'Student'}</strong>
                   <span className="cell-sub">{b.user?.email}</span>
                 </td>
               )}
-              <td>
+              <td data-label="Status">
                 <Status value={b.status} />
               </td>
-              <td className="amount-cell">{money(b.totalPrice)}</td>
-              <td style={{ textAlign: 'right' }}>
+              <td className="amount-cell" data-label="Amount">{money(b.totalPrice)}</td>
+              <td data-label="Actions" style={{ textAlign: 'right' }}>
                 {onAction ? (
                   onAction(b)
                 ) : student && b.status === 'approved' ? (
@@ -2407,7 +2399,7 @@ function PaymentPage({ auth }) {
           name: auth.user?.name,
           email: auth.user?.email,
         },
-        theme: { color: '#4f46e5' },
+        theme: { color: '#3978F6' },
         handler: async (response) => {
           try {
             const verified = await api.post(
