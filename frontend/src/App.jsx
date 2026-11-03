@@ -13,6 +13,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  CalendarPlus,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -24,9 +25,11 @@ import {
   DoorOpen,
   Eye,
   EyeOff,
+  FileText,
   Filter,
   GraduationCap,
   HelpCircle,
+  Info,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -505,6 +508,7 @@ function StatCard({
   note = 'Across your reservations',
   badge,
   highlight,
+  to,
 }) {
   const icons = {
     calendar: CalendarDays,
@@ -520,8 +524,8 @@ function StatCard({
   const Icon = icons[icon] || CalendarDays
   const isRupee = icon === 'rupee'
 
-  return (
-    <div className={`stat-card ${highlight ? `stat-card-${highlight}` : ''}`}>
+  const cardElement = (
+    <div className={`stat-card ${highlight ? `stat-card-${highlight}` : ''} ${to ? 'stat-card-clickable' : ''}`}>
       <div className="stat-top">
         <span className="stat-label">{title}</span>
         <div className={`stat-icon-wrap ${isRupee ? 'stat-icon-rupee' : ''}`}>
@@ -536,6 +540,15 @@ function StatCard({
       {note && <span className="stat-foot">{note}</span>}
     </div>
   )
+
+  if (to) {
+    return (
+      <Link to={to} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+        {cardElement}
+      </Link>
+    )
+  }
+  return cardElement
 }
 
 // ============================================================================
@@ -1886,19 +1899,231 @@ function RequireRole({ auth, role, children }) {
 }
 
 // ============================================================================
-// Student Views
+// Student Views, Booking Modals & Drawers
 // ============================================================================
+
+function CancelBookingModal({ booking, onClose, onConfirm, isPending }) {
+  if (!booking) return null
+  return (
+    <div className="confirm-modal-backdrop" onClick={onClose}>
+      <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="confirm-modal-icon warning">
+          <AlertCircle size={22} />
+        </div>
+        <div className="confirm-modal-body">
+          <h3>Cancel Booking Request?</h3>
+          <p>
+            Are you sure you want to cancel the reservation for{' '}
+            <strong>{booking.auditorium?.name || 'this auditorium'}</strong> on{' '}
+            <strong>{dateText(booking.bookingDate)}</strong> ({booking.startTime} – {booking.endTime})?
+          </p>
+          <div className="confirm-modal-warning">
+            This will immediately release the hold on this time slot and make it available for other campus departments and societies.
+          </div>
+        </div>
+        <div className="confirm-modal-actions">
+          <button className="button button-secondary" onClick={onClose} disabled={isPending}>
+            Keep Reservation
+          </button>
+          <button className="button button-danger" onClick={onConfirm} disabled={isPending}>
+            {isPending ? 'Cancelling…' : 'Yes, Cancel Request'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
+  if (!booking) return null
+
+  const isApproved = booking.status === 'approved'
+  const isConfirmed = booking.status === 'confirmed'
+  const isPending = booking.status === 'pending'
+  const isCancelled = ['cancelled', 'rejected', 'expired'].includes(booking.status)
+  const duration = hoursBetween(booking.startTime, booking.endTime)
+
+  return (
+    <div className="drawer-scrim" onClick={onClose}>
+      <aside className="booking-drawer student-drawer" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-head">
+          <div>
+            <span className="eyebrow">RESERVATION DETAILS</span>
+            <h2>{booking.auditorium?.name || 'Auditorium'}</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Close details">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="drawer-status-wrap">
+          <Status value={booking.status} />
+          <span className="booking-ref-chip">#{booking._id?.slice(-8).toUpperCase()}</span>
+        </div>
+
+        {/* Status contextual alert */}
+        {isPending && (
+          <div className="drawer-banner banner-pending">
+            <Clock3 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong>Under Administrative Review</strong>
+              <span>Campus facility coordinators are verifying your schedule and AV requirements.</span>
+            </div>
+          </div>
+        )}
+
+        {isApproved && (
+          <div className="drawer-banner banner-approved">
+            <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong>Request Approved — Payment Due</strong>
+              <span>
+                Please complete payment before{' '}
+                <strong>{dateText(booking.paymentDeadline)}</strong> to lock in this reservation.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {isConfirmed && (
+          <div className="drawer-banner banner-confirmed">
+            <BadgeCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong>Reservation Officially Confirmed</strong>
+              <span>Your slot is locked on the campus calendar. Official receipt is ready for download.</span>
+            </div>
+          </div>
+        )}
+
+        {isCancelled && (
+          <div className="drawer-banner banner-cancelled">
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong>Booking Inactive</strong>
+              <span>This booking was {booking.status}. You may submit a new request if needed.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Venue Preview */}
+        {booking.auditorium && (
+          <div className="drawer-venue-card">
+            <img src={imageFor(booking.auditorium)} alt={booking.auditorium.name} />
+            <div className="drawer-venue-info">
+              <strong>{booking.auditorium.name}</strong>
+              <span>
+                <Users size={13} /> {booking.auditorium.capacity} seating capacity · {money(booking.auditorium.basePrice)}/hr
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Key Event Details */}
+        <div className="drawer-details">
+          <div>
+            <span>Event Date</span>
+            <strong>{dateText(booking.bookingDate)}</strong>
+          </div>
+          <div>
+            <span>Time Window</span>
+            <strong>
+              {booking.startTime} – {booking.endTime} ({duration > 0 ? `${duration} hrs` : 'Standard'})
+            </strong>
+          </div>
+          <div>
+            <span>Event Purpose & Scope</span>
+            <p className="drawer-purpose-text">{booking.purpose || 'No event details specified.'}</p>
+          </div>
+          <div>
+            <span>Calculated Amount</span>
+            <strong className="drawer-amount">{money(booking.totalPrice)}</strong>
+          </div>
+          {booking.paymentDeadline && isApproved && (
+            <div>
+              <span>Payment Deadline</span>
+              <strong>{dateText(booking.paymentDeadline)}</strong>
+            </div>
+          )}
+          <div>
+            <span>Requested On</span>
+            <small>{dateText(booking.createdAt)}</small>
+          </div>
+        </div>
+
+        {/* Drawer Actions */}
+        <div className="drawer-actions">
+          {isApproved && (
+            <Link className="button" to={`/student/payment/${booking._id}`} onClick={onClose} style={{ flex: 1 }}>
+              Complete Payment <ArrowRight size={14} />
+            </Link>
+          )}
+          {isConfirmed && (
+            <a
+              className="button button-secondary"
+              href={`${api.defaults.baseURL}/payments/${booking._id}/receipt/download`}
+              style={{ flex: 1 }}
+              onClick={async (e) => {
+                e.preventDefault()
+                const r = await api.get(`/payments/${booking._id}/receipt/download`, {
+                  responseType: 'blob',
+                })
+                const u = URL.createObjectURL(r.data)
+                const a = document.createElement('a')
+                a.href = u
+                a.download = `auditoreserve-receipt-${booking._id}.pdf`
+                a.click()
+                URL.revokeObjectURL(u)
+              }}
+            >
+              <FileText size={14} /> Download Receipt
+            </a>
+          )}
+          {(isPending || isApproved) && onCancelClick && (
+            <button
+              className="button button-secondary subtle-danger"
+              onClick={() => {
+                onClose()
+                onCancelClick(booking)
+              }}
+            >
+              Cancel Request
+            </button>
+          )}
+        </div>
+      </aside>
+    </div>
+  )
+}
 
 function StudentDashboard({ user, auth }) {
   const q = useBookings()
+  const qc = useQueryClient()
   const data = q.data || []
+  const [selectedBooking, setSelectedBooking] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+
   const pending = data.filter((b) => b.status === 'pending').length
   const approved = data.filter((b) => b.status === 'approved').length
   const confirmed = data.filter((b) => b.status === 'confirmed').length
   const payable = data.find((b) => b.status === 'approved')
 
+  // Find next upcoming confirmed booking
+  const todayMidnight = new Date().setHours(0, 0, 0, 0)
+  const upcomingConfirmed = data
+    .filter((b) => b.status === 'confirmed' && new Date(b.bookingDate).getTime() >= todayMidnight)
+    .sort((a, b) => new Date(a.bookingDate) - new Date(b.bookingDate))[0]
+
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  const cancel = useMutation({
+    mutationFn: (id) => api.put(`/bookings/cancel/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      setCancelTarget(null)
+      setSelectedBooking(null)
+    },
+  })
 
   return (
     <RequireRole auth={auth} role="student">
@@ -1908,9 +2133,14 @@ function StudentDashboard({ user, auth }) {
         subtitle="STUDENT WORKSPACE"
         children={{
           actions: (
-            <Link className="button" to="/auditoriums">
-              <DoorOpen size={14} /> Browse auditoriums
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <Link className="button" to="/student/book">
+                <CalendarPlus size={14} /> Request a booking
+              </Link>
+              <Link className="button button-secondary" to="/auditoriums">
+                <DoorOpen size={14} /> Browse auditoriums
+              </Link>
+            </div>
           ),
           content: (
             <>
@@ -1921,25 +2151,43 @@ function StudentDashboard({ user, auth }) {
               ) : (
                 <>
                   <div className="stats-grid">
-                    {[
-                      ['Total reservations', data.length, 'calendar'],
-                      ['Pending review', pending, 'clock'],
-                      ['Approved (payment due)', approved, 'check'],
-                      ['Confirmed bookings', confirmed, 'confirmed'],
-                    ].map(([a, b, c]) => (
-                      <StatCard key={a} title={a} value={b} icon={c} />
-                    ))}
+                    <StatCard
+                      title="Total reservations"
+                      value={data.length}
+                      icon="calendar"
+                      to="/student/my-bookings"
+                    />
+                    <StatCard
+                      title="Pending review"
+                      value={pending}
+                      icon="clock"
+                      to="/student/my-bookings?status=pending"
+                    />
+                    <StatCard
+                      title="Approved (payment due)"
+                      value={approved}
+                      icon="check"
+                      highlight={approved > 0 ? 'warning' : null}
+                      to="/student/my-bookings?status=approved"
+                    />
+                    <StatCard
+                      title="Confirmed bookings"
+                      value={confirmed}
+                      icon="confirmed"
+                      to="/student/my-bookings?status=confirmed"
+                    />
                   </div>
 
+                  {/* Payment pending banner */}
                   {payable && (
                     <div className="payment-alert">
                       <div className="alert-icon">
                         <Clock3 size={18} />
                       </div>
                       <div className="alert-copy">
-                        <strong>Action required: Payment pending confirmation</strong>
+                        <strong>Action required: Reservation approved — payment pending</strong>
                         <span>
-                          {payable.auditorium?.name} · {dateText(payable.bookingDate)} · Payment due by{' '}
+                          {payable.auditorium?.name} · {dateText(payable.bookingDate)} ({payable.startTime} – {payable.endTime}) · Payment due by{' '}
                           {dateText(payable.paymentDeadline)}
                         </span>
                       </div>
@@ -1949,11 +2197,62 @@ function StudentDashboard({ user, auth }) {
                     </div>
                   )}
 
+                  {/* Next Confirmed Event Spotlight */}
+                  {upcomingConfirmed && (
+                    <div className="spotlight-card">
+                      <div className="spotlight-left">
+                        {upcomingConfirmed.auditorium && (
+                          <img
+                            className="spotlight-img"
+                            src={imageFor(upcomingConfirmed.auditorium)}
+                            alt={upcomingConfirmed.auditorium.name}
+                          />
+                        )}
+                        <div className="spotlight-meta">
+                          <span className="spotlight-tag">
+                            <BadgeCheck size={13} /> Next Confirmed Event
+                          </span>
+                          <h3>{upcomingConfirmed.auditorium?.name || 'Auditorium'}</h3>
+                          <p>
+                            {dateText(upcomingConfirmed.bookingDate)} · {upcomingConfirmed.startTime} – {upcomingConfirmed.endTime}
+                            {upcomingConfirmed.purpose ? ` · ${upcomingConfirmed.purpose.slice(0, 50)}...` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="spotlight-actions">
+                        <button
+                          className="button button-secondary button-small"
+                          onClick={() => setSelectedBooking(upcomingConfirmed)}
+                        >
+                          View details
+                        </button>
+                        <a
+                          className="button button-small"
+                          href={`${api.defaults.baseURL}/payments/${upcomingConfirmed._id}/receipt/download`}
+                          onClick={async (e) => {
+                            e.preventDefault()
+                            const r = await api.get(`/payments/${upcomingConfirmed._id}/receipt/download`, {
+                              responseType: 'blob',
+                            })
+                            const u = URL.createObjectURL(r.data)
+                            const a = document.createElement('a')
+                            a.href = u
+                            a.download = `auditoreserve-receipt-${upcomingConfirmed._id}.pdf`
+                            a.click()
+                            URL.revokeObjectURL(u)
+                          }}
+                        >
+                          <FileText size={13} /> Receipt PDF
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="panel">
                     <div className="panel-header">
                       <div>
                         <h2>Recent Reservations</h2>
-                        <p>Track statuses and upcoming bookings across campus spaces.</p>
+                        <p>Track request statuses, payment schedules, and verified bookings.</p>
                       </div>
                       <Link className="text-link" to="/student/my-bookings">
                         View all reservations <ArrowRight size={14} />
@@ -1961,12 +2260,51 @@ function StudentDashboard({ user, auth }) {
                     </div>
 
                     {data.length ? (
-                      <BookingTable bookings={data.slice(0, 5)} student />
+                      <BookingTable
+                        bookings={data.slice(0, 5)}
+                        student
+                        onAction={(b) => (
+                          <div className="action-group" style={{ justifyContent: 'flex-end' }}>
+                            <button className="table-action" onClick={() => setSelectedBooking(b)}>
+                              Details
+                            </button>
+                            {b.status === 'approved' && (
+                              <Link className="table-action" to={`/student/payment/${b._id}`}>
+                                Pay now
+                              </Link>
+                            )}
+                            {b.status === 'confirmed' && (
+                              <Link className="table-action" to={`/student/payment/${b._id}`}>
+                                Receipt
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      />
                     ) : (
                       <EmptyBookings />
                     )}
                   </div>
                 </>
+              )}
+
+              {/* Student Booking Drawer */}
+              {selectedBooking && (
+                <StudentBookingDrawer
+                  booking={selectedBooking}
+                  onClose={() => setSelectedBooking(null)}
+                  onCancelClick={(b) => setCancelTarget(b)}
+                />
+              )}
+
+              {/* Cancel Confirmation Modal */}
+              {cancelTarget && (
+                <CancelBookingModal
+                  booking={cancelTarget}
+                  onClose={() => setCancelTarget(null)}
+                  onConfirm={() => cancel.mutate(cancelTarget._id)}
+                  isPending={cancel.isPending}
+                />
               )}
             </>
           ),
@@ -2052,17 +2390,48 @@ function EmptyBookings() {
 }
 
 function MyBookings({ auth }) {
-  const [tab, setTab] = useState('all')
-  const url =
-    tab === 'all'
-      ? '/bookings/my-bookings?limit=50'
-      : `/bookings/my-bookings?limit=50&status=${tab}`
-  const q = useBookings(url)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('status') || 'all'
+  const [tab, setTab] = useState(initialTab)
+  const [search, setSearch] = useState('')
+  const [selectedBooking, setSelectedBooking] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+
+  const q = useBookings('/bookings/my-bookings?limit=50')
   const qc = useQueryClient()
 
   const cancel = useMutation({
     mutationFn: (id) => api.put(`/bookings/cancel/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      setCancelTarget(null)
+      setSelectedBooking(null)
+    },
+  })
+
+  const allBookings = q.data || []
+  const counts = {
+    all: allBookings.length,
+    pending: allBookings.filter((b) => b.status === 'pending').length,
+    approved: allBookings.filter((b) => b.status === 'approved').length,
+    confirmed: allBookings.filter((b) => b.status === 'confirmed').length,
+    cancelled: allBookings.filter((b) => ['cancelled', 'rejected', 'expired'].includes(b.status)).length,
+  }
+
+  // Filter by tab
+  const tabFiltered = allBookings.filter((b) => {
+    if (tab === 'all') return true
+    if (tab === 'cancelled') return ['cancelled', 'rejected', 'expired'].includes(b.status)
+    return b.status === tab
+  })
+
+  // Filter by search query
+  const filteredBookings = tabFiltered.filter((b) => {
+    if (!search.trim()) return true
+    const term = search.toLowerCase()
+    const name = b.auditorium?.name?.toLowerCase() || ''
+    const purpose = b.purpose?.toLowerCase() || ''
+    return name.includes(term) || purpose.includes(term)
   })
 
   return (
@@ -2072,6 +2441,11 @@ function MyBookings({ auth }) {
         title="My bookings"
         subtitle="RESERVATION HISTORY"
         children={{
+          actions: (
+            <Link className="button" to="/student/book">
+              <CalendarPlus size={14} /> New booking
+            </Link>
+          ),
           content: (
             <div className="panel">
               <div className="panel-header">
@@ -2081,6 +2455,28 @@ function MyBookings({ auth }) {
                 </div>
               </div>
 
+              {/* Live Search Bar */}
+              <div className="booking-search-bar">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Filter reservations by auditorium name, event category, or purpose…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button
+                    className="icon-button"
+                    style={{ width: '24px', height: '24px' }}
+                    onClick={() => setSearch('')}
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Tabs */}
               <div className="tabs">
                 {[
                   ['all', 'All reservations'],
@@ -2091,10 +2487,14 @@ function MyBookings({ auth }) {
                 ].map(([k, l]) => (
                   <button
                     className={tab === k ? 'tab-active' : ''}
-                    onClick={() => setTab(k)}
+                    onClick={() => {
+                      setTab(k)
+                      setSearchParams(k === 'all' ? {} : { status: k })
+                    }}
                     key={k}
                   >
                     {l}
+                    {counts[k] > 0 && <span className="tab-count">{counts[k]}</span>}
                   </button>
                 ))}
               </div>
@@ -2103,12 +2503,15 @@ function MyBookings({ auth }) {
                 <LoadingRows />
               ) : q.isError ? (
                 <PageState error={q.error} retry={q.refetch} />
-              ) : q.data?.length ? (
+              ) : filteredBookings.length ? (
                 <BookingTable
-                  bookings={q.data}
+                  bookings={filteredBookings}
                   student
                   onAction={(b) => (
                     <div className="action-group" style={{ justifyContent: 'flex-end' }}>
+                      <button className="table-action" onClick={() => setSelectedBooking(b)}>
+                        Details
+                      </button>
                       {b.status === 'approved' && (
                         <Link className="table-action" to={`/student/payment/${b._id}`}>
                           Pay now
@@ -2137,11 +2540,7 @@ function MyBookings({ auth }) {
                       {['pending', 'approved'].includes(b.status) && (
                         <button
                           className="table-action subtle"
-                          onClick={() => {
-                            if (window.confirm('Cancel this booking request?')) {
-                              cancel.mutate(b._id)
-                            }
-                          }}
+                          onClick={() => setCancelTarget(b)}
                         >
                           Cancel
                         </button>
@@ -2152,6 +2551,25 @@ function MyBookings({ auth }) {
               ) : (
                 <EmptyBookings />
               )}
+
+              {/* Student Booking Drawer */}
+              {selectedBooking && (
+                <StudentBookingDrawer
+                  booking={selectedBooking}
+                  onClose={() => setSelectedBooking(null)}
+                  onCancelClick={(b) => setCancelTarget(b)}
+                />
+              )}
+
+              {/* Cancel Confirmation Modal */}
+              {cancelTarget && (
+                <CancelBookingModal
+                  booking={cancelTarget}
+                  onClose={() => setCancelTarget(null)}
+                  onConfirm={() => cancel.mutate(cancelTarget._id)}
+                  isPending={cancel.isPending}
+                />
+              )}
             </div>
           ),
         }}
@@ -2160,31 +2578,127 @@ function MyBookings({ auth }) {
   )
 }
 
+const EVENT_CATEGORIES = [
+  'Academic Lecture',
+  'Technical Workshop',
+  'Cultural Fest',
+  'Department Seminar',
+  'Club Meeting',
+  'Hackathon & Competition',
+  'Orientation & Induction',
+  'Faculty Conference',
+]
+
+const AV_OPTIONS = [
+  { id: 'sound', label: 'PA Sound & Wireless Mics', icon: '🎤' },
+  { id: 'projector', label: 'HD Projector & Stage Displays', icon: '📽️' },
+  { id: 'lighting', label: 'Stage & Spotlight Lighting', icon: '💡' },
+  { id: 'ac', label: 'Central Air Conditioning', icon: '❄️' },
+  { id: 'podium', label: 'Dais & Executive Lectern', icon: '🎙️' },
+  { id: 'recording', label: 'Live Stream / Recording', icon: '🎥' },
+]
+
+const QUICK_SLOTS = [
+  { label: 'Morning Slot', start: '09:00', end: '12:00' },
+  { label: 'Afternoon Slot', start: '13:00', end: '16:00' },
+  { label: 'Late Afternoon', start: '16:00', end: '19:00' },
+  { label: 'Evening Gala', start: '18:00', end: '21:00' },
+]
+
 function BookPage({ auth }) {
   const { auditoriumId } = useParams()
   const [search] = useSearchParams()
+  const aq = useAuditoriums()
+  const qc = useQueryClient()
+  const nav = useNavigate()
+
   const [form, setForm] = useState({
     auditoriumId: auditoriumId || '',
     bookingDate: search.get('date') || '',
     startTime: search.get('start') || '09:00',
-    endTime: search.get('end') || '11:00',
+    endTime: search.get('end') || '12:00',
+    category: 'Technical Workshop',
+    attendance: '',
+    amenities: ['sound', 'projector', 'ac'],
     purpose: '',
   })
   const [error, setError] = useState('')
-  const aq = useAuditoriums()
+
   const venue = aq.data?.find((v) => v._id === form.auditoriumId)
   const duration = hoursBetween(form.startTime, form.endTime)
-  const qc = useQueryClient()
-  const nav = useNavigate()
+  const isTimeInvalid = form.startTime && form.endTime && form.startTime >= form.endTime
+  
+  // Date validation
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const isDateToday = form.bookingDate === todayStr
+  const currentHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+  const isPastTimeToday = isDateToday && form.startTime <= currentHHMM
+
+  // Quick Date Helpers
+  const setQuickDateOffset = (days) => {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    setForm((prev) => ({ ...prev, bookingDate: d.toISOString().slice(0, 10) }))
+  }
+
+  // Quick Duration Helper
+  const setDurationHours = (hrs) => {
+    const [h, m] = form.startTime.split(':').map(Number)
+    const totalMinutes = h * 60 + (m || 0) + hrs * 60
+    const endH = Math.min(23, Math.floor(totalMinutes / 60))
+    const endM = totalMinutes % 60
+    const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+    setForm((prev) => ({ ...prev, endTime: endStr }))
+  }
+
+  // Toggle Amenity
+  const toggleAmenity = (id) => {
+    setForm((prev) => ({
+      ...prev,
+      amenities: prev.amenities.includes(id)
+        ? prev.amenities.filter((a) => a !== id)
+        : [...prev.amenities, id],
+    }))
+  }
 
   const mutation = useMutation({
-    mutationFn: () => api.post('/bookings/createBooking', form),
+    mutationFn: () => {
+      // Build structured purpose text
+      const amenityLabels = form.amenities
+        .map((id) => AV_OPTIONS.find((o) => o.id === id)?.label)
+        .filter(Boolean)
+
+      const parts = []
+      if (form.category) parts.push(`[${form.category}]`)
+      if (form.attendance) parts.push(`Expected Attendance: ${form.attendance} attendees.`)
+      if (amenityLabels.length) parts.push(`Requested Facilities: ${amenityLabels.join(', ')}.`)
+      if (form.purpose.trim()) parts.push(form.purpose.trim())
+
+      const finalPurpose = parts.join(' ') || 'Campus event reservation'
+
+      return api.post('/bookings/createBooking', {
+        auditoriumId: form.auditoriumId,
+        bookingDate: form.bookingDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        purpose: finalPurpose,
+      })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookings'] })
       nav('/student/my-bookings')
     },
     onError: (e) => setError(getError(e)),
   })
+
+  const isFormValid =
+    form.auditoriumId &&
+    form.bookingDate &&
+    form.startTime &&
+    form.endTime &&
+    !isTimeInvalid &&
+    !isPastTimeToday &&
+    duration > 0
 
   return (
     <RequireRole auth={auth} role="student">
@@ -2199,7 +2713,7 @@ function BookPage({ auth }) {
                 <div className="panel-header">
                   <div>
                     <h2>Reservation Details</h2>
-                    <p>Provide the details of your upcoming event for review.</p>
+                    <p>Provide schedule, attendee estimates, and equipment specifications for administrative review.</p>
                   </div>
                   <span className="step-chip">
                     Step 1 <span>of</span> 2
@@ -2211,10 +2725,10 @@ function BookPage({ auth }) {
                     <i>1</i> Details & Schedule
                   </span>
                   <span>
-                    <i>2</i> Admin Approval
+                    <i>2</i> Administrative Review
                   </span>
                   <span>
-                    <i>3</i> Confirmation
+                    <i>3</i> Fee Payment & Confirmation
                   </span>
                 </div>
 
@@ -2222,12 +2736,14 @@ function BookPage({ auth }) {
                   className="form-stack"
                   onSubmit={(e) => {
                     e.preventDefault()
+                    if (!isFormValid) return
                     setError('')
                     mutation.mutate()
                   }}
                 >
+                  {/* 1. Auditorium Selection */}
                   <label className="form-label">
-                    Auditorium
+                    Auditorium Venue
                     <select
                       className="input"
                       value={form.auditoriumId}
@@ -2243,52 +2759,200 @@ function BookPage({ auth }) {
                     </select>
                   </label>
 
-                  <label className="form-label">
-                    Event Date
-                    <input
-                      className="input"
-                      type="date"
-                      min={new Date().toISOString().slice(0, 10)}
-                      value={form.bookingDate}
-                      onChange={(e) => setForm({ ...form, bookingDate: e.target.value })}
-                      required
-                    />
-                  </label>
-
-                  <div className="time-row">
+                  {/* 2. Event Date with Quick Date Chips */}
+                  <div className="form-group">
                     <label className="form-label">
-                      Start Time
+                      Event Date
                       <input
                         className="input"
-                        type="time"
-                        value={form.startTime}
-                        onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                        type="date"
+                        min={todayStr}
+                        value={form.bookingDate}
+                        onChange={(e) => setForm({ ...form, bookingDate: e.target.value })}
                         required
                       />
                     </label>
-                    <label className="form-label">
-                      End Time
-                      <input
-                        className="input"
-                        type="time"
-                        value={form.endTime}
-                        onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                        required
-                      />
-                    </label>
+                    <div className="quick-chip-group">
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick select:</span>
+                      <button
+                        type="button"
+                        className={`quick-chip ${form.bookingDate === todayStr ? 'active' : ''}`}
+                        onClick={() => setQuickDateOffset(0)}
+                      >
+                        Today
+                      </button>
+                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(1)}>
+                        Tomorrow
+                      </button>
+                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(2)}>
+                        In 2 days
+                      </button>
+                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(7)}>
+                        Next week
+                      </button>
+                    </div>
                   </div>
 
+                  {/* 3. Time Slots, Presets & Duration */}
+                  <div className="form-group">
+                    <div className="time-row">
+                      <label className="form-label">
+                        Start Time
+                        <input
+                          className="input"
+                          type="time"
+                          value={form.startTime}
+                          onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                          required
+                        />
+                      </label>
+                      <label className="form-label">
+                        End Time
+                        <input
+                          className="input"
+                          type="time"
+                          value={form.endTime}
+                          onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                          required
+                        />
+                      </label>
+                    </div>
+
+                    {/* Inline time validation feedback */}
+                    {isTimeInvalid && (
+                      <div className="inline-feedback error">
+                        <AlertCircle size={13} /> Start time must be earlier than end time.
+                      </div>
+                    )}
+                    {isPastTimeToday && (
+                      <div className="inline-feedback warning">
+                        <AlertCircle size={13} /> Selected start time has already passed for today.
+                      </div>
+                    )}
+                    {!isTimeInvalid && !isPastTimeToday && duration > 0 && (
+                      <div className="inline-feedback success">
+                        <Check size={13} /> Duration: {duration} hours ({money(venue ? Math.round(duration * venue.basePrice) : 0)})
+                      </div>
+                    )}
+
+                    {/* Quick Duration Buttons */}
+                    <div className="quick-chip-group" style={{ marginTop: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Set duration:</span>
+                      {[1, 2, 3, 4, 8].map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          className={`quick-chip ${duration === h ? 'active' : ''}`}
+                          onClick={() => setDurationHours(h)}
+                        >
+                          {h === 4 ? '4h (Half day)' : h === 8 ? '8h (Full day)' : `${h} hr${h > 1 ? 's' : ''}`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Popular Slot Presets */}
+                    <div className="quick-chip-group" style={{ marginTop: '6px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Popular slots:</span>
+                      {QUICK_SLOTS.map((s) => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          className={`quick-chip ${form.startTime === s.start && form.endTime === s.end ? 'active' : ''}`}
+                          onClick={() => setForm((prev) => ({ ...prev, startTime: s.start, endTime: s.end }))}
+                        >
+                          {s.label} ({s.start}–{s.end})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Event Category Selection */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      Event Category
+                    </label>
+                    <div className="category-pills">
+                      {EVENT_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={`category-pill ${form.category === cat ? 'active' : ''}`}
+                          onClick={() => setForm({ ...form, category: cat })}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 5. Expected Attendance */}
                   <label className="form-label">
-                    Purpose of Booking
+                    Expected Attendance (Persons)
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 150"
+                      value={form.attendance}
+                      onChange={(e) => setForm({ ...form, attendance: e.target.value })}
+                    />
+                    {venue && form.attendance && (
+                      <div style={{ marginTop: '4px' }}>
+                        {Number(form.attendance) <= venue.capacity ? (
+                          <span className="inline-feedback success">
+                            <Check size={13} /> Fits comfortably within {venue.name} capacity ({form.attendance} / {venue.capacity} seats).
+                          </span>
+                        ) : (
+                          <span className="inline-feedback warning">
+                            <AlertCircle size={13} /> Notice: Requested attendance ({form.attendance}) exceeds venue capacity ({venue.capacity} seats).
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </label>
+
+                  {/* 6. Audio-Visual & Facility Requirements */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      Required Facilities & AV Setup
+                    </label>
+                    <div className="amenity-toggle-grid">
+                      {AV_OPTIONS.map((opt) => {
+                        const active = form.amenities.includes(opt.id)
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            className={`amenity-toggle-chip ${active ? 'active' : ''}`}
+                            onClick={() => toggleAmenity(opt.id)}
+                          >
+                            <span>{opt.icon}</span>
+                            <span>{opt.label}</span>
+                            {active && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--brand-700)' }} />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 7. Purpose & Agenda Description */}
+                  <label className="form-label">
+                    Event Purpose & Special Requirements
                     <textarea
                       className="input textarea"
                       maxLength={500}
-                      placeholder="Outline your event purpose, expected attendance, and special equipment requirements."
+                      rows={4}
+                      placeholder="Detail event agenda, chief guests/dignitaries, and any special campus logistics required for approval."
                       value={form.purpose}
                       onChange={(e) => setForm({ ...form, purpose: e.target.value })}
                       required
                     />
-                    <span className="field-hint">{form.purpose.length}/500 characters</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <span className="field-hint">
+                        {form.purpose.length < 10 ? 'Please provide at least 10 characters describing the event.' : 'Complete and descriptive context ensures faster approval.'}
+                      </span>
+                      <span className="field-hint">{form.purpose.length}/500</span>
+                    </div>
                   </label>
 
                   {error && (
@@ -2298,18 +2962,23 @@ function BookPage({ auth }) {
                     </div>
                   )}
 
-                  <button className="button auth-submit" disabled={mutation.isPending}>
-                    {mutation.isPending ? 'Submitting request…' : 'Submit booking request'}{' '}
+                  {/* 8. Submit Button */}
+                  <button
+                    className="button auth-submit"
+                    disabled={mutation.isPending || !isFormValid}
+                  >
+                    {mutation.isPending ? 'Submitting booking request…' : 'Submit booking request'}{' '}
                     <ArrowRight size={15} />
                   </button>
 
                   <p className="submission-note">
                     <ShieldCheck size={14} />
-                    <span>No advance payment is taken. Fees are due only after administrative review.</span>
+                    <span>No advance payment is taken today. Invoicing is processed only after official campus administrative review.</span>
                   </p>
                 </form>
               </section>
 
+              {/* Live Sticky Summary Sidebar */}
               <aside className="booking-summary">
                 <span className="booking-card-label">RESERVATION SUMMARY</span>
                 {venue ? (
@@ -2324,7 +2993,7 @@ function BookPage({ auth }) {
                 ) : (
                   <div className="summary-placeholder">
                     <DoorOpen size={22} />
-                    <span>Select an auditorium to view its details and pricing.</span>
+                    <span>Select an auditorium to view its venue preview and calculated charges.</span>
                   </div>
                 )}
 
@@ -2337,7 +3006,7 @@ function BookPage({ auth }) {
                   </div>
                   <div>
                     <span>
-                      <Clock3 size={14} /> Time Slot
+                      <Clock3 size={14} /> Time Window
                     </span>
                     <strong>
                       {form.startTime} – {form.endTime}
@@ -2347,6 +3016,18 @@ function BookPage({ auth }) {
                     <span>Duration</span>
                     <strong>{duration > 0 ? `${duration} hours` : '—'}</strong>
                   </div>
+                  {venue && (
+                    <>
+                      <div>
+                        <span>Hourly Rate</span>
+                        <strong>{money(venue.basePrice)} / hr</strong>
+                      </div>
+                      <div>
+                        <span>AV & Equipment Support</span>
+                        <strong style={{ color: 'var(--success)' }}>Included</strong>
+                      </div>
+                    </>
+                  )}
                   <div className="summary-total">
                     <span>Estimated Total</span>
                     <strong>
@@ -2356,8 +3037,7 @@ function BookPage({ auth }) {
                 </div>
 
                 <div className="summary-note">
-                  Once submitted, the venue remains provisionally held while campus administrators review
-                  your request.
+                  Once submitted, the venue slot remains provisionally held while campus facilities management reviews your event requirements.
                 </div>
               </aside>
             </div>
