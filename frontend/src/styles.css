@@ -6337,3 +6337,889 @@ a, button { transition-duration: 150ms; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Refined Reservation Actions & Details Popup Experience
+   ========================================================================== */
+
+@keyframes drawerScrimFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.drawer-scrim {
+  animation: drawerScrimFadeIn 0.2s ease-out;
+}
+
+.booking-drawer {
+  animation: drawerSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -10px 0 36px rgba(0, 0, 0, 0.32);
+}
+
+/* Action buttons in reservations table */
+.table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Details button */
+.table-action.action-details {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+
+.table-action.action-details:hover {
+  background: var(--surface-interactive);
+  border-color: var(--brand-500);
+  color: var(--brand-600);
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .table-action.action-details {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .table-action.action-details:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+/* Paid button / badge */
+.table-action.action-paid {
+  background: rgba(57, 167, 123, 0.12);
+  border: 1px solid rgba(75, 184, 140, 0.30);
+  color: #8bd1b2;
+}
+
+.table-action.action-paid:hover:not(:disabled) {
+  background: rgba(57, 167, 123, 0.22);
+  border-color: rgba(75, 184, 140, 0.50);
+  color: #a7f3d0;
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .table-action.action-paid {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.06);
+}
+
+[data-theme="light"] .table-action.action-paid:hover:not(:disabled) {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.12);
+}
+
+.table-action.action-paid:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Pay Now button */
+.table-action.action-pay {
+  background: var(--brand-700);
+  border: 1px solid var(--brand-700);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.table-action.action-pay:hover {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);
+}
+
+[data-theme="light"] .table-action.action-pay {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+[data-theme="light"] .table-action.action-pay:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+/* Booking reference interactive chip */
+.booking-ref-chip.interactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.booking-ref-chip.interactive:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-600);
+  background: var(--surface-raised);
+}
+
+[data-theme="light"] .booking-ref-chip.interactive {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .booking-ref-chip.interactive:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.copied-pill {
+  font-size: 10px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+/* Details Popup Grid */
+.drawer-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+[data-theme="light"] .drawer-details-grid {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-item strong {
+  font-size: 13.5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.duration-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .duration-tag {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.pay-status-paid {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+[data-theme="light"] .pay-status-paid {
+  color: #047857;
+}
+
+.pay-status-due {
+  color: var(--warning);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+[data-theme="light"] .pay-status-due {
+  color: #b45309;
+}
+
+.pay-status-pending {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Purpose Card */
+.drawer-purpose-card {
+  padding: 14px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+[data-theme="light"] .drawer-purpose-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.purpose-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.drawer-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.deadline-highlight {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.venue-location-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* Drawer action buttons */
+.button-receipt-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #047857;
+  border: 1px solid #059669;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.button-receipt-download:hover:not(:disabled) {
+  background: #065f46;
+  border-color: #047857;
+}
+
+[data-theme="light"] .button-receipt-download {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+[data-theme="light"] .button-receipt-download:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}
+
+.button-receipt-download:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.button-action-pay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--brand-700);
+  border: 1px solid var(--brand-700);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Table row interactive feel */
+.booking-table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.booking-table tbody tr:hover {
+  background-color: var(--surface-subtle);
+}
+
+[data-theme="light"] .booking-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* ==========================================================================
+   Receipt Voucher & Confirmation UI (Digital Receipt Component)
+   ========================================================================== */
+
+.receipt-voucher-wrapper {
+  max-width: 680px;
+  margin: 20px auto 40px;
+  animation: receiptFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes receiptFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.receipt-voucher-card {
+  background: var(--surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+[data-theme="light"] .receipt-voucher-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
+}
+
+/* Voucher Top Header */
+.receipt-voucher-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.voucher-seal {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .voucher-seal {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
+}
+
+.voucher-top-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-600);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.voucher-top-info h2 {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  line-height: 1.25;
+}
+
+.voucher-top-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.voucher-badge-paid {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .voucher-badge-paid {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+/* Receipt Meta Strip */
+.receipt-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+[data-theme="light"] .receipt-meta-strip {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.meta-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-strip-item span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-strip-item strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-code-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.copy-code-btn code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--brand-600);
+  font-weight: 600;
+}
+
+.copy-code-btn:hover code {
+  text-decoration: underline;
+}
+
+/* Venue Card in Receipt */
+.voucher-venue-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+[data-theme="light"] .voucher-venue-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.voucher-venue-img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+}
+
+.voucher-venue-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-venue-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.voucher-venue-details h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.voucher-venue-specs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.voucher-venue-specs span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Purpose Card */
+.voucher-purpose-card {
+  padding: 12px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-theme="light"] .voucher-purpose-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.voucher-purpose-card span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.voucher-purpose-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* Itemized Financial Breakdown */
+.voucher-breakdown-section {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+[data-theme="light"] .voucher-breakdown-section {
+  border-color: #e2e8f0;
+}
+
+.breakdown-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 10px 16px;
+  background: var(--surface-interactive);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+[data-theme="light"] .breakdown-header {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 14px 16px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--surface);
+}
+
+[data-theme="light"] .breakdown-row {
+  background: #ffffff;
+  border-color: #f1f5f9;
+}
+
+.breakdown-row small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.breakdown-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--surface-subtle);
+}
+
+[data-theme="light"] .breakdown-total-row {
+  background: #f8fafc;
+}
+
+.breakdown-total-row small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.total-highlight {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand-600);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="light"] .total-highlight {
+  color: #2563eb;
+}
+
+/* Transaction Details Box */
+.voucher-transaction-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-md);
+}
+
+[data-theme="light"] .voucher-transaction-box {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.tx-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tx-col span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+[data-theme="light"] .tx-col span {
+  color: #065f46;
+}
+
+.tx-col strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-completed-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success) !important;
+}
+
+[data-theme="light"] .status-completed-text {
+  color: #047857 !important;
+}
+
+/* Actions Bar */
+.voucher-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.button-receipt-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--brand-700);
+  border: 1px solid var(--brand-700);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.button-receipt-primary:hover:not(:disabled) {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+[data-theme="light"] .button-receipt-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+[data-theme="light"] .button-receipt-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.button-receipt-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voucher-footer {
+  text-align: center;
+  border-top: 1px solid var(--border-light);
+  padding-top: 14px;
+}
+
+.voucher-footer p {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.search-count-pill {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  margin: 10px 0;
+  display: inline-block;
+}
+
+/* Print Stylesheet */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .site-header,
+  .dashboard-sidebar,
+  .side-nav,
+  .brand,
+  .theme-toggle-btn,
+  .voucher-actions-bar,
+  .tabs,
+  .booking-search-bar {
+    display: none !important;
+  }
+
+  .dashboard-layout,
+  .dashboard-main,
+  .panel,
+  .receipt-voucher-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .receipt-voucher-card {
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+  }
+}

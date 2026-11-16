@@ -1,6 +1,6 @@
 // ============================================================================
 // AuditoReserve — Institutional Email Templates
-// Styled to match the Teerthanker Mahaveer University (TMU) Facilities Frontend UI
+// Styled to match the AuditoReserve Obsidian & Electric Blue Frontend Design System
 // ============================================================================
 
 function emailLayout({
@@ -17,22 +17,22 @@ function emailLayout({
     success: {
       bg: "#ecfdf5",
       border: "#a7f3d0",
-      color: "#065f46",
+      color: "#047857",
     },
     warning: {
       bg: "#fffbeb",
       border: "#fde68a",
-      color: "#92400e",
+      color: "#b45309",
     },
     danger: {
       bg: "#fef2f2",
       border: "#fecaca",
-      color: "#991b1b",
+      color: "#dc2626",
     },
     info: {
-      bg: "#f0f9ff",
-      border: "#bae6fd",
-      color: "#0369a1",
+      bg: "#eff6ff",
+      border: "#bfdbfe",
+      color: "#2563eb",
     },
   };
 
@@ -49,10 +49,10 @@ function emailLayout({
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
     @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; padding: 12px !important; }
+      .email-container { width: 100% !important; padding: 10px !important; }
       .email-card { border-radius: 8px !important; }
       .email-card-body { padding: 24px 20px !important; }
-      .email-card-header { padding: 20px 20px !important; }
+      .email-card-header { padding: 18px 20px !important; }
       .email-card-footer { padding: 20px 20px !important; }
     }
   </style>
@@ -67,6 +67,11 @@ function emailLayout({
   -webkit-font-smoothing: antialiased;
 ">
 
+  <!-- Top Accent Bar -->
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #2563eb; height: 4px;">
+    <tr><td style="height: 4px; font-size: 1px; line-height: 1px;">&nbsp;</td></tr>
+  </table>
+
   <!-- Outer background table -->
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; margin: 0; padding: 32px 16px;">
     <tr>
@@ -77,15 +82,15 @@ function emailLayout({
           max-width: 580px;
           background-color: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 10px;
+          border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
         ">
 
           <!-- Brand Header Bar -->
           <tr>
             <td class="email-card-header" style="
-              padding: 24px 32px;
+              padding: 22px 32px;
               border-bottom: 1px solid #e2e8f0;
               background-color: #ffffff;
             ">
@@ -94,35 +99,48 @@ function emailLayout({
                   <td style="vertical-align: middle;">
                     <table border="0" cellpadding="0" cellspacing="0">
                       <tr>
-                        <!-- Brand Icon Box -->
+                        <!-- Electric Blue Brand Icon Box -->
                         <td style="
                           width: 36px;
                           height: 36px;
-                          background-color: #047857;
-                          border-radius: 6px;
+                          background-color: #2563eb;
+                          border-radius: 8px;
                           text-align: center;
                           vertical-align: middle;
                           color: #ffffff;
-                          font-weight: 700;
-                          font-size: 14px;
+                          font-weight: 800;
+                          font-size: 15px;
                           letter-spacing: -0.5px;
                         ">
                           AR
                         </td>
                         <!-- Brand Name & University Tag -->
                         <td style="padding-left: 12px; vertical-align: middle;">
-                          <div style="font-size: 16px; font-weight: 700; color: #0f172a; line-height: 1.2;">
-                            AuditoReserve
+                          <div style="font-size: 17px; font-weight: 700; color: #0f172a; line-height: 1.2;">
+                            Audito<span style="color: #2563eb;">Reserve</span>
                           </div>
-                          <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
-                            Campus Facilities · TMU
+                          <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2; margin-top: 1px;">
+                            Campus Facilities & Venue Management
                           </div>
                         </td>
                       </tr>
                     </table>
                   </td>
-                  <td align="right" style="vertical-align: middle; font-size: 11px; font-weight: 600; color: #047857;">
-                    OFFICIAL NOTIFICATION
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="
+                      display: inline-block;
+                      background-color: #eff6ff;
+                      border: 1px solid #bfdbfe;
+                      color: #2563eb;
+                      font-size: 10px;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      padding: 3px 8px;
+                      border-radius: 4px;
+                    ">
+                      Official Notification
+                    </span>
                   </td>
                 </tr>
               </table>
@@ -161,7 +179,7 @@ function emailLayout({
               <!-- Heading -->
               <h1 style="
                 margin: 0 0 18px 0;
-                font-size: 24px;
+                font-size: 23px;
                 line-height: 1.3;
                 font-weight: 700;
                 color: #0f172a;
@@ -182,17 +200,17 @@ function emailLayout({
               ${
                 link && linkText
                   ? `
-              <!-- Primary CTA Action Button -->
+              <!-- Primary CTA Action Button (Electric Blue) -->
               <table border="0" cellpadding="0" cellspacing="0" style="margin-top: 28px; margin-bottom: 8px;">
                 <tr>
                   <td align="center" style="
-                    background-color: #047857;
-                    border: 1px solid #065f46;
+                    background-color: #2563eb;
+                    border: 1px solid #1d4ed8;
                     border-radius: 6px;
                   ">
                     <a href="${link}" target="_blank" style="
                       display: inline-block;
-                      padding: 12px 24px;
+                      padding: 12px 26px;
                       font-size: 14px;
                       font-weight: 600;
                       color: #ffffff;
@@ -208,13 +226,13 @@ function emailLayout({
               <!-- Fallback Direct URL -->
               <p style="
                 margin: 20px 0 0 0;
-                font-size: 12px;
+                font-size: 11.5px;
                 line-height: 1.5;
                 color: #64748b;
                 word-break: break-all;
               ">
-                If the button doesn't work, copy and paste this link into your browser:<br/>
-                <a href="${link}" style="color: #047857; text-decoration: underline;">${link}</a>
+                If the button above does not work, copy and paste this link into your browser:<br/>
+                <a href="${link}" style="color: #2563eb; text-decoration: underline;">${link}</a>
               </p>
               `
                   : ""
@@ -227,7 +245,7 @@ function emailLayout({
                 margin-top: 24px;
                 padding-top: 20px;
                 border-top: 1px solid #f1f5f9;
-                font-size: 12.5px;
+                font-size: 12px;
                 line-height: 1.6;
                 color: #64748b;
               ">
@@ -253,16 +271,16 @@ function emailLayout({
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td>
-                    <strong style="color: #334155; font-size: 12px; display: block; margin-bottom: 4px;">
+                    <strong style="color: #0f172a; font-size: 12px; display: block; margin-bottom: 4px;">
                       Teerthanker Mahaveer University · Facilities & Infrastructure Management
                     </strong>
-                    Administrative Block, Central Campus, TMU<br/>
-                    Inquiries: <a href="mailto:facilities@tmu.ac.in" style="color: #047857; text-decoration: none;">facilities@tmu.ac.in</a> · Portal: <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}" style="color: #047857; text-decoration: none;">AuditoReserve</a>
+                    Central Administration Complex, University Campus<br/>
+                    Support Inquiries: <a href="mailto:facilities@tmu.ac.in" style="color: #2563eb; text-decoration: none;">facilities@tmu.ac.in</a> · Portal: <a href="${process.env.FRONTEND_URL || "https://auditoreserve.netlify.app"}" style="color: #2563eb; text-decoration: none;">AuditoReserve</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding-top: 12px; font-size: 11px; color: #94a3b8;">
-                    This is an automated system email for your university facilities account. If you did not initiate this action, please alert campus security.
+                    This is an automated operational notice generated by AuditoReserve. Please do not reply directly to this email.
                   </td>
                 </tr>
               </table>
@@ -297,14 +315,14 @@ exports.generateVerificationEmail = async (user, verificationToken) => {
     text: `Hi ${user.name},\n\nThank you for creating an account with AuditoReserve. Please verify your university email address by visiting:\n${verificationLink}\n\nTeerthanker Mahaveer University · Facilities Management`,
     html: emailLayout({
       badge: "Account Verification",
-      badgeType: "success",
-      heading: "Confirm your university email",
+      badgeType: "info",
+      heading: "Confirm your institutional email",
       body: `
         <p style="margin: 0 0 14px 0;">
           Hi <strong style="color: #0f172a;">${user.name}</strong>,
         </p>
         <p style="margin: 0 0 14px 0;">
-          Thank you for creating an account on <strong>AuditoReserve</strong>. To activate your access to campus auditorium scheduling, event requests, and reservation tracking, please confirm your institutional email address.
+          Welcome to <strong>AuditoReserve</strong>. To activate your access to campus auditorium bookings, scheduling slots, and official event requests, please confirm your university email address.
         </p>
         <div style="
           background-color: #f8fafc;
@@ -318,12 +336,12 @@ exports.generateVerificationEmail = async (user, verificationToken) => {
           Registered Email: <strong style="color: #0f172a;">${user.email}</strong>
         </div>
         <p style="margin: 0 0 6px 0;">
-          Click the button below to complete your registration:
+          Click the button below to verify your account and get started:
         </p>
       `,
       link: verificationLink,
       linkText: "Verify Email Address",
-      subtext: "If you did not create an account on AuditoReserve, you can safely disregard this message.",
+      subtext: "If you did not create an account on AuditoReserve, you can safely ignore this email.",
     }),
   };
 };
@@ -348,7 +366,7 @@ exports.generateResetPasswordEmail = async (user, resetToken) => {
           Hi <strong style="color: #0f172a;">${user.name}</strong>,
         </p>
         <p style="margin: 0 0 14px 0;">
-          We received a request to reset the password associated with your university account (<strong style="color: #0f172a;">${user.email}</strong>).
+          We received a request to reset the password associated with your account (<strong style="color: #0f172a;">${user.email}</strong>).
         </p>
         <div style="
           background-color: #fffbeb;
@@ -359,7 +377,7 @@ exports.generateResetPasswordEmail = async (user, resetToken) => {
           font-size: 13px;
           color: #92400e;
         ">
-          <strong>Security Notice:</strong> This password reset link is single-use and will expire in <strong>10 minutes</strong>.
+          <strong>Security Notice:</strong> This password reset link is valid for <strong>10 minutes</strong> only.
         </div>
         <p style="margin: 0 0 6px 0;">
           Click the button below to set a new password:
@@ -402,11 +420,11 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
     ? "Complete Payment Now"
     : "View My Reservations";
 
-  let statusMessage = `Your reservation request has been marked as <strong>${statusLabel}</strong>.`;
+  let statusMessage = `Your reservation request has been updated to: <strong>${statusLabel}</strong>.`;
   if (isConfirmed) {
-    statusMessage = "Your payment has been received and verified. Your campus auditorium reservation is <strong>officially confirmed</strong> on the university schedule. You can download your official PDF receipt below.";
+    statusMessage = "Your payment has been successfully verified! Your auditorium booking is now <strong>officially confirmed</strong> on the campus schedule. You can download your official PDF receipt below.";
   } else if (isApproved) {
-    statusMessage = "Your booking request has been <strong>approved by campus facilities administration</strong>. Please complete the online payment to finalize and secure the slot.";
+    statusMessage = "Your booking request has been <strong>approved by campus facilities administration</strong>. Please complete the online payment before the deadline to lock your slot.";
   } else if (isCancelled) {
     statusMessage = "This reservation request has been <strong>cancelled</strong>. Any provisionally held slots have been released back to the general university schedule.";
   }
@@ -435,7 +453,7 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
         <table width="100%" border="0" cellpadding="0" cellspacing="0" style="
           background-color: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 6px;
+          border-radius: 8px;
           margin-bottom: 20px;
         ">
           <tr>
@@ -444,19 +462,19 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
                 RESERVATION REFERENCE
               </span>
               <strong style="font-size: 14px; font-family: ui-monospace, Menlo, Consolas, monospace; color: #0f172a;">
-                ${bookingId}
+                #${bookingId}
               </strong>
             </td>
           </tr>
           <tr>
-            <td style="padding: 12px 18px;">
+            <td style="padding: 14px 18px;">
               <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; display: block;">
                 UPDATED STATUS
               </span>
               <strong style="font-size: 14px; color: ${
-                isConfirmed ? "#047857" : isCancelled ? "#991b1b" : isApproved ? "#b45309" : "#0f172a"
+                isConfirmed ? "#047857" : isCancelled ? "#dc2626" : isApproved ? "#b45309" : "#2563eb"
               };">
-                ${statusLabel}
+                ● ${statusLabel}
               </strong>
             </td>
           </tr>
@@ -464,7 +482,7 @@ exports.bookingUpdatedEmail = async (user, bookingId, status) => {
       `,
       link: actionLink,
       linkText: actionText,
-      subtext: "For any questions regarding scheduling, contact the Facilities Office at facilities@tmu.ac.in.",
+      subtext: "For questions regarding your schedule, contact TMU Facilities Management at facilities@tmu.ac.in.",
     }),
   };
 };
@@ -515,24 +533,25 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
     html: emailLayout({
       badge: "Payment Required",
       badgeType: "warning",
-      heading: "Complete payment to confirm reservation",
+      heading: "Complete payment to lock your reservation",
       body: `
         <p style="margin: 0 0 14px 0;">
           Hi <strong style="color: #0f172a;">${user.name}</strong>,
         </p>
         <p style="margin: 0 0 18px 0;">
-          Great news! Your booking request for <strong style="color: #047857;">${venueName}</strong> has been reviewed and <strong>approved</strong> by the university facilities committee.
+          Your booking request for <strong style="color: #2563eb;">${venueName}</strong> has been reviewed and <strong>approved</strong> by the university facilities committee.
         </p>
         <p style="margin: 0 0 18px 0;">
-          To prevent scheduling conflicts and lock this auditorium on the official calendar, please complete your online payment within the 12-hour window.
+          To finalize your slot on the master calendar, please complete your online payment within the 12-hour deadline.
         </p>
 
         <!-- Venue Schedule & Tariff Summary Box -->
         <table width="100%" border="0" cellpadding="0" cellspacing="0" style="
           background-color: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 6px;
+          border-radius: 8px;
           margin-bottom: 20px;
+          overflow: hidden;
         ">
           <tr>
             <td style="padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
@@ -575,7 +594,7 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
               <table width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size: 13px; color: #64748b;">Payment Deadline:</td>
-                  <td align="right" style="font-size: 13.5px; font-weight: 700; color: #92400e;">${deadlineText}</td>
+                  <td align="right" style="font-size: 13.5px; font-weight: 700; color: #b45309;">${deadlineText}</td>
                 </tr>
               </table>
             </td>
@@ -584,8 +603,8 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
             <td style="padding: 14px 18px; background-color: #f1f5f9;">
               <table width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="font-size: 14px; font-weight: 600; color: #0f172a;">Total Payable:</td>
-                  <td align="right" style="font-size: 17px; font-weight: 700; color: #047857;">${formattedAmount}</td>
+                  <td style="font-size: 14px; font-weight: 600; color: #0f172a;">Total Amount Due:</td>
+                  <td align="right" style="font-size: 18px; font-weight: 800; color: #2563eb;">${formattedAmount}</td>
                 </tr>
               </table>
             </td>
@@ -602,12 +621,12 @@ exports.paymentRequestEmail = async (user, booking, auditorium, payment) => {
           color: #92400e;
           line-height: 1.5;
         ">
-          <strong>Important:</strong> Unpaid reservations will automatically expire after the 12-hour deadline, and the provisional slot will be released for other campus event organizers.
+          <strong>Important:</strong> Unpaid reservations will automatically expire after the 12-hour deadline, and the reserved slot will be released back to the general campus schedule.
         </div>
       `,
       link: paymentLink,
       linkText: `Pay ${formattedAmount} via Razorpay`,
-      subtext: "Payments are processed through a 256-bit encrypted gateway. Official GST receipt vouchers are generated upon confirmation.",
+      subtext: "Payments are processed securely via Razorpay with 256-bit encryption. Official receipt vouchers are generated upon confirmation.",
     }),
   };
 };

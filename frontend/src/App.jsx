@@ -22,7 +22,10 @@ import {
   ChevronUp,
   CircleHelp,
   Clock3,
+  Copy,
+  CreditCard,
   DoorOpen,
+  Download,
   Eye,
   EyeOff,
   FileText,
@@ -37,6 +40,7 @@ import {
   Menu,
   Music,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Settings2,
@@ -101,6 +105,36 @@ const timeAgo = (d) => {
 // ============================================================================
 // Shared Queries & Hooks
 // ============================================================================
+
+
+const downloadBookingReceipt = async (bookingId, onLoading, setToast) => {
+  if (!bookingId) return
+  try {
+    if (onLoading) onLoading(true)
+    const r = await api.get(`/payments/${bookingId}/receipt/download`, {
+      responseType: 'blob',
+    })
+    const u = URL.createObjectURL(r.data)
+    const a = document.createElement('a')
+    a.href = u
+    a.download = `auditoreserve-receipt-${bookingId.slice(-8).toUpperCase()}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(u)
+    if (setToast) {
+      setToast('Official receipt downloaded successfully')
+      window.setTimeout(() => setToast(''), 4000)
+    }
+  } catch (err) {
+    if (setToast) {
+      setToast('Failed to download receipt. Please try again.')
+      window.setTimeout(() => setToast(''), 4000)
+    }
+  } finally {
+    if (onLoading) onLoading(false)
+  }
+}
 
 const useAuditoriums = () =>
   useQuery({
@@ -1934,14 +1968,40 @@ function CancelBookingModal({ booking, onClose, onConfirm, isPending }) {
   )
 }
 
-function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
+function StudentBookingDrawer({ booking, onClose, onCancelClick, auth }) {
   if (!booking) return null
+
+  const [copied, setCopied] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const isApproved = booking.status === 'approved'
   const isConfirmed = booking.status === 'confirmed'
   const isPending = booking.status === 'pending'
   const isCancelled = ['cancelled', 'rejected', 'expired'].includes(booking.status)
   const duration = hoursBetween(booking.startTime, booking.endTime)
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  const copyRefId = () => {
+    if (!booking._id) return
+    navigator.clipboard?.writeText(booking._id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleDownload = () => {
+    downloadBookingReceipt(
+      booking._id,
+      setDownloading,
+      auth?.setToast
+    )
+  }
 
   return (
     <div className="drawer-scrim" onClick={onClose}>
@@ -1951,20 +2011,29 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
             <span className="eyebrow">RESERVATION DETAILS</span>
             <h2>{booking.auditorium?.name || 'Auditorium'}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close details">
+          <button className="icon-button" onClick={onClose} aria-label="Close details (Esc)" title="Close (Esc)">
             <X size={18} />
           </button>
         </div>
 
         <div className="drawer-status-wrap">
           <Status value={booking.status} />
-          <span className="booking-ref-chip">#{booking._id?.slice(-8).toUpperCase()}</span>
+          <button
+            type="button"
+            className="booking-ref-chip interactive"
+            onClick={copyRefId}
+            title="Click to copy Booking ID"
+          >
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+            <span>#{booking._id?.slice(-8).toUpperCase()}</span>
+            {copied && <span className="copied-pill">Copied</span>}
+          </button>
         </div>
 
         {/* Status contextual alert */}
         {isPending && (
           <div className="drawer-banner banner-pending">
-            <Clock3 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <Clock3 size={17} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <strong>Under Administrative Review</strong>
               <span>Campus facility coordinators are verifying your schedule and AV requirements.</span>
@@ -1974,7 +2043,7 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
 
         {isApproved && (
           <div className="drawer-banner banner-approved">
-            <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <CheckCircle2 size={17} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <strong>Request Approved — Payment Due</strong>
               <span>
@@ -1987,17 +2056,17 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
 
         {isConfirmed && (
           <div className="drawer-banner banner-confirmed">
-            <BadgeCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <BadgeCheck size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <strong>Reservation Officially Confirmed</strong>
-              <span>Your slot is locked on the campus calendar. Official receipt is ready for download.</span>
+              <strong>Reservation Confirmed & Paid</strong>
+              <span>Your slot is locked on the campus calendar. Official receipt is verified and ready.</span>
             </div>
           </div>
         )}
 
         {isCancelled && (
           <div className="drawer-banner banner-cancelled">
-            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <AlertCircle size={17} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <strong>Booking Inactive</strong>
               <span>This booking was {booking.status}. You may submit a new request if needed.</span>
@@ -2014,69 +2083,83 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
               <span>
                 <Users size={13} /> {booking.auditorium.capacity} seating capacity · {money(booking.auditorium.basePrice)}/hr
               </span>
+              {booking.auditorium.location && (
+                <span className="venue-location-sub">
+                  <MapPin size={12} /> {booking.auditorium.location}
+                </span>
+              )}
             </div>
           </div>
         )}
 
-        {/* Key Event Details */}
-        <div className="drawer-details">
-          <div>
+        {/* Key Event Details Grid */}
+        <div className="drawer-details-grid">
+          <div className="detail-item">
             <span>Event Date</span>
             <strong>{dateText(booking.bookingDate)}</strong>
           </div>
-          <div>
+          <div className="detail-item">
             <span>Time Window</span>
             <strong>
-              {booking.startTime} – {booking.endTime} ({duration > 0 ? `${duration} hrs` : 'Standard'})
+              {booking.startTime} – {booking.endTime}
+              {duration > 0 && <small className="duration-tag">{duration}h</small>}
             </strong>
           </div>
-          <div>
-            <span>Event Purpose & Scope</span>
-            <p className="drawer-purpose-text">{booking.purpose || 'No event details specified.'}</p>
-          </div>
-          <div>
-            <span>Calculated Amount</span>
+          <div className="detail-item">
+            <span>Total Amount</span>
             <strong className="drawer-amount">{money(booking.totalPrice)}</strong>
           </div>
-          {booking.paymentDeadline && isApproved && (
-            <div>
-              <span>Payment Deadline</span>
-              <strong>{dateText(booking.paymentDeadline)}</strong>
-            </div>
-          )}
-          <div>
-            <span>Requested On</span>
-            <small>{dateText(booking.createdAt)}</small>
+          <div className="detail-item">
+            <span>Payment Status</span>
+            <strong>
+              {isConfirmed ? (
+                <span className="pay-status-paid"><Check size={12} /> Paid in full</span>
+              ) : isApproved ? (
+                <span className="pay-status-due">Payment Due</span>
+              ) : (
+                <span className="pay-status-pending">Awaiting Review</span>
+              )}
+            </strong>
           </div>
+        </div>
+
+        {/* Purpose Card */}
+        <div className="drawer-purpose-card">
+          <span className="purpose-label">Event Purpose & Scope</span>
+          <p className="drawer-purpose-text">{booking.purpose || 'No event details specified.'}</p>
+        </div>
+
+        <div className="drawer-meta-bar">
+          <span>Requested On: {dateText(booking.createdAt)}</span>
+          {booking.paymentDeadline && isApproved && (
+            <span className="deadline-highlight">Pay by: {dateText(booking.paymentDeadline)}</span>
+          )}
         </div>
 
         {/* Drawer Actions */}
         <div className="drawer-actions">
           {isApproved && (
-            <Link className="button" to={`/student/payment/${booking._id}`} onClick={onClose} style={{ flex: 1 }}>
-              Complete Payment <ArrowRight size={14} />
+            <Link className="button button-action-pay" to={`/student/payment/${booking._id}`} onClick={onClose} style={{ flex: 1 }}>
+              <CreditCard size={15} /> Complete Payment <ArrowRight size={14} />
             </Link>
           )}
           {isConfirmed && (
-            <a
-              className="button button-secondary"
-              href={`${api.defaults.baseURL}/payments/${booking._id}/receipt/download`}
+            <button
+              className="button button-receipt-download"
+              onClick={handleDownload}
+              disabled={downloading}
               style={{ flex: 1 }}
-              onClick={async (e) => {
-                e.preventDefault()
-                const r = await api.get(`/payments/${booking._id}/receipt/download`, {
-                  responseType: 'blob',
-                })
-                const u = URL.createObjectURL(r.data)
-                const a = document.createElement('a')
-                a.href = u
-                a.download = `auditoreserve-receipt-${booking._id}.pdf`
-                a.click()
-                URL.revokeObjectURL(u)
-              }}
             >
-              <FileText size={14} /> Download Receipt
-            </a>
+              {downloading ? (
+                <>
+                  <RefreshCw size={14} className="spin" /> Generating PDF…
+                </>
+              ) : (
+                <>
+                  <Download size={14} /> Download Official Receipt
+                </>
+              )}
+            </button>
           )}
           {(isPending || isApproved) && onCancelClick && (
             <button
@@ -2089,6 +2172,9 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick }) {
               Cancel Request
             </button>
           )}
+          <button className="button button-secondary" onClick={onClose}>
+            Close
+          </button>
         </div>
       </aside>
     </div>
@@ -2101,6 +2187,7 @@ function StudentDashboard({ user, auth }) {
   const data = q.data || []
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [downloadingId, setDownloadingId] = useState(null)
 
   const pending = data.filter((b) => b.status === 'pending').length
   const approved = data.filter((b) => b.status === 'approved').length
@@ -2226,24 +2313,12 @@ function StudentDashboard({ user, auth }) {
                         >
                           View details
                         </button>
-                        <a
+                        <button
                           className="button button-small"
-                          href={`${api.defaults.baseURL}/payments/${upcomingConfirmed._id}/receipt/download`}
-                          onClick={async (e) => {
-                            e.preventDefault()
-                            const r = await api.get(`/payments/${upcomingConfirmed._id}/receipt/download`, {
-                              responseType: 'blob',
-                            })
-                            const u = URL.createObjectURL(r.data)
-                            const a = document.createElement('a')
-                            a.href = u
-                            a.download = `auditoreserve-receipt-${upcomingConfirmed._id}.pdf`
-                            a.click()
-                            URL.revokeObjectURL(u)
-                          }}
+                          onClick={() => downloadBookingReceipt(upcomingConfirmed._id, null, auth?.setToast)}
                         >
                           <FileText size={13} /> Receipt PDF
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -2265,18 +2340,32 @@ function StudentDashboard({ user, auth }) {
                         student
                         onAction={(b) => (
                           <div className="action-group" style={{ justifyContent: 'flex-end' }}>
-                            <button className="table-action" onClick={() => setSelectedBooking(b)}>
-                              Details
+                            <button
+                              className="table-action action-details"
+                              onClick={() => setSelectedBooking(b)}
+                              title="View reservation details"
+                            >
+                              <Eye size={13} /> Details
                             </button>
                             {b.status === 'approved' && (
-                              <Link className="table-action" to={`/student/payment/${b._id}`}>
-                                Pay now
+                              <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
+                                <CreditCard size={13} /> Pay now
                               </Link>
                             )}
                             {b.status === 'confirmed' && (
-                              <Link className="table-action" to={`/student/payment/${b._id}`}>
-                                Receipt
-                              </Link>
+                              <button
+                                className="table-action action-paid"
+                                onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
+                                disabled={downloadingId === b._id}
+                                title="Payment verified · Click to download receipt PDF"
+                              >
+                                {downloadingId === b._id ? (
+                                  <RefreshCw size={12} className="spin" />
+                                ) : (
+                                  <CheckCircle2 size={12} />
+                                )}
+                                <span>Paid</span>
+                              </button>
                             )}
                           </div>
                         )}
@@ -2294,6 +2383,7 @@ function StudentDashboard({ user, auth }) {
                   booking={selectedBooking}
                   onClose={() => setSelectedBooking(null)}
                   onCancelClick={(b) => setCancelTarget(b)}
+                  auth={auth}
                 />
               )}
 
@@ -2359,9 +2449,9 @@ function BookingTable({ bookings, student = false, onAction }) {
                     Pay now
                   </Link>
                 ) : student && b.status === 'confirmed' ? (
-                  <Link className="table-action" to={`/student/payment/${b._id}`}>
-                    Receipt
-                  </Link>
+                  <span className="table-action action-paid" style={{ cursor: 'default' }}>
+                    <CheckCircle2 size={12} /> Paid
+                  </span>
                 ) : null}
               </td>
             </tr>
@@ -2396,6 +2486,7 @@ function MyBookings({ auth }) {
   const [search, setSearch] = useState('')
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [downloadingId, setDownloadingId] = useState(null)
 
   const q = useBookings('/bookings/my-bookings?limit=50')
   const qc = useQueryClient()
@@ -2475,6 +2566,11 @@ function MyBookings({ auth }) {
                   </button>
                 )}
               </div>
+              {search && (
+                <div className="search-count-pill">
+                  Showing {filteredBookings.length} of {allBookings.length} reservations matching "{search}"
+                </div>
+              )}
 
               {/* Status Tabs */}
               <div className="tabs">
@@ -2509,38 +2605,38 @@ function MyBookings({ auth }) {
                   student
                   onAction={(b) => (
                     <div className="action-group" style={{ justifyContent: 'flex-end' }}>
-                      <button className="table-action" onClick={() => setSelectedBooking(b)}>
-                        Details
+                      <button
+                        className="table-action action-details"
+                        onClick={() => setSelectedBooking(b)}
+                        title="View reservation details"
+                      >
+                        <Eye size={13} /> Details
                       </button>
                       {b.status === 'approved' && (
-                        <Link className="table-action" to={`/student/payment/${b._id}`}>
-                          Pay now
+                        <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
+                          <CreditCard size={13} /> Pay now
                         </Link>
                       )}
                       {b.status === 'confirmed' && (
-                        <a
-                          className="table-action"
-                          href={`${api.defaults.baseURL}/payments/${b._id}/receipt/download`}
-                          onClick={async (e) => {
-                            e.preventDefault()
-                            const r = await api.get(`/payments/${b._id}/receipt/download`, {
-                              responseType: 'blob',
-                            })
-                            const u = URL.createObjectURL(r.data)
-                            const a = document.createElement('a')
-                            a.href = u
-                            a.download = `auditoreserve-receipt-${b._id}.pdf`
-                            a.click()
-                            URL.revokeObjectURL(u)
-                          }}
+                        <button
+                          className="table-action action-paid"
+                          onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
+                          disabled={downloadingId === b._id}
+                          title="Payment verified · Click to download receipt PDF"
                         >
-                          Receipt
-                        </a>
+                          {downloadingId === b._id ? (
+                            <RefreshCw size={12} className="spin" />
+                          ) : (
+                            <CheckCircle2 size={12} />
+                          )}
+                          <span>Paid</span>
+                        </button>
                       )}
                       {['pending', 'approved'].includes(b.status) && (
                         <button
                           className="table-action subtle"
                           onClick={() => setCancelTarget(b)}
+                          title="Cancel reservation request"
                         >
                           Cancel
                         </button>
@@ -2558,6 +2654,7 @@ function MyBookings({ auth }) {
                   booking={selectedBooking}
                   onClose={() => setSelectedBooking(null)}
                   onCancelClick={(b) => setCancelTarget(b)}
+                  auth={auth}
                 />
               )}
 
@@ -3048,6 +3145,198 @@ function BookPage({ auth }) {
   )
 }
 
+function ConfirmedReceiptView({ booking, payment, auth }) {
+  const [downloading, setDownloading] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
+  const [copiedTxn, setCopiedTxn] = useState(false)
+
+  const transactionId = payment?.gatewayPaymentId || booking?.paymentId?.gatewayPaymentId || payment?._id || `TXN-${booking?._id?.slice(-8).toUpperCase()}`
+  const receiptNumber = payment?.receipt || `AR-${new Date(payment?.paidAt || booking?.updatedAt || Date.now()).getFullYear()}-${booking?._id?.slice(-6).toUpperCase()}`
+  const paidAmount = payment?.amount || booking?.totalPrice || 0
+  const duration = hoursBetween(booking?.startTime, booking?.endTime)
+
+  const copyBookingId = () => {
+    if (!booking?._id) return
+    navigator.clipboard?.writeText(booking._id)
+    setCopiedId(true)
+    setTimeout(() => setCopiedId(false), 2000)
+  }
+
+  const copyTxn = () => {
+    navigator.clipboard?.writeText(transactionId)
+    setCopiedTxn(true)
+    setTimeout(() => setCopiedTxn(false), 2000)
+  }
+
+  const handleDownload = () => {
+    downloadBookingReceipt(booking._id, setDownloading, auth?.setToast)
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  return (
+    <div className="receipt-voucher-wrapper">
+      <div className="receipt-voucher-card">
+        {/* Top Verified Header Bar */}
+        <div className="receipt-voucher-top">
+          <div className="voucher-seal">
+            <BadgeCheck size={32} />
+          </div>
+          <div className="voucher-top-info">
+            <span className="voucher-eyebrow">OFFICIAL PAYMENT RECEIPT & VOUCHER</span>
+            <h2>Reservation Confirmed & Secured</h2>
+            <p>Your auditorium reservation is officially confirmed and locked on the university schedule.</p>
+          </div>
+          <div className="voucher-badge-paid">
+            <CheckCircle2 size={13} />
+            <span>PAID IN FULL</span>
+          </div>
+        </div>
+
+        {/* Receipt Meta Strip */}
+        <div className="receipt-meta-strip">
+          <div className="meta-strip-item">
+            <span>RECEIPT NUMBER</span>
+            <strong>{receiptNumber}</strong>
+          </div>
+          <div className="meta-strip-item">
+            <span>RESERVATION REF</span>
+            <button type="button" className="copy-code-btn" onClick={copyBookingId} title="Click to copy booking ID">
+              <code>#{booking?._id?.slice(-8).toUpperCase()}</code>
+              {copiedId ? <Check size={11} /> : <Copy size={11} />}
+            </button>
+          </div>
+          <div className="meta-strip-item">
+            <span>PAYMENT DATE</span>
+            <strong>{dateText(payment?.paidAt || booking?.updatedAt || Date.now())}</strong>
+          </div>
+          <div className="meta-strip-item">
+            <span>ORGANIZER</span>
+            <strong>{auth?.user?.name || booking?.user?.name || 'Student Organizer'}</strong>
+          </div>
+        </div>
+
+        {/* Venue & Booking Summary Box */}
+        <div className="voucher-venue-card">
+          {booking?.auditorium && (
+            <img src={imageFor(booking.auditorium)} alt={booking.auditorium.name} className="voucher-venue-img" />
+          )}
+          <div className="voucher-venue-details">
+            <span className="voucher-venue-label">RESERVED FACILITY</span>
+            <h3>{booking?.auditorium?.name || 'Campus Auditorium'}</h3>
+            <div className="voucher-venue-specs">
+              <span><Users size={12} /> {booking?.auditorium?.capacity} Capacity</span>
+              <span>•</span>
+              <span><CalendarDays size={12} /> {dateText(booking?.bookingDate)}</span>
+              <span>•</span>
+              <span><Clock3 size={12} /> {booking?.startTime} – {booking?.endTime} ({duration > 0 ? `${duration} hrs` : 'Standard'})</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Purpose / Event Scope */}
+        {booking?.purpose && (
+          <div className="voucher-purpose-card">
+            <span>EVENT PURPOSE & SCOPE</span>
+            <p>{booking.purpose}</p>
+          </div>
+        )}
+
+        {/* Itemized Financial Breakdown */}
+        <div className="voucher-breakdown-section">
+          <div className="breakdown-header">
+            <span>Line Item & Description</span>
+            <span style={{ textAlign: 'center' }}>Duration</span>
+            <span style={{ textAlign: 'right' }}>Amount Paid</span>
+          </div>
+          <div className="breakdown-row">
+            <div>
+              <strong>Facility Reservation: {booking?.auditorium?.name}</strong>
+              <small>Authorized venue reservation on central campus master schedule</small>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {duration > 0 ? `${duration} Hours` : 'Standard Slot'}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              {money(paidAmount)}
+            </div>
+          </div>
+          <div className="breakdown-total-row">
+            <div>
+              <strong>TOTAL AMOUNT PAID:</strong>
+              <small>Via Razorpay (Inclusive of applicable university facility fees)</small>
+            </div>
+            <div className="total-highlight">
+              {money(paidAmount)}
+            </div>
+          </div>
+        </div>
+
+        {/* Verified Gateway Transaction Box */}
+        <div className="voucher-transaction-box">
+          <div className="tx-col">
+            <span>PAYMENT METHOD</span>
+            <strong>Razorpay Secure Gateway</strong>
+          </div>
+          <div className="tx-col">
+            <span>TRANSACTION ID</span>
+            <button type="button" className="copy-code-btn" onClick={copyTxn} title="Click to copy Transaction ID">
+              <code>{transactionId}</code>
+              {copiedTxn ? <Check size={11} /> : <Copy size={11} />}
+            </button>
+          </div>
+          <div className="tx-col">
+            <span>AUTHORIZATION STATUS</span>
+            <strong className="status-completed-text">
+              <CheckCircle2 size={12} /> Completed & Settled
+            </strong>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="voucher-actions-bar">
+          <button
+            type="button"
+            className="button button-receipt-primary"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            {downloading ? (
+              <>
+                <RefreshCw size={14} className="spin" /> Generating PDF…
+              </>
+            ) : (
+              <>
+                <Download size={14} /> Download Official PDF Receipt
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="button button-secondary button-receipt-print"
+            onClick={handlePrint}
+          >
+            <Printer size={14} /> Print Receipt
+          </button>
+          <Link className="button button-secondary" to="/student/my-bookings">
+            <ArrowLeft size={14} /> Back to My Bookings
+          </Link>
+        </div>
+
+        {/* Footer Legal & Verification */}
+        <div className="voucher-footer">
+          <p>
+            This is an official electronic receipt issued by <strong>AuditoReserve</strong>.
+            Central Facilities & Infrastructure Management, Teerthanker Mahaveer University.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PaymentPage({ auth }) {
   const { bookingId } = useParams()
   const q = useBookings()
@@ -3120,62 +3409,12 @@ function PaymentPage({ auth }) {
             <LoadingRows />
           ) : q.isError ? (
             <PageState error={q.error} retry={q.refetch} />
-          ) : success ? (
-            <div className="success-panel">
-              <div className="success-large">
-                <Check size={32} />
-              </div>
-              <span className="eyebrow">RESERVATION CONFIRMED</span>
-              <h2>Your booking is secured.</h2>
-              <p>Payment has been verified and your auditorium reservation is confirmed on the campus schedule.</p>
-
-              <div className="receipt-card">
-                <div>
-                  <span>Venue</span>
-                  <strong>{booking?.auditorium?.name}</strong>
-                </div>
-                <div>
-                  <span>Event Date</span>
-                  <strong>{dateText(booking?.bookingDate)}</strong>
-                </div>
-                <div>
-                  <span>Time</span>
-                  <strong>
-                    {booking?.startTime} – {booking?.endTime}
-                  </strong>
-                </div>
-                <div>
-                  <span>Transaction ID</span>
-                  <strong>{success.gatewayPaymentId || success._id}</strong>
-                </div>
-                <div>
-                  <span>Total Amount Paid</span>
-                  <strong>{money(success.amount || booking?.totalPrice)}</strong>
-                </div>
-              </div>
-
-              <a
-                className="button"
-                href={`${api.defaults.baseURL}/payments/${bookingId}/receipt/download`}
-                onClick={async (e) => {
-                  e.preventDefault()
-                  const r = await api.get(`/payments/${bookingId}/receipt/download`, {
-                    responseType: 'blob',
-                  })
-                  const u = URL.createObjectURL(r.data)
-                  const a = document.createElement('a')
-                  a.href = u
-                  a.download = `receipt-${bookingId}.pdf`
-                  a.click()
-                  URL.revokeObjectURL(u)
-                }}
-              >
-                Download Receipt PDF <ArrowRight size={14} />
-              </a>
-              <Link className="text-link" to="/student/my-bookings">
-                Return to my reservations
-              </Link>
-            </div>
+          ) : isConfirmed ? (
+            <ConfirmedReceiptView
+              booking={booking}
+              payment={success || booking?.paymentId}
+              auth={auth}
+            />
           ) : !booking ? (
             <div className="state-panel">
               <div className="state-icon">
