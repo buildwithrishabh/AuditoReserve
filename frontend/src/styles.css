@@ -7223,3 +7223,104 @@ a, button { transition-duration: 150ms; }
     padding: 24px !important;
   }
 }
+
+/* Global interaction and small-screen finishing rules */
+html {
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+body {
+  min-width: 320px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  flex-shrink: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--brand-500) 78%, transparent);
+  outline-offset: 3px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+::selection {
+  color: var(--text-inverse);
+  background: var(--brand-500);
+}
+
+@media (max-width: 640px) {
+  .panel-header {
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+
+  .panel-body {
+    min-width: 0;
+  }
+
+  .table-wrap,
+  .table-responsive,
+  .booking-table-wrap,
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table,
+  .table-responsive table,
+  .booking-table-wrap table,
+  .table-scroll table {
+    min-width: 640px;
+  }
+
+  .receipt-meta-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voucher-transaction-box {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-voucher-card {
+    padding: 20px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
