@@ -3105,26 +3105,6 @@ function MyBookings({ auth }) {
   )
 }
 
-const EVENT_CATEGORIES = [
-  'Academic Lecture',
-  'Technical Workshop',
-  'Cultural Fest',
-  'Department Seminar',
-  'Club Meeting',
-  'Hackathon & Competition',
-  'Orientation & Induction',
-  'Faculty Conference',
-]
-
-const AV_OPTIONS = [
-  { id: 'sound', label: 'PA Sound & Wireless Mics', icon: '🎤' },
-  { id: 'projector', label: 'HD Projector & Stage Displays', icon: '📽️' },
-  { id: 'lighting', label: 'Stage & Spotlight Lighting', icon: '💡' },
-  { id: 'ac', label: 'Central Air Conditioning', icon: '❄️' },
-  { id: 'podium', label: 'Dais & Executive Lectern', icon: '🎙️' },
-  { id: 'recording', label: 'Live Stream / Recording', icon: '🎥' },
-]
-
 const QUICK_SLOTS = [
   { label: 'Morning Slot', start: '09:00', end: '12:00' },
   { label: 'Afternoon Slot', start: '13:00', end: '16:00' },
@@ -3139,14 +3119,13 @@ function BookPage({ auth }) {
   const qc = useQueryClient()
   const nav = useNavigate()
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
   const [form, setForm] = useState({
-    auditoriumId: auditoriumId || '',
-    bookingDate: search.get('date') || '',
+    auditoriumId: auditoriumId || search.get('auditoriumId') || '',
+    bookingDate: search.get('date') || todayStr,
     startTime: search.get('start') || '09:00',
-    endTime: search.get('end') || '12:00',
-    category: 'Technical Workshop',
-    attendance: '',
-    amenities: ['sound', 'projector', 'ac'],
+    endTime: search.get('end') || '11:00',
     purpose: '',
   })
   const [error, setError] = useState('')
@@ -3154,11 +3133,12 @@ function BookPage({ auth }) {
   const venue = aq.data?.find((v) => v._id === form.auditoriumId)
   const duration = hoursBetween(form.startTime, form.endTime)
   const isTimeInvalid = form.startTime && form.endTime && form.startTime >= form.endTime
-  
+
   // Date validation
-  const todayStr = new Date().toISOString().slice(0, 10)
   const isDateToday = form.bookingDate === todayStr
-  const currentHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+  const currentHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(
+    new Date().getMinutes()
+  ).padStart(2, '0')}`
   const isPastTimeToday = isDateToday && form.startTime <= currentHHMM
 
   // Quick Date Helpers
@@ -3178,37 +3158,46 @@ function BookPage({ auth }) {
     setForm((prev) => ({ ...prev, endTime: endStr }))
   }
 
-  // Toggle Amenity
-  const toggleAmenity = (id) => {
-    setForm((prev) => ({
-      ...prev,
-      amenities: prev.amenities.includes(id)
-        ? prev.amenities.filter((a) => a !== id)
-        : [...prev.amenities, id],
-    }))
-  }
+  // Live availability calendar for selected auditorium and month
+  const monthKey = form.bookingDate ? form.bookingDate.slice(0, 7) : ''
+  const cal = useQuery({
+    queryKey: ['calendar', form.auditoriumId, monthKey],
+    queryFn: async () => {
+      if (!form.auditoriumId || !monthKey) return []
+      return (
+        await api.get('/bookings/calendar', {
+          params: { auditoriumId: form.auditoriumId, month: monthKey },
+        })
+      ).data.bookings || []
+    },
+    enabled: Boolean(form.auditoriumId && monthKey),
+  })
+
+  // Detect conflicting existing booking on that day
+  const conflictingBooking = useMemo(() => {
+    if (!cal.data || !form.bookingDate || !form.startTime || !form.endTime) return null
+    return cal.data.find((b) => {
+      if (!b?.bookingDate || !b.startTime || !b.endTime) return false
+      const bDateStr = String(b.bookingDate).slice(0, 10)
+      if (bDateStr !== form.bookingDate) {
+        const d = new Date(b.bookingDate)
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+          d.getDate()
+        ).padStart(2, '0')}`
+        if (dStr !== form.bookingDate) return false
+      }
+      return form.startTime < b.endTime && form.endTime > b.startTime
+    })
+  }, [cal.data, form.bookingDate, form.startTime, form.endTime])
 
   const mutation = useMutation({
     mutationFn: () => {
-      // Build structured purpose text
-      const amenityLabels = form.amenities
-        .map((id) => AV_OPTIONS.find((o) => o.id === id)?.label)
-        .filter(Boolean)
-
-      const parts = []
-      if (form.category) parts.push(`[${form.category}]`)
-      if (form.attendance) parts.push(`Expected Attendance: ${form.attendance} attendees.`)
-      if (amenityLabels.length) parts.push(`Requested Facilities: ${amenityLabels.join(', ')}.`)
-      if (form.purpose.trim()) parts.push(form.purpose.trim())
-
-      const finalPurpose = parts.join(' ') || 'Campus event reservation'
-
       return api.post('/bookings/createBooking', {
         auditoriumId: form.auditoriumId,
         bookingDate: form.bookingDate,
         startTime: form.startTime,
         endTime: form.endTime,
-        purpose: finalPurpose,
+        purpose: form.purpose.trim(),
       })
     },
     onSuccess: () => {
@@ -3225,7 +3214,9 @@ function BookPage({ auth }) {
     form.endTime &&
     !isTimeInvalid &&
     !isPastTimeToday &&
-    duration > 0
+    !conflictingBooking &&
+    duration > 0 &&
+    form.purpose.trim().length >= 3
 
   return (
     <RequireRole auth={auth} role="student">
@@ -3269,22 +3260,42 @@ function BookPage({ auth }) {
                   }}
                 >
                   {/* 1. Auditorium Selection */}
-                  <label className="form-label">
-                    Auditorium Venue
-                    <select
-                      className="input"
-                      value={form.auditoriumId}
-                      onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })}
-                      required
-                    >
-                      <option value="">Choose an auditorium venue</option>
-                      {(aq.data || []).map((v) => (
-                        <option key={v._id} value={v._id}>
-                          {v.name} · {v.capacity} seats · {money(v.basePrice)}/hr
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span>Auditorium Venue</span>
+                      <select
+                        className="input"
+                        value={form.auditoriumId}
+                        onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })}
+                        required
+                      >
+                        <option value="">Choose an auditorium venue</option>
+                        {(aq.data || []).map((v) => (
+                          <option key={v._id} value={v._id}>
+                            {v.name} · {v.capacity} seats · {money(v.basePrice)}/hr
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {venue && (
+                      <div className="venue-selected-card">
+                        <img src={imageFor(venue)} alt={venue.name} className="venue-selected-thumb" />
+                        <div className="venue-selected-info">
+                          <strong>{venue.name}</strong>
+                          <div className="venue-selected-meta">
+                            <span>
+                              <Users size={13} /> {venue.capacity} seats capacity
+                            </span>
+                            <span>•</span>
+                            <span>
+                              <Clock3 size={13} /> {money(venue.basePrice)} / hour
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* 2. Event Date with Quick Date Chips */}
                   <div className="form-group">
@@ -3393,94 +3404,29 @@ function BookPage({ auth }) {
                     </div>
                   </div>
 
-                  {/* 4. Event Category Selection */}
+                  {/* 4. Event Purpose (Valid Model Field) */}
                   <div className="form-group">
                     <label className="form-label">
-                      Event Category
+                      <span>Event Purpose</span>
+                      <textarea
+                        className="input textarea"
+                        maxLength={500}
+                        rows={4}
+                        placeholder="State the purpose of this reservation (e.g., Annual Technical Symposium, Department Orientation, Guest Lecture by Prof. Sharma)..."
+                        value={form.purpose}
+                        onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+                        required
+                      />
                     </label>
-                    <div className="category-pills">
-                      {EVENT_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          className={`category-pill ${form.category === cat ? 'active' : ''}`}
-                          onClick={() => setForm({ ...form, category: cat })}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 5. Expected Attendance */}
-                  <label className="form-label">
-                    Expected Attendance (Persons)
-                    <input
-                      className="input"
-                      type="number"
-                      min="1"
-                      placeholder="e.g. 150"
-                      value={form.attendance}
-                      onChange={(e) => setForm({ ...form, attendance: e.target.value })}
-                    />
-                    {venue && form.attendance && (
-                      <div style={{ marginTop: '4px' }}>
-                        {Number(form.attendance) <= venue.capacity ? (
-                          <span className="inline-feedback success">
-                            <Check size={13} /> Fits comfortably within {venue.name} capacity ({form.attendance} / {venue.capacity} seats).
-                          </span>
-                        ) : (
-                          <span className="inline-feedback warning">
-                            <AlertCircle size={13} /> Notice: Requested attendance ({form.attendance}) exceeds venue capacity ({venue.capacity} seats).
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </label>
-
-                  {/* 6. Audio-Visual & Facility Requirements */}
-                  <div className="form-group">
-                    <label className="form-label">
-                      Required Facilities & AV Setup
-                    </label>
-                    <div className="amenity-toggle-grid">
-                      {AV_OPTIONS.map((opt) => {
-                        const active = form.amenities.includes(opt.id)
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            className={`amenity-toggle-chip ${active ? 'active' : ''}`}
-                            onClick={() => toggleAmenity(opt.id)}
-                          >
-                            <span>{opt.icon}</span>
-                            <span>{opt.label}</span>
-                            {active && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--brand-700)' }} />}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 7. Purpose & Agenda Description */}
-                  <label className="form-label">
-                    Event Purpose & Special Requirements
-                    <textarea
-                      className="input textarea"
-                      maxLength={500}
-                      rows={4}
-                      placeholder="Detail event agenda, chief guests/dignitaries, and any special campus logistics required for approval."
-                      value={form.purpose}
-                      onChange={(e) => setForm({ ...form, purpose: e.target.value })}
-                      required
-                    />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                       <span className="field-hint">
-                        {form.purpose.length < 10 ? 'Please provide at least 10 characters describing the event.' : 'Complete and descriptive context ensures faster approval.'}
+                        {form.purpose.trim().length < 3
+                          ? 'Please provide a brief description of the event purpose.'
+                          : 'Clear context facilitates timely administrative approval.'}
                       </span>
                       <span className="field-hint">{form.purpose.length}/500</span>
                     </div>
-                  </label>
+                  </div>
 
                   {error && (
                     <div className="form-error">
@@ -3544,16 +3490,10 @@ function BookPage({ auth }) {
                     <strong>{duration > 0 ? `${duration} hours` : '—'}</strong>
                   </div>
                   {venue && (
-                    <>
-                      <div>
-                        <span>Hourly Rate</span>
-                        <strong>{money(venue.basePrice)} / hr</strong>
-                      </div>
-                      <div>
-                        <span>AV & Equipment Support</span>
-                        <strong style={{ color: 'var(--success)' }}>Included</strong>
-                      </div>
-                    </>
+                    <div>
+                      <span>Hourly Rate</span>
+                      <strong>{money(venue.basePrice)} / hr</strong>
+                    </div>
                   )}
                   <div className="summary-total">
                     <span>Estimated Total</span>
