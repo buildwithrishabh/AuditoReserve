@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { io } from 'socket.io-client'
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowDownUp,
   ArrowLeft,
   ArrowRight,
@@ -14,6 +15,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarPlus,
+  Car,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -37,11 +39,14 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Maximize2,
   Menu,
+  Mic,
   Music,
   Plus,
   Printer,
   RefreshCw,
+  RotateCcw,
   Search,
   Settings2,
   ShieldCheck,
@@ -51,6 +56,10 @@ import {
   Users,
   Sun,
   Moon,
+  Tv,
+  Volume2,
+  Wifi,
+  Wind,
   X,
   Zap
 } from 'lucide-react'
@@ -1123,6 +1132,20 @@ function Catalog({ auth }) {
 // Auditorium Detail Page
 // ============================================================================
 
+const getAmenityIcon = (name) => {
+  const l = (name || '').toLowerCase()
+  if (l.includes('projector') || l.includes('screen') || l.includes('display') || l.includes('led') || l.includes('tv')) return <Tv size={15} />
+  if (l.includes('sound') || l.includes('audio') || l.includes('speaker')) return <Volume2 size={15} />
+  if (l.includes('wi-fi') || l.includes('wifi') || l.includes('internet')) return <Wifi size={15} />
+  if (l.includes('air') || l.includes('ac') || l.includes('ventilation') || l.includes('cooling')) return <Wind size={15} />
+  if (l.includes('stage') || l.includes('mic') || l.includes('podium')) return <Mic size={15} />
+  if (l.includes('parking') || l.includes('car')) return <Car size={15} />
+  if (l.includes('power') || l.includes('backup') || l.includes('generator')) return <Zap size={15} />
+  if (l.includes('green') || l.includes('room') || l.includes('dressing')) return <DoorOpen size={15} />
+  if (l.includes('seat') || l.includes('chair') || l.includes('capacity')) return <Users size={15} />
+  return <Sparkles size={15} />
+}
+
 function Detail({ auth }) {
   const user = auth?.user
   const { id } = useParams()
@@ -1131,27 +1154,87 @@ function Detail({ auth }) {
     queryFn: async () => (await api.get(`/auditoriums/viewAuditorium/${id}`)).data.auditorium,
   })
 
-  const [month, setMonth] = useState(new Date())
+  const today = useMemo(() => {
+    const t = new Date()
+    t.setHours(0, 0, 0, 0)
+    return t
+  }, [])
+
+  const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
+  const [selectedDay, setSelectedDay] = useState(today.getDate())
   const [range, setRange] = useState({ start: '09:00', end: '11:00' })
+  const [activeImageIndex, setActiveImageIndex] = useState(null)
+
+  // Format month as YYYY-MM in local time to avoid UTC-offset shift
+  const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+
   const cal = useQuery({
-    queryKey: ['calendar', id, month.toISOString().slice(0, 7)],
+    queryKey: ['calendar', id, monthKey],
     queryFn: async () =>
       (
         await api.get('/bookings/calendar', {
-          params: { auditoriumId: id, month: month.toISOString().slice(0, 7) },
+          params: { auditoriumId: id, month: monthKey },
         })
       ).data.bookings || [],
   })
 
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
   const firstDayOffset = new Date(month.getFullYear(), month.getMonth(), 1).getDay()
-  const [selectedDay, setSelectedDay] = useState(new Date().getDate())
 
-  const selectedDateStr = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(
-    2,
-    '0'
-  )}-${String(selectedDay).padStart(2, '0')}`
+  // Ensure selected day does not exceed days in the active month
+  const safeDay = Math.min(selectedDay, daysInMonth)
+  const selectedDateStr = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`
+  const selectedDateObj = new Date(month.getFullYear(), month.getMonth(), safeDay)
+
+  const isSelectedDatePast = selectedDateObj < today
+  const isSelectedDateToday =
+    selectedDateObj.getFullYear() === today.getFullYear() &&
+    selectedDateObj.getMonth() === today.getMonth() &&
+    selectedDateObj.getDate() === today.getDate()
+
   const hours = hoursBetween(range.start, range.end)
+
+  // Match bookings on given date
+  const getBookingsForDate = (dateKey) => {
+    return (cal.data || []).filter((b) => {
+      if (!b?.bookingDate) return false
+      const rawPrefix = String(b.bookingDate).slice(0, 10)
+      if (rawPrefix === dateKey) return true
+      const d = new Date(b.bookingDate)
+      const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return dStr === dateKey
+    })
+  }
+
+  const selectedDayBookings = getBookingsForDate(selectedDateStr)
+
+  // Check for time overlap with existing bookings on the selected day
+  const conflictingBooking = selectedDayBookings.find((b) => {
+    if (!b.startTime || !b.endTime) return false
+    return range.start < b.endTime && range.end > b.startTime
+  })
+
+  // Quick jump to today
+  const jumpToToday = () => {
+    setMonth(new Date(today.getFullYear(), today.getMonth(), 1))
+    setSelectedDay(today.getDate())
+  }
+
+  // Handle escape & arrow keys for image lightbox
+  useEffect(() => {
+    if (activeImageIndex === null) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setActiveImageIndex(null)
+      if (e.key === 'ArrowLeft' && q.data?.images?.length) {
+        setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : q.data.images.length - 1))
+      }
+      if (e.key === 'ArrowRight' && q.data?.images?.length) {
+        setActiveImageIndex((prev) => (prev < q.data.images.length - 1 ? prev + 1 : 0))
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeImageIndex, q.data])
 
   if (q.isLoading) {
     return (
@@ -1178,195 +1261,500 @@ function Detail({ auth }) {
   }
 
   const v = q.data
+  const galleryImages = Array.isArray(v.images) && v.images.length > 0 ? v.images : [imageFor(v, 0)]
+  const isCurrentMonth =
+    month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth()
+
+  const bookingTargetUrl = `/student/book/${id}?date=${selectedDateStr}&start=${range.start}&end=${range.end}`
 
   return (
     <>
       <Header auth={auth} />
       <main className="page-container detail-page">
+        {/* Navigation Breadcrumb */}
         <div className="breadcrumbs">
           <Link to="/auditoriums">Auditoriums</Link>
           <ChevronRight size={13} />
           <strong>{v.name}</strong>
         </div>
 
-        <div className="detail-gallery">
-          <img className="gallery-main" src={imageFor(v, 0)} alt={v.name} />
-          <div className="gallery-side">
-            <img src={imageFor(v, 1)} alt={`${v.name} seating`} />
-            <img src={imageFor(v, 2)} alt={`${v.name} stage`} />
+        {/* Gallery Showcase */}
+        {galleryImages.length === 1 ? (
+          <div className="detail-hero-showcase" onClick={() => setActiveImageIndex(0)}>
+            <img className="hero-showcase-image" src={galleryImages[0]} alt={v.name} />
+            <div className="hero-showcase-overlay" />
+            <div className="hero-showcase-badge">
+              <Building2 size={13} />
+              <span>Campus Venue</span>
+            </div>
+            <button
+              type="button"
+              className="gallery-count gallery-count-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveImageIndex(0)
+              }}
+              aria-label="View photo in full screen"
+            >
+              <Maximize2 size={12} />
+              <span>1 photo</span>
+            </button>
           </div>
-          <span className="gallery-count">{(v.images || []).length || 3} photos</span>
-        </div>
-
-        <div className="detail-layout">
-          <section className="detail-info">
-            <span className="eyebrow">CAMPUS VENUE</span>
-            <h1>{v.name}</h1>
-            <p className="detail-description">{v.description}</p>
-
-            <div className="detail-facts">
-              <div>
-                <Users size={18} />
-                <span>
-                  <small>CAPACITY</small>
-                  <strong>{v.capacity} seats</strong>
+        ) : galleryImages.length === 2 ? (
+          <div className="detail-gallery-dual">
+            {galleryImages.map((img, idx) => (
+              <div
+                key={idx}
+                className="gallery-dual-item"
+                onClick={() => setActiveImageIndex(idx)}
+                role="button"
+                tabIndex={0}
+                aria-label={`View photo ${idx + 1}`}
+              >
+                <img src={img} alt={`${v.name} view ${idx + 1}`} />
+                <span className="gallery-expand-hint">
+                  <Maximize2 size={13} />
                 </span>
               </div>
-              <div>
-                <Clock3 size={18} />
-                <span>
-                  <small>HOURLY RATE</small>
-                  <strong>
-                    {money(v.basePrice)} <small>/ hour</small>
-                  </strong>
+            ))}
+            <button
+              type="button"
+              className="gallery-count gallery-count-btn"
+              onClick={() => setActiveImageIndex(0)}
+            >
+              <Maximize2 size={12} />
+              <span>2 photos</span>
+            </button>
+          </div>
+        ) : (
+          <div className="detail-gallery-grid">
+            <div
+              className="gallery-main-wrap"
+              onClick={() => setActiveImageIndex(0)}
+              role="button"
+              tabIndex={0}
+              aria-label="View main photo"
+            >
+              <img className="gallery-main" src={galleryImages[0]} alt={v.name} />
+              <span className="gallery-expand-hint">
+                <Maximize2 size={13} /> Full view
+              </span>
+            </div>
+            <div className="gallery-side">
+              <div
+                className="gallery-side-wrap"
+                onClick={() => setActiveImageIndex(1)}
+                role="button"
+                tabIndex={0}
+                aria-label="View photo 2"
+              >
+                <img src={galleryImages[1]} alt={`${v.name} seating`} />
+                <span className="gallery-expand-hint">
+                  <Maximize2 size={12} />
                 </span>
               </div>
-              <div>
-                <ShieldCheck size={18} />
-                <span>
-                  <small>BOOKING POLICY</small>
-                  <strong>Admin review required</strong>
+              <div
+                className="gallery-side-wrap"
+                onClick={() => setActiveImageIndex(2)}
+                role="button"
+                tabIndex={0}
+                aria-label="View photo 3"
+              >
+                <img src={galleryImages[2]} alt={`${v.name} stage`} />
+                <span className="gallery-expand-hint">
+                  <Maximize2 size={12} />
                 </span>
               </div>
             </div>
+            <button
+              type="button"
+              className="gallery-count gallery-count-btn"
+              onClick={() => setActiveImageIndex(0)}
+            >
+              <Maximize2 size={12} />
+              <span>{galleryImages.length} photos</span>
+            </button>
+          </div>
+        )}
 
-            <div className="detail-section">
-              <h2>Included Amenities</h2>
-              <div className="amenity-list">
-                {(v.amenities || []).map((a) => (
-                  <span key={a}>
-                    <Check size={14} />
-                    {a}
+        {/* Lightbox Modal */}
+        {activeImageIndex !== null && (
+          <div
+            className="lightbox-overlay"
+            onClick={() => setActiveImageIndex(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Photo preview"
+          >
+            <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="lightbox-close"
+                onClick={() => setActiveImageIndex(null)}
+                aria-label="Close photo preview"
+              >
+                <X size={20} />
+              </button>
+              <img
+                src={galleryImages[activeImageIndex]}
+                alt={`${v.name} photo ${activeImageIndex + 1}`}
+                className="lightbox-image"
+              />
+              {galleryImages.length > 1 && (
+                <div className="lightbox-nav">
+                  <button
+                    type="button"
+                    className="lightbox-nav-btn"
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev > 0 ? prev - 1 : galleryImages.length - 1
+                      )
+                    }
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <span className="lightbox-counter">
+                    {activeImageIndex + 1} / {galleryImages.length}
                   </span>
+                  <button
+                    type="button"
+                    className="lightbox-nav-btn"
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev < galleryImages.length - 1 ? prev + 1 : 0
+                      )
+                    }
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="detail-layout">
+          <section className="detail-info">
+            <div className="detail-header-meta">
+              <span className="eyebrow">CAMPUS VENUE</span>
+              <span className="detail-live-tag">
+                <span className="status-dot-pulse" /> Live Availability
+              </span>
+            </div>
+            <h1>{v.name}</h1>
+            <p className="detail-description">{v.description}</p>
+
+            {/* Key Facts Cards */}
+            <div className="detail-facts-grid">
+              <div className="detail-fact-card">
+                <div className="fact-icon-wrap fact-icon-blue">
+                  <Users size={20} />
+                </div>
+                <div className="fact-content">
+                  <span className="fact-label">Capacity</span>
+                  <strong className="fact-value">{v.capacity} seats</strong>
+                  <span className="fact-sub">Auditorium Seating</span>
+                </div>
+              </div>
+              <div className="detail-fact-card">
+                <div className="fact-icon-wrap fact-icon-green">
+                  <Clock3 size={20} />
+                </div>
+                <div className="fact-content">
+                  <span className="fact-label">Hourly Rate</span>
+                  <strong className="fact-value">{money(v.basePrice)} <small>/ hr</small></strong>
+                  <span className="fact-sub">Standard University Tariff</span>
+                </div>
+              </div>
+              <div className="detail-fact-card">
+                <div className="fact-icon-wrap fact-icon-purple">
+                  <ShieldCheck size={20} />
+                </div>
+                <div className="fact-content">
+                  <span className="fact-label">Booking Policy</span>
+                  <strong className="fact-value">Admin Review</strong>
+                  <span className="fact-sub">Pay after approval</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Included Amenities */}
+            <div className="detail-section">
+              <div className="section-title-wrap">
+                <h2>Included Amenities</h2>
+                <span className="section-badge">{(v.amenities || []).length} available</span>
+              </div>
+              <div className="amenity-grid">
+                {(v.amenities || []).map((a) => (
+                  <div key={a} className="amenity-chip">
+                    <span className="amenity-chip-icon">{getAmenityIcon(a)}</span>
+                    <span className="amenity-chip-text">{a}</span>
+                  </div>
                 ))}
               </div>
             </div>
 
+            {/* Availability Calendar */}
             <div className="detail-section availability-section">
-              <div className="section-inline">
-                <div>
+              <div className="calendar-header-bar">
+                <div className="calendar-header-titles">
                   <h2>Availability Calendar</h2>
-                  <p>Check the schedule to find an open date for your event.</p>
+                  <p>Pick a date on the schedule to check live reserved slots and open times.</p>
                 </div>
-                <div className="calendar-month">
-                  <button
-                    className="icon-button"
-                    onClick={() =>
-                      setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
-                    }
-                    aria-label="Previous month"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <strong>
-                    {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </strong>
-                  <button
-                    className="icon-button"
-                    onClick={() =>
-                      setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
-                    }
-                    aria-label="Next month"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
+                <div className="calendar-controls">
+                  {!isCurrentMonth && (
+                    <button
+                      type="button"
+                      className="button button-ghost button-sm calendar-today-btn"
+                      onClick={jumpToToday}
+                    >
+                      <RotateCcw size={13} /> Today
+                    </button>
+                  )}
+                  <div className="calendar-month-selector">
+                    <button
+                      className="icon-button"
+                      onClick={() =>
+                        setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
+                      }
+                      aria-label="Previous month"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <strong>
+                      {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </strong>
+                    <button
+                      className="icon-button"
+                      onClick={() =>
+                        setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
+                      }
+                      aria-label="Next month"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {user ? (
-                <>
-                  <div className="calendar-grid calendar-weekdays">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
-                      <span key={i}>{d}</span>
-                    ))}
-                  </div>
-                  <div className="calendar-grid">
-                    {Array.from({ length: firstDayOffset }, (_, i) => (
-                      <span key={`empty-${i}`} />
-                    ))}
-                    {Array.from({ length: daysInMonth }, (_, i) => {
-                      const dayNumber = i + 1
-                      const dateKey = `${month.getFullYear()}-${String(
-                        month.getMonth() + 1
-                      ).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-                      const isPast =
-                        new Date(dateKey + 'T00:00:00') <
-                        new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
-                      const hasBookings = (cal.data || []).some(
-                        (b) =>
-                          new Date(b.bookingDate).toDateString() ===
-                          new Date(dateKey + 'T00:00:00').toDateString()
-                      )
+              {/* Weekdays Header */}
+              <div className="calendar-grid calendar-weekdays">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                  <span key={i} className="calendar-weekday-cell">
+                    {d}
+                  </span>
+                ))}
+              </div>
 
-                      return (
-                        <button
-                          key={dayNumber}
-                          aria-label={`${dateKey}${hasBookings ? ', has bookings' : ''}`}
-                          className={`calendar-day ${
-                            selectedDay === dayNumber ? 'selected' : ''
-                          } ${isPast ? 'disabled' : ''} ${
-                            hasBookings ? 'day-has-bookings' : ''
-                          }`}
-                          disabled={isPast}
-                          onClick={() => setSelectedDay(dayNumber)}
-                        >
-                          {dayNumber}
-                        </button>
-                      )
-                    })}
+              {/* Month Days Grid */}
+              <div className="calendar-grid calendar-days-grid">
+                {Array.from({ length: firstDayOffset }, (_, i) => (
+                  <div key={`empty-${i}`} className="calendar-day-empty" />
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                  const dayNumber = i + 1
+                  const dateKey = `${month.getFullYear()}-${String(
+                    month.getMonth() + 1
+                  ).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+                  const dayDate = new Date(month.getFullYear(), month.getMonth(), dayNumber)
+                  const isPast = dayDate < today
+                  const isToday =
+                    dayDate.getFullYear() === today.getFullYear() &&
+                    dayDate.getMonth() === today.getMonth() &&
+                    dayDate.getDate() === today.getDate()
+                  const isSelected = safeDay === dayNumber
+                  const dayBookings = getBookingsForDate(dateKey)
+                  const hasBookings = dayBookings.length > 0
+
+                  return (
+                    <button
+                      key={dayNumber}
+                      type="button"
+                      aria-label={`${dateKey}${isToday ? ', today' : ''}${
+                        hasBookings ? `, ${dayBookings.length} booking(s)` : ', available'
+                      }`}
+                      className={`calendar-day ${isSelected ? 'selected' : ''} ${
+                        isPast ? 'disabled' : ''
+                      } ${isToday ? 'is-today' : ''} ${
+                        hasBookings ? 'day-has-bookings' : ''
+                      }`}
+                      disabled={isPast}
+                      onClick={() => setSelectedDay(dayNumber)}
+                    >
+                      <span className="calendar-day-number">{dayNumber}</span>
+                      {isToday && !isSelected && <span className="today-dot" title="Today" />}
+                      {hasBookings && (
+                        <span
+                          className="booking-indicator-dot"
+                          title={`${dayBookings.length} booking(s) scheduled`}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Selected Day Schedule Inspector */}
+              <div className="calendar-day-schedule">
+                <div className="schedule-header">
+                  <div className="schedule-title">
+                    <CalendarCheck size={16} />
+                    <strong>
+                      {selectedDateObj.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </strong>
+                    {isSelectedDateToday && <span className="schedule-today-pill">Today</span>}
                   </div>
-                  <div className="calendar-legend">
-                    <span>
-                      <i className="legend-available" /> Available
-                    </span>
-                    <span>
-                      <i className="legend-booked" /> Reserved slots
-                    </span>
-                    <span>
-                      <i className="legend-selected" /> Selected date
-                    </span>
+                  <span
+                    className={`schedule-status-badge ${
+                      isSelectedDatePast
+                        ? 'status-past'
+                        : selectedDayBookings.length > 0
+                        ? 'status-booked'
+                        : 'status-clear'
+                    }`}
+                  >
+                    {isSelectedDatePast
+                      ? 'Past date'
+                      : selectedDayBookings.length > 0
+                      ? `${selectedDayBookings.length} reserved slot${
+                          selectedDayBookings.length === 1 ? '' : 's'
+                        }`
+                      : 'All hours open'}
+                  </span>
+                </div>
+
+                {isSelectedDatePast ? (
+                  <div className="schedule-notice past-notice">
+                    <Info size={15} />
+                    <span>This date has passed. Please select today or a future date to book.</span>
                   </div>
-                  {cal.isError && (
-                    <div className="inline-error">
-                      Unable to load calendar availability.{' '}
-                      <button onClick={() => cal.refetch()}>Retry</button>
+                ) : selectedDayBookings.length > 0 ? (
+                  <div className="schedule-slots-wrap">
+                    <p className="schedule-slots-intro">
+                      Existing reservations on central campus schedule for this date:
+                    </p>
+                    <div className="schedule-slots-list">
+                      {selectedDayBookings.map((b, idx) => (
+                        <div key={b._id || idx} className="schedule-slot-pill">
+                          <Clock3 size={13} />
+                          <span className="slot-time-text">
+                            {b.startTime} – {b.endTime}
+                          </span>
+                          <span className="slot-status-tag">{b.status || 'Reserved'}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="sign-in-note">
-                  <span>Sign in with your university account to view live availability and pick a date.</span>
-                  <Link to="/login">
-                    Sign in <ArrowRight size={14} />
-                  </Link>
+                    <p className="schedule-slots-note">
+                      You may request any time window outside of the above reserved hours.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="schedule-notice open-notice">
+                    <CheckCircle2 size={16} />
+                    <span>No conflicting reservations. Venue is fully available throughout this date!</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar Legend */}
+              <div className="calendar-legend">
+                <span>
+                  <i className="legend-available" /> Available
+                </span>
+                <span>
+                  <i className="legend-booked" /> Reserved slots
+                </span>
+                <span>
+                  <i className="legend-selected" /> Selected date
+                </span>
+                <span>
+                  <i className="legend-today" /> Today
+                </span>
+              </div>
+
+              {cal.isError && (
+                <div className="inline-error">
+                  <AlertCircle size={14} />
+                  <span>Unable to refresh live availability.</span>{' '}
+                  <button onClick={() => cal.refetch()}>Retry</button>
                 </div>
               )}
             </div>
           </section>
 
+          {/* Sticky Reservation Request Card */}
           <aside className="booking-card">
-            <span className="booking-card-label">RESERVATION REQUEST</span>
-            <h2>Request this space</h2>
-            <p>Select your preferred date and time. Your request will be reviewed by campus administrators.</p>
+            <div className="booking-card-top">
+              <span className="booking-card-label">
+                <Sparkles size={12} /> RESERVATION REQUEST
+              </span>
+              <h2>Request this space</h2>
+              <p>Select your date and reservation time. Your request is subject to administrative review.</p>
+            </div>
 
+            {/* Date Selection (Synchronized with Calendar) */}
             <label className="form-label">
-              Date
-              <input
-                className="input"
-                type="date"
-                value={selectedDateStr}
-                min={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => {
-                  const d = new Date(e.target.value + 'T00:00:00')
-                  setMonth(d)
-                  setSelectedDay(d.getDate())
-                }}
-              />
+              <span>Date</span>
+              <div className="input-with-icon">
+                <CalendarDays size={16} className="input-icon-left" />
+                <input
+                  className="input input-has-icon"
+                  type="date"
+                  value={selectedDateStr}
+                  min={today.toISOString().slice(0, 10)}
+                  onChange={(e) => {
+                    if (!e.target.value) return
+                    const [y, m, d] = e.target.value.split('-').map(Number)
+                    setMonth(new Date(y, m - 1, 1))
+                    setSelectedDay(d)
+                  }}
+                />
+              </div>
             </label>
 
-            <div className="time-row" style={{ marginTop: '12px' }}>
+            {/* Quick Duration Presets */}
+            <div className="quick-presets-group">
+              <span className="presets-label">Quick duration:</span>
+              <div className="presets-row">
+                {[
+                  { label: '2 hrs', h: 2 },
+                  { label: '3 hrs', h: 3 },
+                  { label: '4 hrs', h: 4 },
+                  { label: 'Full Day (8h)', h: 8 },
+                ].map((item) => {
+                  const isActive = hours === item.h
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`preset-pill ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        const [sh, sm] = range.start.split(':').map(Number)
+                        const endHour = Math.min(23, sh + item.h)
+                        setRange({
+                          ...range,
+                          end: `${String(endHour).padStart(2, '0')}:${String(sm).padStart(2, '0')}`,
+                        })
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Time Slot Inputs */}
+            <div className="time-row">
               <label className="form-label">
-                From
+                <span>From</span>
                 <input
                   className="input"
                   type="time"
@@ -1375,7 +1763,7 @@ function Detail({ auth }) {
                 />
               </label>
               <label className="form-label">
-                Until
+                <span>Until</span>
                 <input
                   className="input"
                   type="time"
@@ -1385,30 +1773,71 @@ function Detail({ auth }) {
               </label>
             </div>
 
-            <div className="estimate">
-              <span>
-                Estimated Total
-                <small>
-                  {hours > 0 ? `${hours} hours reservation` : 'Select a valid time range'}
+            {/* Overlap / Conflict Warning */}
+            {conflictingBooking && (
+              <div className="conflict-alert-box">
+                <AlertTriangle size={15} />
+                <div className="conflict-text">
+                  <strong>Slot Conflict</strong>
+                  <span>
+                    Selected time overlaps with an existing reservation ({conflictingBooking.startTime} – {conflictingBooking.endTime}). Please pick another time.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Price Estimation */}
+            <div className="estimate-box">
+              <div className="estimate-details">
+                <span className="estimate-label">Estimated Total</span>
+                <small className="estimate-sub">
+                  {hours > 0 ? (
+                    <>
+                      {money(v.basePrice)}/hr × {hours} {hours === 1 ? 'hour' : 'hours'}
+                    </>
+                  ) : (
+                    'Select a valid start & end time'
+                  )}
                 </small>
-              </span>
-              <strong>{hours > 0 ? money(Math.round(hours * v.basePrice)) : '—'}</strong>
+              </div>
+              <strong className="estimate-price">
+                {hours > 0 ? money(Math.round(hours * v.basePrice)) : '—'}
+              </strong>
             </div>
 
+            {/* CTA Button */}
             <Link
-              className={`button booking-submit ${hours <= 0 ? 'disabled-link' : ''}`}
+              className={`button booking-submit ${
+                hours <= 0 || conflictingBooking || isSelectedDatePast ? 'disabled-link' : ''
+              }`}
               to={
-                user && hours > 0
-                  ? `/student/book/${id}?date=${selectedDateStr}&start=${range.start}&end=${range.end}`
-                  : '/login'
+                hours > 0 && !conflictingBooking && !isSelectedDatePast
+                  ? user
+                    ? bookingTargetUrl
+                    : `/login?redirect=${encodeURIComponent(bookingTargetUrl)}`
+                  : '#'
               }
             >
-              Continue to booking <ArrowRight size={15} />
+              {isSelectedDatePast ? (
+                <>Date has passed</>
+              ) : conflictingBooking ? (
+                <>Time slot already booked</>
+              ) : hours <= 0 ? (
+                <>Select valid time window</>
+              ) : user ? (
+                <>
+                  Continue to booking <ArrowRight size={15} />
+                </>
+              ) : (
+                <>
+                  Sign in to reserve <ArrowRight size={15} />
+                </>
+              )}
             </Link>
 
             <div className="secure-note">
               <ShieldCheck size={14} />
-              <span>No payment is taken until your request is approved.</span>
+              <span>No payment required upfront. Billed only after campus approval.</span>
             </div>
           </aside>
         </div>
@@ -1427,6 +1856,7 @@ function AuthPage({ kind }) {
   const { token: pathToken } = useParams()
   const [searchParams] = useSearchParams()
   const token = pathToken || searchParams.get('token')
+  const redirectUrl = searchParams.get('redirect')
   const [visible, setVisible] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [message, setMessage] = useState('')
@@ -1460,7 +1890,7 @@ function AuthPage({ kind }) {
       if (kind === 'login') {
         if (d.accessToken) setAccessToken(d.accessToken)
         qc.setQueryData(['me'], d.user)
-        nav(d.user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard')
+        nav(redirectUrl || (d.user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard'))
       } else if (kind === 'register') {
         setMessage('Your account is ready. Please check your university email for the verification link.')
       } else if (kind === 'forgot') {
