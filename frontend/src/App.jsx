@@ -633,8 +633,50 @@ function Landing({ auth }) {
     <>
       <Header auth={auth} />
       <main>
-        {/* Clean Centered Hero Section */}
+        {/* Clean Centered Hero Section with Unique Auditorium Pattern Backdrop */}
         <div className="hero-section-wrap">
+          <div className="hero-pattern-backdrop" aria-hidden="true">
+            <svg
+              className="hero-pattern-svg"
+              width="100%"
+              height="100%"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <pattern id="hero-dot-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1.3" className="hero-svg-dot" />
+                </pattern>
+                <radialGradient id="hero-mask-grad" cx="50%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#fff" stopOpacity="1" />
+                  <stop offset="65%" stopColor="#fff" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#fff" stopOpacity="0.05" />
+                </radialGradient>
+                <mask id="hero-svg-mask">
+                  <rect width="100%" height="100%" fill="url(#hero-mask-grad)" />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#hero-dot-grid)" mask="url(#hero-svg-mask)" />
+              {/* Concentric Auditorium Amphitheater Acoustic Waves & Stage Projection Rays */}
+              <g mask="url(#hero-svg-mask)">
+                <circle cx="50%" cy="-40" r="180" className="hero-wave-ring" />
+                <circle cx="50%" cy="-40" r="320" className="hero-wave-ring dashed" />
+                <circle cx="50%" cy="-40" r="480" className="hero-wave-ring" />
+                <circle cx="50%" cy="-40" r="660" className="hero-wave-ring dashed" />
+                <circle cx="50%" cy="-40" r="860" className="hero-wave-ring" />
+                <circle cx="50%" cy="-40" r="1080" className="hero-wave-ring dashed" />
+
+                <line x1="50%" y1="-40" x2="10%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="25%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="40%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="50%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="60%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="75%" y2="100%" className="hero-wave-ray" />
+                <line x1="50%" y1="-40" x2="90%" y2="100%" className="hero-wave-ray" />
+              </g>
+            </svg>
+          </div>
+
           <section className="hero-centered">
             <div className="hero-badge-clean">
               <span className="hero-badge-dot" />
