@@ -647,46 +647,66 @@ a {
   height: 100%;
 }
 
+/* Faint, delicate background dots */
 .hero-svg-dot {
-  fill: rgba(57, 120, 246, 0.32);
+  fill: rgba(57, 120, 246, 0.12);
 }
 
 [data-theme="light"] .hero-svg-dot {
-  fill: rgba(37, 99, 235, 0.28);
+  fill: rgba(37, 99, 235, 0.08);
 }
 
+/* Soft, subtle acoustic wave rings */
 .hero-wave-ring {
-  stroke: rgba(57, 120, 246, 0.28);
-  stroke-width: 1.25;
+  stroke: rgba(57, 120, 246, 0.10);
+  stroke-width: 1px;
 }
 
 .hero-wave-ring.dashed {
-  stroke: rgba(99, 102, 241, 0.30);
+  stroke: rgba(99, 102, 241, 0.11);
   stroke-dasharray: 6 8;
-  stroke-width: 1.25;
+  stroke-width: 1px;
 }
 
 [data-theme="light"] .hero-wave-ring {
-  stroke: rgba(37, 99, 235, 0.25);
-  stroke-width: 1.25;
+  stroke: rgba(37, 99, 235, 0.08);
+  stroke-width: 1px;
 }
 
 [data-theme="light"] .hero-wave-ring.dashed {
-  stroke: rgba(99, 102, 241, 0.26);
+  stroke: rgba(99, 102, 241, 0.09);
   stroke-dasharray: 6 8;
-  stroke-width: 1.25;
+  stroke-width: 1px;
 }
 
+/* Very faint perspective rays */
 .hero-wave-ray {
-  stroke: rgba(57, 120, 246, 0.14);
-  stroke-width: 1;
+  stroke: rgba(57, 120, 246, 0.05);
+  stroke-width: 0.85px;
   stroke-dasharray: 4 8;
 }
 
 [data-theme="light"] .hero-wave-ray {
-  stroke: rgba(37, 99, 235, 0.14);
-  stroke-width: 1;
+  stroke: rgba(37, 99, 235, 0.04);
+  stroke-width: 0.85px;
   stroke-dasharray: 4 8;
+}
+
+/* Gentle ambient breathing animation on the waves */
+.hero-svg-waves-group {
+  transform-origin: 50% -40px;
+  animation: heroWavesDrift 10s ease-in-out infinite alternate;
+}
+
+@keyframes heroWavesDrift {
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 }
 
 .hero-section-wrap::before {
@@ -1745,6 +1765,112 @@ a {
 .closing-cta-actions .button-light:hover .cta-btn-arrow,
 .closing-cta .button:hover .cta-btn-arrow {
   transform: translateX(3px);
+}
+
+/* ==========================================================================
+   Home Page Exclusive Entrance & Micro-Animations
+   ========================================================================== */
+
+@keyframes homeFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered entrance for hero elements strictly on home page */
+.home-page .hero-badge-clean {
+  animation: homeFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.home-page .hero-title-clean {
+  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.home-page .hero-description-clean {
+  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.home-page .hero-actions-clean {
+  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+.home-page .hero-trust-clean {
+  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+/* Metrics Staggered Reveal */
+.home-page .metrics-strip-inner .metric-box {
+  animation: homeFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.home-page .metrics-strip-inner .metric-box:nth-child(1) {
+  animation-delay: 0.4s;
+}
+
+.home-page .metrics-strip-inner .metric-box:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.home-page .metrics-strip-inner .metric-box:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.home-page .metrics-strip-inner .metric-box:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+/* Featured Section Reveal */
+.home-page .featured-section {
+  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}
+
+/* Process Steps Staggered Reveal */
+.home-page .steps-grid .step {
+  animation: homeFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.home-page .steps-grid .step:nth-child(1) {
+  animation-delay: 0.65s;
+}
+
+.home-page .steps-grid .step:nth-child(2) {
+  animation-delay: 0.75s;
+}
+
+.home-page .steps-grid .step:nth-child(3) {
+  animation-delay: 0.85s;
+}
+
+.home-page .steps-grid .step:nth-child(4) {
+  animation-delay: 0.95s;
+}
+
+/* Closing CTA Reveal */
+.home-page .closing-cta {
+  animation: homeFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .home-page .hero-badge-clean,
+  .home-page .hero-title-clean,
+  .home-page .hero-description-clean,
+  .home-page .hero-actions-clean,
+  .home-page .hero-trust-clean,
+  .home-page .metrics-strip-inner .metric-box,
+  .home-page .featured-section,
+  .home-page .steps-grid .step,
+  .home-page .closing-cta,
+  .hero-svg-waves-group {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
 }
 
 /* ==========================================================================

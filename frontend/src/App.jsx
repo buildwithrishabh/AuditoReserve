@@ -632,7 +632,7 @@ function Landing({ auth }) {
   return (
     <>
       <Header auth={auth} />
-      <main>
+      <main className="home-page">
         {/* Clean Centered Hero Section with Unique Auditorium Pattern Backdrop */}
         <div className="hero-section-wrap">
           <div className="hero-pattern-backdrop" aria-hidden="true">
@@ -658,7 +658,7 @@ function Landing({ auth }) {
               </defs>
               <rect width="100%" height="100%" fill="url(#hero-dot-grid)" mask="url(#hero-svg-mask)" />
               {/* Concentric Auditorium Amphitheater Acoustic Waves & Stage Projection Rays */}
-              <g mask="url(#hero-svg-mask)">
+              <g mask="url(#hero-svg-mask)" className="hero-svg-waves-group">
                 <circle cx="50%" cy="-40" r="180" className="hero-wave-ring" />
                 <circle cx="50%" cy="-40" r="320" className="hero-wave-ring dashed" />
                 <circle cx="50%" cy="-40" r="480" className="hero-wave-ring" />
