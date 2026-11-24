@@ -647,13 +647,13 @@ a {
   height: 100%;
 }
 
-/* Faint, delicate background dots */
+/* Crisp, architectural background dots with clear visibility */
 .hero-svg-dot {
-  fill: rgba(57, 120, 246, 0.12);
+  fill: rgba(57, 120, 246, 0.28);
 }
 
 [data-theme="light"] .hero-svg-dot {
-  fill: rgba(37, 99, 235, 0.08);
+  fill: rgba(37, 99, 235, 0.22);
 }
 
 /* Soft, subtle acoustic wave rings */
@@ -812,15 +812,28 @@ a {
 
 .hero-title-gradient {
   background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 50%, #6366f1 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
+  animation: titleShimmer 7s ease-in-out infinite alternate;
 }
 
 [data-theme="light"] .hero-title-gradient {
   background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4f46e5 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: titleShimmer 7s ease-in-out infinite alternate;
+}
+
+@keyframes titleShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
 }
 
 .hero-description-clean {
@@ -1774,7 +1787,7 @@ a {
 @keyframes homeFadeUp {
   0% {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(12px);
   }
   100% {
     opacity: 1;
@@ -1782,77 +1795,77 @@ a {
   }
 }
 
-/* Staggered entrance for hero elements strictly on home page */
+/* Precise, snappy staggered entrance for hero elements */
 .home-page .hero-badge-clean {
-  animation: homeFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+  animation: homeFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
 }
 
 .home-page .hero-title-clean {
-  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.10s both;
 }
 
 .home-page .hero-description-clean {
-  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
 }
 
 .home-page .hero-actions-clean {
-  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
 }
 
 .home-page .hero-trust-clean {
-  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
 }
 
-/* Metrics Staggered Reveal */
+/* Metrics Staggered Reveal - fast and responsive */
 .home-page .metrics-strip-inner .metric-box {
-  animation: homeFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .home-page .metrics-strip-inner .metric-box:nth-child(1) {
-  animation-delay: 0.4s;
+  animation-delay: 0.24s;
 }
 
 .home-page .metrics-strip-inner .metric-box:nth-child(2) {
-  animation-delay: 0.5s;
+  animation-delay: 0.31s;
 }
 
 .home-page .metrics-strip-inner .metric-box:nth-child(3) {
-  animation-delay: 0.6s;
+  animation-delay: 0.38s;
 }
 
 .home-page .metrics-strip-inner .metric-box:nth-child(4) {
-  animation-delay: 0.7s;
+  animation-delay: 0.45s;
 }
 
 /* Featured Section Reveal */
 .home-page .featured-section {
-  animation: homeFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+  animation: homeFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.36s both;
 }
 
 /* Process Steps Staggered Reveal */
 .home-page .steps-grid .step {
-  animation: homeFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: homeFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .home-page .steps-grid .step:nth-child(1) {
-  animation-delay: 0.65s;
+  animation-delay: 0.40s;
 }
 
 .home-page .steps-grid .step:nth-child(2) {
-  animation-delay: 0.75s;
+  animation-delay: 0.47s;
 }
 
 .home-page .steps-grid .step:nth-child(3) {
-  animation-delay: 0.85s;
+  animation-delay: 0.54s;
 }
 
 .home-page .steps-grid .step:nth-child(4) {
-  animation-delay: 0.95s;
+  animation-delay: 0.61s;
 }
 
 /* Closing CTA Reveal */
 .home-page .closing-cta {
-  animation: homeFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
+  animation: homeFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.50s both;
 }
 
 /* Respect user's motion preferences */

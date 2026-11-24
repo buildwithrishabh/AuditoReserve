@@ -645,7 +645,7 @@ function Landing({ auth }) {
             >
               <defs>
                 <pattern id="hero-dot-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="1.3" className="hero-svg-dot" />
+                  <circle cx="2" cy="2" r="1.45" className="hero-svg-dot" />
                 </pattern>
                 <radialGradient id="hero-mask-grad" cx="50%" cy="30%" r="70%">
                   <stop offset="0%" stopColor="#fff" stopOpacity="1" />
