@@ -633,8 +633,37 @@ function Landing({ auth }) {
     <>
       <Header auth={auth} />
       <main>
-        {/* Clean Centered Hero Section */}
+        {/* Clean Centered Hero Section with Ambient Background Elements */}
         <div className="hero-section-wrap">
+          {/* Layered Architectural Backdrop & Glowing Orbs */}
+          <div className="hero-bg-backdrop" />
+          <div className="hero-bg-grid-overlay" />
+          <div className="hero-glow-orb-primary" />
+          <div className="hero-glow-orb-secondary" />
+
+          {/* Floating Campus Visual Cards (Desktop) */}
+          <div className="hero-floating-card hero-floating-left">
+            <div className="floating-card-icon">
+              <Building2 size={16} />
+            </div>
+            <div className="floating-card-info">
+              <span className="floating-card-title">Campus Auditoriums</span>
+              <span className="floating-card-sub">
+                <span className="floating-status-dot" /> Verified Availability
+              </span>
+            </div>
+          </div>
+
+          <div className="hero-floating-card hero-floating-right">
+            <div className="floating-card-icon">
+              <Zap size={16} />
+            </div>
+            <div className="floating-card-info">
+              <span className="floating-card-title">Real-Time Slot Engine</span>
+              <span className="floating-card-sub">Zero Double-Booking</span>
+            </div>
+          </div>
+
           <section className="hero-centered">
             <div className="hero-badge-clean">
               <span className="hero-badge-dot" />
