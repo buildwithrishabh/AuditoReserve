@@ -5640,17 +5640,23 @@ tbody td strong {
 
 .payment-details > div {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  min-width: 0;
 }
 
 .payment-details svg {
   color: var(--brand-700);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .payment-details span {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
 .payment-details small {
@@ -5663,6 +5669,9 @@ tbody td strong {
 .payment-details strong {
   font-size: 13.5px;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 .payment-aside {
@@ -5682,6 +5691,11 @@ tbody td strong {
   font-size: 13px;
   line-height: 1.55;
   color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.payment-aside .deadline-note {
+  margin-bottom: 18px;
 }
 
 .secure-note {
@@ -8739,8 +8753,8 @@ a, button { transition-duration: 150ms; }
 /* Receipt Meta Strip */
 .receipt-meta-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
+  gap: 16px;
   padding: 14px 16px;
   background: var(--surface-subtle);
   border: 1px solid var(--border-light);
@@ -8756,6 +8770,7 @@ a, button { transition-duration: 150ms; }
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .meta-strip-item span {
@@ -8888,7 +8903,9 @@ a, button { transition-duration: 150ms; }
   margin: 0;
   font-size: 13px;
   color: var(--text-primary);
-  line-height: 1.45;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Itemized Financial Breakdown */

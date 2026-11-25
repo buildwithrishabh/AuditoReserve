@@ -3976,8 +3976,8 @@ function PaymentPage({ auth }) {
     <RequireRole auth={auth} role="student">
       <DashboardShell
         auth={auth}
-        title="Complete payment"
-        subtitle="SECURE CHECKOUT"
+        title={isConfirmed ? 'Payment receipt' : 'Complete payment'}
+        subtitle={isConfirmed ? 'OFFICIAL VOUCHER' : 'SECURE CHECKOUT'}
         children={{
           content: q.isLoading ? (
             <LoadingRows />
@@ -4039,7 +4039,12 @@ function PaymentPage({ auth }) {
                   </div>
                   <div>
                     <span>Duration</span>
-                    <span>{hoursBetween(booking.startTime, booking.endTime)} hours</span>
+                    <span>
+                      {(() => {
+                        const hrs = hoursBetween(booking.startTime, booking.endTime)
+                        return `${hrs} ${hrs === 1 ? 'hour' : 'hours'}`
+                      })()}
+                    </span>
                   </div>
                   <div className="breakdown-total">
                     <strong>Total Amount Due</strong>
