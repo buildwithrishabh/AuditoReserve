@@ -2648,6 +2648,39 @@ a {
   margin-bottom: 16px;
 }
 
+.catalog-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(265px, 320px));
+  gap: 20px;
+}
+
+.catalog-card-grid .venue-image-wrap {
+  aspect-ratio: 16 / 9;
+}
+
+.catalog-card-grid .venue-content {
+  padding: 14px 16px;
+}
+
+.catalog-card-grid .venue-name {
+  font-size: 15px;
+}
+
+.catalog-card-grid .venue-card-desc {
+  font-size: 12.5px;
+  margin-bottom: 12px;
+}
+
+.catalog-card-grid .amenities {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .catalog-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ==========================================================================
    Auditorium Detail Page
    ========================================================================== */
@@ -5135,7 +5168,8 @@ tbody td strong {
 .progress-steps {
   display: flex;
   align-items: center;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 12px 20px;
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-light);
@@ -5711,6 +5745,75 @@ tbody td strong {
   place-items: center;
   font-size: 11px;
   font-weight: 700;
+}
+
+.booking-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.booking-section-block.last {
+  padding-bottom: 4px;
+  border-bottom: 0;
+}
+
+.booking-section-block .form-section-head {
+  margin-bottom: 2px;
+}
+
+.booking-section-block .venue-selected-card {
+  margin-top: 2px;
+}
+
+.booking-section-block .day-slots-bar {
+  margin-top: 2px;
+}
+
+.booking-section-block .time-row {
+  margin-top: 2px;
+}
+
+.booking-section-block .time-row .form-label {
+  min-width: 0;
+}
+
+.chip-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.chip-row-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding-top: 6px;
+  white-space: nowrap;
+}
+
+.chip-row .quick-chip-group {
+  margin-top: 0;
+}
+
+.textarea-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .chip-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .chip-row-label {
+    padding-top: 0;
+  }
 }
 
 /* ==========================================================================

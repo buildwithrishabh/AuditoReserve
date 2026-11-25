@@ -1021,19 +1021,15 @@ function SortDropdown({ value, onChange }) {
 }
 
 function Catalog({ auth }) {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const q = useAuditoriums()
   const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [capacity, setCapacity] = useState(searchParams.get('capacity') || '')
   const [sort, setSort] = useState('recommended')
-  const [showFilters, setShowFilters] = useState(false)
   const searchInputRef = useRef(null)
 
   useEffect(() => {
     const s = searchParams.get('search')
-    const c = searchParams.get('capacity')
     if (s !== null) setSearch(s)
-    if (c !== null) setCapacity(c)
   }, [searchParams])
 
   // Keyboard shortcut: Cmd+K or Ctrl+K focuses the search input
@@ -1058,16 +1054,11 @@ function Catalog({ auth }) {
           .includes(qLower)
       )
     }
-    if (capacity) {
-      list = list.filter((v) => v.capacity >= Number(capacity))
-    }
     if (sort === 'price-low') list.sort((x, y) => x.basePrice - y.basePrice)
     if (sort === 'price-high') list.sort((x, y) => y.basePrice - x.basePrice)
     if (sort === 'capacity') list.sort((x, y) => y.capacity - x.capacity)
     return list
-  }, [q.data, search, capacity, sort])
-
-  const activeFiltersCount = (search ? 1 : 0) + (capacity ? 1 : 0)
+  }, [q.data, search, sort])
 
   return (
     <>
@@ -1107,227 +1098,39 @@ function Catalog({ auth }) {
               <kbd>⌘ K</kbd>
             )}
           </label>
-          <button
-            type="button"
-            className={`button button-secondary filter-toggle ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-            aria-expanded={showFilters}
-          >
-            <SlidersHorizontal size={15} />
-            <span>Filters</span>
-            {activeFiltersCount > 0 && (
-              <span className="count-chip" style={{ padding: '1px 6px', fontSize: '10px' }}>
-                {activeFiltersCount}
-              </span>
-            )}
-            <ChevronDown size={14} className={`filter-chevron ${showFilters ? 'rotate' : ''}`} />
-          </button>
           <SortDropdown value={sort} onChange={setSort} />
         </div>
 
-        <div className="quick-capacity-chips">
-          <span className="chips-title">Minimum capacity:</span>
-          {[
-            { label: 'All Spaces', val: '' },
-            { label: '100+ seats', val: '100' },
-            { label: '250+ seats', val: '250' },
-            { label: '500+ seats', val: '500' },
-          ].map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              className={`chip-pill ${capacity === c.val ? 'active' : ''}`}
-              onClick={() => setCapacity(capacity === c.val ? '' : c.val)}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        {activeFiltersCount > 0 && (
-          <div className="active-filters-bar">
-            {search && (
-              <span className="filter-chip">
-                Search: &ldquo;{search}&rdquo;
-                <button onClick={() => setSearch('')} aria-label="Remove search filter">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-            {capacity && (
-              <span className="filter-chip">
-                Min {capacity} seats
-                <button onClick={() => setCapacity('')} aria-label="Remove capacity filter">
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-            <button
-              className="reset-link"
-              onClick={() => {
-                setSearch('')
-                setCapacity('')
-              }}
-            >
-              Clear all filters
-            </button>
+        <section className="catalog-results">
+          <div className="results-label">
+            Showing {venues.length} {venues.length === 1 ? 'venue' : 'venues'}
+            <span>·</span>
+            All campus auditoriums
           </div>
-        )}
 
-        <div className={`catalog-layout ${showFilters ? 'filters-open' : ''}`}>
-          <aside className="filter-panel">
-            <div className="filter-title">
-              <span>Filter Spaces</span>
-              {activeFiltersCount > 0 && (
-                <button
-                  className="reset-link"
-                  onClick={() => {
-                    setCapacity('')
-                    setSearch('')
-                  }}
-                >
-                  Reset all
-                </button>
-              )}
+          {q.isLoading ? (
+            <LoadingCards count={3} />
+          ) : q.isError ? (
+            <PageState error={q.error} retry={q.refetch} />
+          ) : venues.length ? (
+            <div className="card-grid catalog-card-grid">
+              {venues.map((v) => (
+                <AuditoriumCard item={v} key={v._id} />
+              ))}
             </div>
-            <label className="filter-label">
-              Minimum Seating Capacity
-              <input
-                className="input"
-                type="number"
-                min="1"
-                placeholder="e.g. 200"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-              />
-              <div className="capacity-presets">
-                {['100', '250', '500'].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`capacity-preset-btn ${capacity === preset ? 'active' : ''}`}
-                    onClick={() => setCapacity(capacity === preset ? '' : preset)}
-                  >
-                    {preset}+
-                  </button>
-                ))}
+          ) : (
+            <div className="state-panel">
+              <div className="state-icon">
+                <Search size={22} />
               </div>
-            </label>
-            <div className="filter-note">
-              <Filter size={16} />
-              <span>Full equipment lists and real-time calendars are shown on each auditorium's page.</span>
+              <h3>No auditoriums match your search</h3>
+              <p>Try searching for a different venue name or keyword.</p>
+              <button className="button button-secondary" onClick={() => setSearch('')}>
+                Clear search
+              </button>
             </div>
-          </aside>
-
-          <section className="catalog-results">
-            <div className="results-label">
-              Showing {venues.length} {venues.length === 1 ? 'venue' : 'venues'}
-              <span>·</span>
-              All campus auditoriums
-            </div>
-
-            {q.isLoading ? (
-              <LoadingCards count={4} />
-            ) : q.isError ? (
-              <PageState error={q.error} retry={q.refetch} />
-            ) : venues.length === 1 && !showFilters ? (
-              (() => {
-                const v = venues[0]
-                const amenitiesList = Array.isArray(v.amenities) ? v.amenities.slice(0, 6) : []
-                return (
-                  <div className="venue-spotlight-hero">
-                    <Link className="spotlight-media-wrap" to={`/auditoriums/${v._id}`}>
-                      <img
-                        className="spotlight-media-img"
-                        src={imageFor(v)}
-                        alt={v.name}
-                        loading="lazy"
-                      />
-                      <div className="spotlight-media-scrim" />
-                      <div className="spotlight-media-badges">
-                        <span className="spotlight-flagship-pill">
-                          <Sparkles size={12} /> Campus Venue
-                        </span>
-                        <span className="spotlight-capacity-pill">
-                          <Users size={12} /> {v.capacity} seats
-                        </span>
-                      </div>
-                      <div className="spotlight-live-tag">
-                        <span className="spotlight-live-dot" />
-                        <span>Live Calendar Available</span>
-                      </div>
-                    </Link>
-                    <div className="spotlight-content-wrap">
-                      <div className="spotlight-content-top">
-                        <span className="spotlight-eyebrow">CAMPUS AUDITORIUM</span>
-                        <Link to={`/auditoriums/${v._id}`} className="spotlight-title-link">
-                          <h3 className="spotlight-title">{v.name}</h3>
-                        </Link>
-                        {v.description && <p className="spotlight-desc">{v.description}</p>}
-                        {amenitiesList.length > 0 && (
-                          <div className="spotlight-amenities-grid">
-                            {amenitiesList.map((amenity) => (
-                              <div className="spotlight-amenity-item" key={amenity}>
-                                <Check size={14} strokeWidth={2.5} />
-                                <span>{amenity}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="spotlight-foot-row">
-                        <div className="spotlight-rate-group">
-                          <span className="spotlight-rate-val">{money(v.basePrice)}</span>
-                          <span className="spotlight-rate-sub">per hour</span>
-                        </div>
-                        <div className="spotlight-action-buttons">
-                          <Link
-                            to={`/auditoriums/${v._id}#availability`}
-                            className="button button-secondary"
-                          >
-                            <CalendarDays size={14} />
-                            <span>Check calendar</span>
-                          </Link>
-                          <Link
-                            to={`/auditoriums/${v._id}`}
-                            className="button button-primary"
-                          >
-                            <span>View details</span>
-                            <ArrowRight size={14} />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()
-            ) : venues.length ? (
-              <div className={`card-grid ${venues.length <= 2 ? 'card-grid-2' : ''}`}>
-                {venues.map((v) => (
-                  <AuditoriumCard item={v} key={v._id} />
-                ))}
-              </div>
-            ) : (
-              <div className="state-panel">
-                <div className="state-icon">
-                  <Search size={22} />
-                </div>
-                <h3>No auditoriums match your filters</h3>
-                <p>Try searching for a different keyword or lowering your minimum seating capacity.</p>
-                <button
-                  className="button button-secondary"
-                  onClick={() => {
-                    setSearch('')
-                    setCapacity('')
-                  }}
-                >
-                  Reset all filters
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
+          )}
+        </section>
       </main>
       <Footer />
     </>
@@ -2979,102 +2782,45 @@ function StudentDashboard({ user, auth }) {
                     </div>
                   )}
 
-                  <div className="dashboard-bottom-grid">
-                    <div className="panel">
-                      <div className="panel-header">
-                        <div>
-                          <div className="panel-title-with-badge">
-                            <h2>Recent Reservations</h2>
-                            {data.length > 0 && (
-                              <span className="count-chip">{data.length} total</span>
-                            )}
-                          </div>
-                          <p>Track request statuses, payment schedules, and verified bookings.</p>
-                        </div>
-                        <Link className="text-link" to="/student/my-bookings">
-                          View all <ArrowRight size={14} />
-                        </Link>
-                      </div>
-
-                      {data.length ? (
-                        <BookingTable
-                          bookings={data.slice(0, 5)}
-                          student
-                          onRowClick={(b) => setSelectedBooking(b)}
-                          onAction={(b) => (
-                            <div className="action-group" style={{ justifyContent: 'flex-end' }}>
-                              <button
-                                className="table-action action-details"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedBooking(b)
-                                }}
-                                title="View reservation details & receipt"
-                              >
-                                <Eye size={13} /> Details
-                              </button>
-                            </div>
+                  <div className="panel">
+                    <div className="panel-header">
+                      <div>
+                        <div className="panel-title-with-badge">
+                          <h2>Recent Reservations</h2>
+                          {data.length > 0 && (
+                            <span className="count-chip">{data.length} total</span>
                           )}
-                        />
-                      ) : (
-                        <EmptyBookings />
-                      )}
+                        </div>
+                        <p>Track request statuses, payment schedules, and verified bookings.</p>
+                      </div>
+                      <Link className="text-link" to="/student/my-bookings">
+                        View all reservations <ArrowRight size={14} />
+                      </Link>
                     </div>
 
-                    <div className="panel quick-actions-panel">
-                      <div className="panel-header">
-                        <div>
-                          <h2>Quick Actions</h2>
-                          <p>Jump straight to common campus tasks.</p>
-                        </div>
-                      </div>
-                      <div className="quick-actions-grid">
-                        <Link className="quick-action-card" to="/student/book">
-                          <div className="quick-action-icon action-blue">
-                            <CalendarPlus size={18} />
+                    {data.length ? (
+                      <BookingTable
+                        bookings={data.slice(0, 5)}
+                        student
+                        onRowClick={(b) => setSelectedBooking(b)}
+                        onAction={(b) => (
+                          <div className="action-group" style={{ justifyContent: 'flex-end' }}>
+                            <button
+                              className="table-action action-details"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedBooking(b)
+                              }}
+                              title="View reservation details & receipt"
+                            >
+                              <Eye size={13} /> Details
+                            </button>
                           </div>
-                          <div className="quick-action-info">
-                            <strong>Request a Booking</strong>
-                            <span>Submit a new auditorium reservation</span>
-                          </div>
-                          <ArrowRight size={15} className="quick-action-arrow" />
-                        </Link>
-                        <Link className="quick-action-card" to="/auditoriums">
-                          <div className="quick-action-icon action-purple">
-                            <DoorOpen size={18} />
-                          </div>
-                          <div className="quick-action-info">
-                            <strong>Browse Auditoriums</strong>
-                            <span>Compare capacities, AV & calendars</span>
-                          </div>
-                          <ArrowRight size={15} className="quick-action-arrow" />
-                        </Link>
-                        <Link className="quick-action-card" to="/student/my-bookings">
-                          <div className="quick-action-icon action-emerald">
-                            <FileText size={18} />
-                          </div>
-                          <div className="quick-action-info">
-                            <strong>Reservation History</strong>
-                            <span>Track approvals & download receipts</span>
-                          </div>
-                          <ArrowRight size={15} className="quick-action-arrow" />
-                        </Link>
-                        <Link className="quick-action-card" to="/notifications">
-                          <div className="quick-action-icon action-amber">
-                            <Bell size={18} />
-                          </div>
-                          <div className="quick-action-info">
-                            <strong>Notifications</strong>
-                            <span>
-                              {auth.unread > 0
-                                ? `${auth.unread} unread ${auth.unread === 1 ? 'alert' : 'alerts'}`
-                                : 'View booking & payment alerts'}
-                            </span>
-                          </div>
-                          <ArrowRight size={15} className="quick-action-arrow" />
-                        </Link>
-                      </div>
-                    </div>
+                        )}
+                      />
+                    ) : (
+                      <EmptyBookings />
+                    )}
                   </div>
                 </>
               )}
@@ -3529,12 +3275,13 @@ function BookPage({ auth }) {
                   }}
                 >
                   {/* 1. Auditorium Selection */}
-                  <div className="form-group">
+                  <div className="form-group booking-section-block">
                     <div className="form-section-head">
                       <span className="form-section-num">1</span>
                       <span>Choose Auditorium</span>
                     </div>
                     <label className="form-label">
+                      Auditorium Venue
                       <select
                         className="input"
                         value={form.auditoriumId}
@@ -3569,12 +3316,13 @@ function BookPage({ auth }) {
                     )}
                   </div>
 
-                  {/* 2. Event Date & Time */}
-                  <div className="form-group">
+                  {/* 2. Date & Time Window */}
+                  <div className="form-group booking-section-block">
                     <div className="form-section-head">
                       <span className="form-section-num">2</span>
                       <span>Date & Time Window</span>
                     </div>
+
                     <label className="form-label">
                       Event Date
                       <input
@@ -3586,24 +3334,27 @@ function BookPage({ auth }) {
                         required
                       />
                     </label>
-                    <div className="quick-chip-group">
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick select:</span>
-                      <button
-                        type="button"
-                        className={`quick-chip ${form.bookingDate === todayStr ? 'active' : ''}`}
-                        onClick={() => setQuickDateOffset(0)}
-                      >
-                        Today
-                      </button>
-                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(1)}>
-                        Tomorrow
-                      </button>
-                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(2)}>
-                        In 2 days
-                      </button>
-                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(7)}>
-                        Next week
-                      </button>
+
+                    <div className="chip-row">
+                      <span className="chip-row-label">Quick date</span>
+                      <div className="quick-chip-group">
+                        <button
+                          type="button"
+                          className={`quick-chip ${form.bookingDate === todayStr ? 'active' : ''}`}
+                          onClick={() => setQuickDateOffset(0)}
+                        >
+                          Today
+                        </button>
+                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(1)}>
+                          Tomorrow
+                        </button>
+                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(2)}>
+                          In 2 days
+                        </button>
+                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(7)}>
+                          Next week
+                        </button>
+                      </div>
                     </div>
 
                     {form.auditoriumId && form.bookingDate && (
@@ -3627,10 +3378,7 @@ function BookPage({ auth }) {
                         )}
                       </div>
                     )}
-                  </div>
 
-                  {/* 3. Time Slots, Presets & Duration */}
-                  <div className="form-group">
                     <div className="time-row">
                       <label className="form-label">
                         Start Time
@@ -3677,62 +3425,69 @@ function BookPage({ auth }) {
                       </div>
                     )}
 
-                    {/* Quick Duration Buttons */}
-                    <div className="quick-chip-group" style={{ marginTop: '8px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Set duration:</span>
-                      {[1, 2, 3, 4, 8].map((h) => (
-                        <button
-                          key={h}
-                          type="button"
-                          className={`quick-chip ${duration === h ? 'active' : ''}`}
-                          onClick={() => setDurationHours(h)}
-                        >
-                          {h === 4 ? '4h (Half day)' : h === 8 ? '8h (Full day)' : `${h} hr${h > 1 ? 's' : ''}`}
-                        </button>
-                      ))}
+                    <div className="chip-row">
+                      <span className="chip-row-label">Duration</span>
+                      <div className="quick-chip-group">
+                        {[1, 2, 3, 4, 8].map((h) => (
+                          <button
+                            key={h}
+                            type="button"
+                            className={`quick-chip ${duration === h ? 'active' : ''}`}
+                            onClick={() => setDurationHours(h)}
+                          >
+                            {h === 4 ? '4h (Half day)' : h === 8 ? '8h (Full day)' : `${h} hr${h > 1 ? 's' : ''}`}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Popular Slot Presets */}
-                    <div className="quick-chip-group" style={{ marginTop: '6px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Popular slots:</span>
-                      {QUICK_SLOTS.map((s) => (
-                        <button
-                          key={s.label}
-                          type="button"
-                          className={`quick-chip ${form.startTime === s.start && form.endTime === s.end ? 'active' : ''}`}
-                          onClick={() => setForm((prev) => ({ ...prev, startTime: s.start, endTime: s.end }))}
-                        >
-                          {s.label} ({s.start}–{s.end})
-                        </button>
-                      ))}
+                    <div className="chip-row">
+                      <span className="chip-row-label">Popular slots</span>
+                      <div className="quick-chip-group">
+                        {QUICK_SLOTS.map((s) => (
+                          <button
+                            key={s.label}
+                            type="button"
+                            className={`quick-chip ${form.startTime === s.start && form.endTime === s.end ? 'active' : ''}`}
+                            onClick={() => setForm((prev) => ({ ...prev, startTime: s.start, endTime: s.end }))}
+                          >
+                            {s.label} ({s.start}–{s.end})
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* 4. Event Purpose (Valid Model Field) */}
-                  <div className="form-group">
+                  {/* 3. Event Purpose (Valid Model Field) */}
+                  <div className="form-group booking-section-block last">
                     <div className="form-section-head">
                       <span className="form-section-num">3</span>
                       <span>Event Purpose</span>
                     </div>
-                    <div className="quick-chip-group" style={{ marginBottom: '8px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick templates:</span>
-                      {[
-                        'Department Seminar on ',
-                        'Technical Workshop: ',
-                        'Guest Lecture by ',
-                        'Student Society Event: ',
-                      ].map((tpl) => (
-                        <button
-                          key={tpl}
-                          type="button"
-                          className="quick-chip"
-                          onClick={() => setForm((prev) => ({ ...prev, purpose: tpl }))}
-                        >
-                          {tpl.replace(/[: ]+$/, '')}
-                        </button>
-                      ))}
+
+                    <div className="chip-row">
+                      <span className="chip-row-label">Templates</span>
+                      <div className="quick-chip-group">
+                        {[
+                          'Department Seminar on ',
+                          'Technical Workshop: ',
+                          'Guest Lecture by ',
+                          'Student Society Event: ',
+                        ].map((tpl) => (
+                          <button
+                            key={tpl}
+                            type="button"
+                            className="quick-chip"
+                            onClick={() => setForm((prev) => ({ ...prev, purpose: tpl }))}
+                          >
+                            {tpl.replace(/[: ]+$/, '')}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
                     <label className="form-label">
+                      Purpose Description
                       <textarea
                         className="input textarea"
                         maxLength={500}
@@ -3743,7 +3498,7 @@ function BookPage({ auth }) {
                         required
                       />
                     </label>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                    <div className="textarea-meta-row">
                       <span className="field-hint">
                         {form.purpose.trim().length < 3
                           ? 'Please provide a brief description of the event purpose (min 3 characters).'
