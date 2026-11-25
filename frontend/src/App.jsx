@@ -1125,12 +1125,12 @@ function Catalog({ auth }) {
         </div>
 
         <div className="quick-capacity-chips">
-          <span className="chips-title">Quick capacity:</span>
+          <span className="chips-title">Minimum capacity:</span>
           {[
             { label: 'All Spaces', val: '' },
-            { label: 'Small (<150)', val: '1' },
-            { label: 'Medium (150-400)', val: '150' },
-            { label: 'Grand (400+)', val: '400' },
+            { label: '100+ seats', val: '100' },
+            { label: '250+ seats', val: '250' },
+            { label: '500+ seats', val: '500' },
           ].map((c) => (
             <button
               key={c.label}
@@ -1230,7 +1230,7 @@ function Catalog({ auth }) {
             ) : q.isError ? (
               <PageState error={q.error} retry={q.refetch} />
             ) : venues.length ? (
-              <div className="card-grid">
+              <div className={`card-grid ${venues.length <= 2 ? 'card-grid-2' : ''}`}>
                 {venues.map((v) => (
                   <AuditoriumCard item={v} key={v._id} />
                 ))}
@@ -2137,7 +2137,7 @@ function AuthPage({ kind }) {
                   className="input"
                   required
                   autoComplete="name"
-                  placeholder="e.g. Eleanor Vance"
+                  placeholder="e.g. Aarav Sharma"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
@@ -3114,7 +3114,7 @@ function MyBookings({ auth }) {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Filter reservations by auditorium name, event category, or purpose…"
+                  placeholder="Filter reservations by auditorium name or event purpose…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -4070,9 +4070,15 @@ function Notifications({ auth }) {
                   <h2>Recent Notifications</h2>
                   <p>Reservation updates, status notices, and payment receipts from campus admins.</p>
                 </div>
-                <button className="text-link" onClick={() => mark.mutate()}>
-                  Mark all as read <Check size={14} />
-                </button>
+                {q.data?.some((n) => !n.isRead) && (
+                  <button
+                    className="text-link"
+                    disabled={mark.isPending}
+                    onClick={() => mark.mutate()}
+                  >
+                    Mark all as read <Check size={14} />
+                  </button>
+                )}
               </div>
 
               {q.isLoading ? (
@@ -4152,9 +4158,14 @@ function AdminDashboard({ auth }) {
         subtitle="CAMPUS OPERATIONS"
         children={{
           actions: (
-            <Link className="button" to="/admin/auditoriums/new">
-              <Plus size={14} /> Add auditorium
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <Link className="button button-secondary" to="/admin/auditoriums">
+                <DoorOpen size={14} /> Manage venues
+              </Link>
+              <Link className="button" to="/admin/auditoriums/new">
+                <Plus size={14} /> Add auditorium
+              </Link>
+            </div>
           ),
           content: (
             <>
@@ -4174,12 +4185,14 @@ function AdminDashboard({ auth }) {
                       value={aq.data?.length ?? '—'}
                       icon="building"
                       note="Active campus venues"
+                      to="/admin/auditoriums"
                     />
                     <StatCard
                       title="Total Bookings"
                       value={bq.data?.pagination?.totalItems ?? list.length}
                       icon="calendar"
                       note="All-time reservations"
+                      to="/admin/bookings"
                     />
                     <StatCard
                       title="Pending Review"
@@ -4192,12 +4205,14 @@ function AdminDashboard({ auth }) {
                       }
                       badge={pending.length > 0 ? `${pending.length} pending` : null}
                       highlight={pending.length > 0 ? 'warning' : null}
+                      to="/admin/bookings"
                     />
                     <StatCard
                       title="Confirmed Revenue"
                       value={money(revenue)}
                       icon="rupee"
                       note="From confirmed bookings"
+                      to="/admin/bookings"
                     />
                   </div>
 
@@ -4365,9 +4380,31 @@ function AdminBookings({ auth }) {
                   <BookingTable
                     bookings={results}
                     onAction={(b) => (
-                      <button className="table-action" onClick={() => setSelected(b)}>
-                        Inspect details
-                      </button>
+                      <div className="action-group" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+                        {b.status === 'pending' && (
+                          <>
+                            <button
+                              className="table-action action-approve"
+                              disabled={update.isPending}
+                              onClick={() => update.mutate({ id: b._id, status: 'approved' })}
+                              title="Approve booking"
+                            >
+                              <Check size={13} /> Approve
+                            </button>
+                            <button
+                              className="table-action subtle action-decline"
+                              disabled={update.isPending}
+                              onClick={() => update.mutate({ id: b._id, status: 'cancelled' })}
+                              title="Decline booking"
+                            >
+                              <X size={13} /> Decline
+                            </button>
+                          </>
+                        )}
+                        <button className="table-action action-details" onClick={() => setSelected(b)}>
+                          <Eye size={13} /> Inspect
+                        </button>
+                      </div>
                     )}
                   />
                 ) : (
@@ -4379,6 +4416,19 @@ function AdminBookings({ auth }) {
                       <h3>No reservations found</h3>
                       <p>Adjust your search query or filter parameters to display matching records.</p>
                     </div>
+                    {(search || status || venue) && (
+                      <button
+                        className="button button-secondary button-small"
+                        onClick={() => {
+                          setSearch('')
+                          setStatus('')
+                          setVenue('')
+                          setPage(1)
+                        }}
+                      >
+                        Reset filters
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -4494,11 +4544,18 @@ function AdminAuditoriums({ auth }) {
   const q = useAuditoriums()
   const qc = useQueryClient()
   const [msg, setMsg] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const del = useMutation({
     mutationFn: (id) => api.delete(`/auditoriums/deleteAuditorium/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['auditoriums'] }),
-    onError: (e) => setMsg(getError(e)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auditoriums'] })
+      setDeleteTarget(null)
+    },
+    onError: (e) => {
+      setMsg(getError(e))
+      setDeleteTarget(null)
+    },
   })
 
   return (
@@ -4560,17 +4617,9 @@ function AdminAuditoriums({ auth }) {
                           Edit
                         </Link>
                         <button
-                          className="table-action subtle"
+                          className="table-action subtle action-decline"
                           disabled={del.isPending}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete ${v.name}? This is only allowed if there are no active bookings.`
-                              )
-                            ) {
-                              del.mutate(v._id)
-                            }
-                          }}
+                          onClick={() => setDeleteTarget(v)}
                         >
                           Delete
                         </button>
@@ -4590,6 +4639,39 @@ function AdminAuditoriums({ auth }) {
                   <Link className="button button-secondary" to="/admin/auditoriums/new">
                     Add auditorium
                   </Link>
+                </div>
+              )}
+
+              {deleteTarget && (
+                <div className="modal-backdrop" onClick={() => !del.isPending && setDeleteTarget(null)}>
+                  <div className="modal-card modal-compact" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-icon-danger">
+                      <AlertTriangle size={24} />
+                    </div>
+                    <h3>Delete {deleteTarget.name}?</h3>
+                    <p>
+                      This permanently removes the auditorium from campus listings. Deletion is only
+                      permitted when there are no active reservations.
+                    </p>
+                    <div className="modal-actions">
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        disabled={del.isPending}
+                        onClick={() => setDeleteTarget(null)}
+                      >
+                        Keep venue
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-danger"
+                        disabled={del.isPending}
+                        onClick={() => del.mutate(deleteTarget._id)}
+                      >
+                        {del.isPending ? 'Deleting…' : 'Delete venue'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
