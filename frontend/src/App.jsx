@@ -3892,6 +3892,7 @@ function PaymentPage({ auth }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
   const [busy, setBusy] = useState(false)
+  const isConfirmed = Boolean(success || booking?.status === 'confirmed')
 
   const start = async () => {
     setError('')
