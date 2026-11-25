@@ -1080,7 +1080,8 @@ function Catalog({ auth }) {
             <p>Compare venues, verify live availability, and reserve the ideal room for your event.</p>
           </div>
           <div className="catalog-count">
-            {q.data?.length ?? '—'} <span>spaces available</span>
+            <strong>{q.data?.length ?? '—'}</strong>{' '}
+            <span>{q.data?.length === 1 ? 'space available' : 'spaces available'}</span>
           </div>
         </div>
 
@@ -1229,6 +1230,78 @@ function Catalog({ auth }) {
               <LoadingCards count={4} />
             ) : q.isError ? (
               <PageState error={q.error} retry={q.refetch} />
+            ) : venues.length === 1 && !showFilters ? (
+              (() => {
+                const v = venues[0]
+                const amenitiesList = Array.isArray(v.amenities) ? v.amenities.slice(0, 6) : []
+                return (
+                  <div className="venue-spotlight-hero">
+                    <Link className="spotlight-media-wrap" to={`/auditoriums/${v._id}`}>
+                      <img
+                        className="spotlight-media-img"
+                        src={imageFor(v)}
+                        alt={v.name}
+                        loading="lazy"
+                      />
+                      <div className="spotlight-media-scrim" />
+                      <div className="spotlight-media-badges">
+                        <span className="spotlight-flagship-pill">
+                          <Sparkles size={12} /> Campus Venue
+                        </span>
+                        <span className="spotlight-capacity-pill">
+                          <Users size={12} /> {v.capacity} seats
+                        </span>
+                      </div>
+                      <div className="spotlight-live-tag">
+                        <span className="spotlight-live-dot" />
+                        <span>Live Calendar Available</span>
+                      </div>
+                    </Link>
+                    <div className="spotlight-content-wrap">
+                      <div className="spotlight-content-top">
+                        <span className="spotlight-eyebrow">CAMPUS AUDITORIUM</span>
+                        <Link to={`/auditoriums/${v._id}`} className="spotlight-title-link">
+                          <h3 className="spotlight-title">{v.name}</h3>
+                        </Link>
+                        {v.description && <p className="spotlight-desc">{v.description}</p>}
+                        {amenitiesList.length > 0 && (
+                          <div className="spotlight-amenities-grid">
+                            {amenitiesList.map((amenity) => (
+                              <div className="spotlight-amenity-item" key={amenity}>
+                                <Check size={14} strokeWidth={2.5} />
+                                <span>{amenity}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="spotlight-foot-row">
+                        <div className="spotlight-rate-group">
+                          <span className="spotlight-rate-val">{money(v.basePrice)}</span>
+                          <span className="spotlight-rate-sub">per hour</span>
+                        </div>
+                        <div className="spotlight-action-buttons">
+                          <Link
+                            to={`/auditoriums/${v._id}#availability`}
+                            className="button button-secondary"
+                          >
+                            <CalendarDays size={14} />
+                            <span>Check calendar</span>
+                          </Link>
+                          <Link
+                            to={`/auditoriums/${v._id}`}
+                            className="button button-primary"
+                          >
+                            <span>View details</span>
+                            <ArrowRight size={14} />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()
             ) : venues.length ? (
               <div className={`card-grid ${venues.length <= 2 ? 'card-grid-2' : ''}`}>
                 {venues.map((v) => (
@@ -2374,11 +2447,11 @@ function DashboardShell({ auth, title, subtitle, children }) {
         <Brand />
         <div className="side-org">
           <div className="org-avatar">AR</div>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <strong>Campus Operations</strong>
             <span>{isAdmin ? 'Administrator' : 'Student Workspace'}</span>
           </div>
-          <ChevronDown size={14} />
+          <BadgeCheck size={15} style={{ color: 'var(--brand-700)', flexShrink: 0 }} />
         </div>
 
         <span className="side-label">NAVIGATION</span>
@@ -2679,6 +2752,8 @@ function StudentBookingDrawer({ booking, onClose, onCancelClick, auth }) {
                 <span className="pay-status-paid"><Check size={12} /> Paid in full</span>
               ) : isApproved ? (
                 <span className="pay-status-due">Payment Due</span>
+              ) : isCancelled ? (
+                <span className="pay-status-pending">Cancelled / Closed</span>
               ) : (
                 <span className="pay-status-pending">Awaiting Review</span>
               )}
@@ -2865,7 +2940,13 @@ function StudentDashboard({ user, auth }) {
                           <h3>{upcomingConfirmed.auditorium?.name || 'Auditorium'}</h3>
                           <p>
                             {dateText(upcomingConfirmed.bookingDate)} · {upcomingConfirmed.startTime} – {upcomingConfirmed.endTime}
-                            {upcomingConfirmed.purpose ? ` · ${upcomingConfirmed.purpose.slice(0, 50)}...` : ''}
+                            {upcomingConfirmed.purpose
+                              ? ` · ${
+                                  upcomingConfirmed.purpose.length > 50
+                                    ? `${upcomingConfirmed.purpose.slice(0, 50)}…`
+                                    : upcomingConfirmed.purpose
+                                }`
+                              : ''}
                           </p>
                         </div>
                       </div>
@@ -2878,64 +2959,147 @@ function StudentDashboard({ user, auth }) {
                         </button>
                         <button
                           className="button button-small"
-                          onClick={() => downloadBookingReceipt(upcomingConfirmed._id, null, auth?.setToast)}
+                          disabled={downloadingId === upcomingConfirmed._id}
+                          onClick={() =>
+                            downloadBookingReceipt(
+                              upcomingConfirmed._id,
+                              (l) => setDownloadingId(l ? upcomingConfirmed._id : null),
+                              auth?.setToast
+                            )
+                          }
                         >
-                          <FileText size={13} /> Receipt PDF
+                          {downloadingId === upcomingConfirmed._id ? (
+                            <RefreshCw size={13} className="spin" />
+                          ) : (
+                            <FileText size={13} />
+                          )}{' '}
+                          Receipt PDF
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <div className="panel">
-                    <div className="panel-header">
-                      <div>
-                        <h2>Recent Reservations</h2>
-                        <p>Track request statuses, payment schedules, and verified bookings.</p>
-                      </div>
-                      <Link className="text-link" to="/student/my-bookings">
-                        View all reservations <ArrowRight size={14} />
-                      </Link>
-                    </div>
-
-                    {data.length ? (
-                      <BookingTable
-                        bookings={data.slice(0, 5)}
-                        student
-                        onAction={(b) => (
-                          <div className="action-group" style={{ justifyContent: 'flex-end' }}>
-                            <button
-                              className="table-action action-details"
-                              onClick={() => setSelectedBooking(b)}
-                              title="View reservation details"
-                            >
-                              <Eye size={13} /> Details
-                            </button>
-                            {b.status === 'approved' && (
-                              <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
-                                <CreditCard size={13} /> Pay now
-                              </Link>
-                            )}
-                            {b.status === 'confirmed' && (
-                              <button
-                                className="table-action action-paid"
-                                onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
-                                disabled={downloadingId === b._id}
-                                title="Payment verified · Click to download receipt PDF"
-                              >
-                                {downloadingId === b._id ? (
-                                  <RefreshCw size={12} className="spin" />
-                                ) : (
-                                  <CheckCircle2 size={12} />
-                                )}
-                                <span>Paid</span>
-                              </button>
+                  <div className="dashboard-bottom-grid">
+                    <div className="panel">
+                      <div className="panel-header">
+                        <div>
+                          <div className="panel-title-with-badge">
+                            <h2>Recent Reservations</h2>
+                            {data.length > 0 && (
+                              <span className="count-chip">{data.length} total</span>
                             )}
                           </div>
-                        )}
-                      />
-                    ) : (
-                      <EmptyBookings />
-                    )}
+                          <p>Track request statuses, payment schedules, and verified bookings.</p>
+                        </div>
+                        <Link className="text-link" to="/student/my-bookings">
+                          View all <ArrowRight size={14} />
+                        </Link>
+                      </div>
+
+                      {data.length ? (
+                        <BookingTable
+                          bookings={data.slice(0, 5)}
+                          student
+                          onAction={(b) => (
+                            <div className="action-group" style={{ justifyContent: 'flex-end' }}>
+                              <button
+                                className="table-action action-details"
+                                onClick={() => setSelectedBooking(b)}
+                                title="View reservation details"
+                              >
+                                <Eye size={13} /> Details
+                              </button>
+                              {b.status === 'pending' && (
+                                <button
+                                  className="table-action subtle action-decline"
+                                  onClick={() => setCancelTarget(b)}
+                                  title="Cancel booking request"
+                                >
+                                  <X size={13} /> Cancel
+                                </button>
+                              )}
+                              {b.status === 'approved' && (
+                                <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
+                                  <CreditCard size={13} /> Pay now
+                                </Link>
+                              )}
+                              {b.status === 'confirmed' && (
+                                <button
+                                  className="table-action action-paid"
+                                  onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
+                                  disabled={downloadingId === b._id}
+                                  title="Payment verified · Click to download receipt PDF"
+                                >
+                                  {downloadingId === b._id ? (
+                                    <RefreshCw size={12} className="spin" />
+                                  ) : (
+                                    <CheckCircle2 size={12} />
+                                  )}
+                                  <span>Paid</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        />
+                      ) : (
+                        <EmptyBookings />
+                      )}
+                    </div>
+
+                    <div className="panel quick-actions-panel">
+                      <div className="panel-header">
+                        <div>
+                          <h2>Quick Actions</h2>
+                          <p>Jump straight to common campus tasks.</p>
+                        </div>
+                      </div>
+                      <div className="quick-actions-grid">
+                        <Link className="quick-action-card" to="/student/book">
+                          <div className="quick-action-icon action-blue">
+                            <CalendarPlus size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Request a Booking</strong>
+                            <span>Submit a new auditorium reservation</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+                        <Link className="quick-action-card" to="/auditoriums">
+                          <div className="quick-action-icon action-purple">
+                            <DoorOpen size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Browse Auditoriums</strong>
+                            <span>Compare capacities, AV & calendars</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+                        <Link className="quick-action-card" to="/student/my-bookings">
+                          <div className="quick-action-icon action-emerald">
+                            <FileText size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Reservation History</strong>
+                            <span>Track approvals & download receipts</span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+                        <Link className="quick-action-card" to="/notifications">
+                          <div className="quick-action-icon action-amber">
+                            <Bell size={18} />
+                          </div>
+                          <div className="quick-action-info">
+                            <strong>Notifications</strong>
+                            <span>
+                              {auth.unread > 0
+                                ? `${auth.unread} unread ${auth.unread === 1 ? 'alert' : 'alerts'}`
+                                : 'View booking & payment alerts'}
+                            </span>
+                          </div>
+                          <ArrowRight size={15} className="quick-action-arrow" />
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -2992,6 +3156,9 @@ function BookingTable({ bookings, student = false, onAction }) {
                 <strong>{dateText(b.bookingDate)}</strong>
                 <span className="cell-sub">
                   {b.startTime} – {b.endTime}
+                  {hoursBetween(b.startTime, b.endTime) > 0 && (
+                    <span className="duration-tag">{hoursBetween(b.startTime, b.endTime)}h</span>
+                  )}
                 </span>
               </td>
               {!student && (
