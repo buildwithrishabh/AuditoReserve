@@ -2881,9 +2881,6 @@ function BookingTable({ bookings, student = false, onAction, onRowClick }) {
                 <strong>{dateText(b.bookingDate)}</strong>
                 <span className="cell-sub">
                   {b.startTime} – {b.endTime}
-                  {hoursBetween(b.startTime, b.endTime) > 0 && (
-                    <span className="duration-tag">{hoursBetween(b.startTime, b.endTime)}h</span>
-                  )}
                 </span>
               </td>
               {!student && (
@@ -3112,6 +3109,92 @@ const QUICK_SLOTS = [
   { label: 'Evening Gala', start: '18:00', end: '21:00' },
 ]
 
+function VenueDropdown({ venues, value, onChange, loading }) {
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef(null)
+  const selected = venues.find((v) => v._id === value)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
+
+  return (
+    <div className="custom-dropdown-wrap venue-select-dropdown" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`custom-dropdown-btn venue-select-btn ${open ? 'open' : ''}`}
+        onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={loading}
+      >
+        <span className="venue-select-left">
+          <Building2 size={15} className="dropdown-icon" />
+          {selected ? (
+            <span className="venue-select-value">
+              <strong>{selected.name}</strong>
+              <span className="venue-select-meta">
+                {selected.capacity} seats · {money(selected.basePrice)}/hr
+              </span>
+            </span>
+          ) : (
+            <span className="venue-select-placeholder">
+              {loading ? 'Loading auditoriums…' : 'Choose an auditorium venue'}
+            </span>
+          )}
+        </span>
+        <ChevronDown size={15} className={`dropdown-chevron ${open ? 'rotate' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="custom-dropdown-menu venue-select-menu" role="listbox">
+          {venues.length ? (
+            venues.map((v) => {
+              const isSelected = v._id === value
+              return (
+                <button
+                  key={v._id}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`custom-dropdown-item venue-select-option ${isSelected ? 'selected' : ''}`}
+                  onClick={() => {
+                    onChange(v._id)
+                    setOpen(false)
+                  }}
+                >
+                  <div className="venue-option-info">
+                    <strong>{v.name}</strong>
+                    <span>
+                      {v.capacity} seats · {money(v.basePrice)}/hr
+                    </span>
+                  </div>
+                  {isSelected && <Check size={15} className="dropdown-check" />}
+                </button>
+              )
+            })
+          ) : (
+            <div className="venue-option-empty">No campus auditoriums available.</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function BookPage({ auth }) {
   const { auditoriumId } = useParams()
   const [search] = useSearchParams()
@@ -3243,7 +3326,7 @@ function BookPage({ auth }) {
           content: (
             <div className="booking-flow">
               <form
-                className="booking-steps-column"
+                className="panel booking-form-panel booking-unified-form"
                 onSubmit={(e) => {
                   e.preventDefault()
                   if (!isFormValid) return
@@ -3251,8 +3334,8 @@ function BookPage({ auth }) {
                   mutation.mutate()
                 }}
               >
-                {/* Step Card 1: Auditorium Selection */}
-                <section className="panel booking-step-card">
+                {/* Section 1: Auditorium Selection */}
+                <div className="booking-unified-section">
                   <div className="step-card-header">
                     <span className="form-section-num">1</span>
                     <div>
@@ -3261,22 +3344,15 @@ function BookPage({ auth }) {
                     </div>
                   </div>
 
-                  <label className="form-label">
-                    Auditorium Venue
-                    <select
-                      className="input"
+                  <div className="form-label">
+                    <span>Auditorium Venue</span>
+                    <VenueDropdown
+                      venues={aq.data || []}
                       value={form.auditoriumId}
-                      onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })}
-                      required
-                    >
-                      <option value="">Choose an auditorium venue</option>
-                      {(aq.data || []).map((v) => (
-                        <option key={v._id} value={v._id}>
-                          {v.name} · {v.capacity} seats · {money(v.basePrice)}/hr
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      loading={aq.isLoading}
+                      onChange={(id) => setForm({ ...form, auditoriumId: id })}
+                    />
+                  </div>
 
                   {venue && (
                     <div className="venue-selected-card">
@@ -3295,10 +3371,10 @@ function BookPage({ auth }) {
                       </div>
                     </div>
                   )}
-                </section>
+                </div>
 
-                {/* Step Card 2: Date & Schedule */}
-                <section className="panel booking-step-card">
+                {/* Section 2: Date & Schedule */}
+                <div className="booking-unified-section">
                   <div className="step-card-header">
                     <span className="form-section-num">2</span>
                     <div>
@@ -3412,13 +3488,14 @@ function BookPage({ auth }) {
                   )}
                   {!isTimeInvalid && !isPastTimeToday && !conflictingBooking && duration > 0 && (
                     <div className="inline-feedback success">
-                      <Check size={13} /> Duration: {duration} hours ({money(venue ? Math.round(duration * venue.basePrice) : 0)})
+                      <Check size={13} /> Duration: {duration} {duration === 1 ? 'hour' : 'hours'}
+                      {venue ? ` (${money(Math.round(duration * venue.basePrice))})` : ''}
                     </div>
                   )}
-                </section>
+                </div>
 
-                {/* Step Card 3: Event Purpose & Submit */}
-                <section className="panel booking-step-card">
+                {/* Section 3: Event Purpose & Submit */}
+                <div className="booking-unified-section last">
                   <div className="step-card-header">
                     <span className="form-section-num">3</span>
                     <div>
@@ -3467,7 +3544,7 @@ function BookPage({ auth }) {
                     <ShieldCheck size={14} />
                     <span>No advance payment is taken today. Invoicing is processed only after administrative approval.</span>
                   </p>
-                </section>
+                </div>
               </form>
 
               {/* Live Sticky Summary Sidebar */}
@@ -3506,7 +3583,7 @@ function BookPage({ auth }) {
                   </div>
                   <div>
                     <span>Duration</span>
-                    <strong>{duration > 0 ? `${duration} hours` : '—'}</strong>
+                    <strong>{duration > 0 ? `${duration} ${duration === 1 ? 'hour' : 'hours'}` : '—'}</strong>
                   </div>
                   {venue && (
                     <div>

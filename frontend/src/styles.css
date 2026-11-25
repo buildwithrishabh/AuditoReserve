@@ -5,6 +5,7 @@
 
 :root,
 [data-theme="dark"] {
+  color-scheme: dark;
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
@@ -5260,7 +5261,115 @@ tbody td strong {
 }
 
 .booking-form-panel {
-  padding: 24px;
+  padding: 28px 30px;
+}
+
+.booking-unified-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.booking-unified-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 26px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.booking-unified-section.last {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.venue-select-dropdown {
+  width: 100%;
+}
+
+.venue-select-btn {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  justify-content: space-between;
+  background: var(--input-surface);
+  border-color: var(--border-medium);
+}
+
+.venue-select-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.venue-select-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.venue-select-value strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.venue-select-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.venue-select-placeholder {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.venue-select-menu {
+  width: 100%;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.venue-select-option {
+  padding: 10px 12px;
+}
+
+.venue-option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.venue-option-info strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.venue-option-info span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.venue-option-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .booking-form-panel {
+    padding: 20px;
+  }
 }
 
 .step-chip {
