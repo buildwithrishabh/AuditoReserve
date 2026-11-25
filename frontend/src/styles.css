@@ -6495,21 +6495,134 @@ tbody td strong {
   right: 24px;
   z-index: 1000;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  background: var(--text-primary);
-  color: #ffffff;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 390px;
+  padding: 14px 14px 16px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  animation: toast-slide 220ms var(--ease-default);
+}
+
+.toast-icon-wrap {
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  animation: toast-slide 200ms var(--ease-default);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.toast-error .toast-icon-wrap {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+
+.toast-warning .toast-icon-wrap {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+
+.toast-info .toast-icon-wrap {
+  background: var(--brand-50);
+  color: var(--brand-700);
+  border-color: var(--brand-200);
+}
+
+[data-theme="dark"] .toast-info .toast-icon-wrap {
+  color: var(--brand-400);
+  border-color: var(--border-active);
+}
+
+.toast-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.toast-copy strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.toast-copy span {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toast-close {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.toast-close:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+
+.toast-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--success);
+  transform-origin: left center;
+  animation: toast-progress 4.2s linear forwards;
+}
+
+.toast-error .toast-progress {
+  background: var(--error);
+}
+
+.toast-warning .toast-progress {
+  background: var(--warning);
+}
+
+.toast-info .toast-progress {
+  background: var(--brand-700);
 }
 
 @keyframes toast-slide {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translateY(14px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 /* ==========================================================================
@@ -7019,8 +7132,7 @@ tbody td strong {
     left: 12px;
     right: 12px;
     bottom: max(12px, env(safe-area-inset-bottom));
-    justify-content: center;
-    text-align: center;
+    max-width: none;
   }
 
   .booking-drawer {
@@ -7518,7 +7630,7 @@ tbody tr:hover { background: rgba(255,255,255,.025); }
 .table-action.action-approve:hover { background: var(--success); color: #07130e; }
 .table-action.action-decline { background: var(--error-bg); color: var(--error-text); border-color: var(--error-border); }
 .table-action.action-decline:hover { background: var(--error); color: #18090b; }
-.toast { background: var(--surface-raised); border: 1px solid var(--border-medium); color: var(--text-primary); }
+.toast { background: var(--surface-raised); border-color: var(--border-medium); color: var(--text-primary); }
 .status-pending { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
 .status-approved { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
 .status-confirmed { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }

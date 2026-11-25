@@ -132,13 +132,19 @@ const downloadBookingReceipt = async (bookingId, onLoading, setToast) => {
     document.body.removeChild(a)
     URL.revokeObjectURL(u)
     if (setToast) {
-      setToast('Official receipt downloaded successfully')
-      window.setTimeout(() => setToast(''), 4000)
+      setToast({
+        type: 'success',
+        title: 'Official receipt downloaded',
+        message: 'Your PDF receipt has been saved to your device.',
+      })
     }
   } catch (err) {
     if (setToast) {
-      setToast('Failed to download receipt. Please try again.')
-      window.setTimeout(() => setToast(''), 4000)
+      setToast({
+        type: 'error',
+        title: 'Receipt download failed',
+        message: 'Unable to generate the PDF right now. Please try again.',
+      })
     }
   } finally {
     if (onLoading) onLoading(false)
@@ -196,8 +202,39 @@ function useUser() {
   })
 
   const navigate = useNavigate()
-  const [toast, setToast] = useState('')
+  const [toast, setToastState] = useState(null)
+  const toastTimer = useRef(null)
   const seen = useRef(new Set())
+
+  const setToast = (input) => {
+    if (toastTimer.current) {
+      window.clearTimeout(toastTimer.current)
+      toastTimer.current = null
+    }
+    if (!input) {
+      setToastState(null)
+      return
+    }
+    const normalized =
+      typeof input === 'string'
+        ? {
+            id: Date.now(),
+            type: /fail|error|unable|invalid/i.test(input) ? 'error' : 'success',
+            title: input,
+            message: '',
+          }
+        : {
+            id: Date.now(),
+            type: input.type || 'info',
+            title: input.title || '',
+            message: input.message || '',
+          }
+    setToastState(normalized)
+    toastTimer.current = window.setTimeout(() => {
+      setToastState(null)
+      toastTimer.current = null
+    }, 4200)
+  }
 
   useEffect(() => {
     if (!data) return
@@ -215,8 +252,11 @@ function useUser() {
       if (n._id) seen.current.add(n._id)
       qc.invalidateQueries({ queryKey: ['notifications'] })
       qc.invalidateQueries({ queryKey: ['unread'] })
-      setToast(n.title || 'You have a new update')
-      window.setTimeout(() => setToast(''), 4500)
+      setToast({
+        type: 'info',
+        title: n.title || 'New campus update',
+        message: n.message || '',
+      })
     })
 
     return () => socket.disconnect()
@@ -3803,9 +3843,51 @@ function ConfirmedReceiptView({ booking, payment, auth }) {
   )
 }
 
+const makeIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `ar_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+}
+
+const ensureRazorpayLoaded = () =>
+  new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(window.Razorpay)
+      return
+    }
+    const existing = document.querySelector('script[src*="checkout.razorpay.com/v1/checkout.js"]')
+    if (existing) {
+      existing.addEventListener('load', () => {
+        if (window.Razorpay) resolve(window.Razorpay)
+        else reject(new Error('Razorpay SDK loaded but window.Razorpay is unavailable.'))
+      })
+      existing.addEventListener('error', () => {
+        reject(new Error('Unable to load Razorpay checkout. Please check your internet connection or ad-blocker.'))
+      })
+      // Fallback check in case script already finished loading before listener attached
+      window.setTimeout(() => {
+        if (window.Razorpay) resolve(window.Razorpay)
+      }, 600)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => {
+      if (window.Razorpay) resolve(window.Razorpay)
+      else reject(new Error('Razorpay checkout failed to initialize.'))
+    }
+    script.onerror = () => {
+      reject(new Error('Unable to load Razorpay checkout. Please check your internet connection or ad-blocker.'))
+    }
+    document.body.appendChild(script)
+  })
+
 function PaymentPage({ auth }) {
   const { bookingId } = useParams()
-  const q = useBookings()
+  const qc = useQueryClient()
+  const q = useBookings('/bookings/my-bookings?limit=100')
   const booking = q.data?.find((b) => b._id === bookingId)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
@@ -3815,51 +3897,76 @@ function PaymentPage({ auth }) {
     setError('')
     setBusy(true)
     try {
-      const { data } = await api.post(
-        `/payments/create-order/${bookingId}`,
-        {},
-        { headers: { 'Idempotency-Key': crypto.randomUUID() } }
-      )
-      if (!window.Razorpay) {
-        throw new Error('The secure payment gateway is temporarily unavailable. Please refresh and retry.')
+      const [RazorpaySDK, orderRes] = await Promise.all([
+        ensureRazorpayLoaded(),
+        api.post(
+          `/payments/create-order/${bookingId}`,
+          {},
+          { headers: { 'Idempotency-Key': makeIdempotencyKey() } }
+        ),
+      ])
+
+      const data = orderRes.data
+      if (!data?.key || !data?.order?.id) {
+        throw new Error('Payment gateway configuration is incomplete (missing Razorpay key or order ID).')
       }
-      const checkout = new window.Razorpay({
+
+      const checkout = new RazorpaySDK({
         key: data.key,
         amount: data.order.amount,
-        currency: data.order.currency,
+        currency: data.order.currency || 'INR',
         name: 'AuditoReserve',
         description: `${booking?.auditorium?.name || 'Auditorium'} reservation`,
         order_id: data.order.id,
         prefill: {
-          name: auth.user?.name,
-          email: auth.user?.email,
+          name: auth.user?.name || '',
+          email: auth.user?.email || '',
         },
-        theme: { color: '#3978F6' },
+        theme: { color: '#2563eb' },
         handler: async (response) => {
           try {
             const verified = await api.post(
               '/payments/verify',
               { bookingId, ...response },
-              { headers: { 'Idempotency-Key': crypto.randomUUID() } }
+              { headers: { 'Idempotency-Key': makeIdempotencyKey() } }
             )
             setSuccess(verified.data.payment)
+            qc.invalidateQueries({ queryKey: ['bookings'] })
+            qc.invalidateQueries({ queryKey: ['notifications'] })
+            qc.invalidateQueries({ queryKey: ['unread'] })
             await q.refetch()
+            auth?.setToast?.({
+              type: 'success',
+              title: 'Payment confirmed',
+              message: 'Your auditorium reservation is now locked and your receipt is ready.',
+            })
           } catch (e) {
-            setError(getError(e))
+            const msg = getError(e)
+            setError(msg)
+            auth?.setToast?.({ type: 'error', title: 'Verification failed', message: msg })
+          } finally {
+            setBusy(false)
           }
         },
-        modal: { ondismiss: () => setBusy(false) },
+        modal: {
+          ondismiss: () => {
+            setBusy(false)
+          },
+        },
       })
 
       checkout.on('payment.failed', (r) => {
-        setError(r.error?.description || 'Payment was unsuccessful. Please check your payment details.')
+        const msg = r.error?.description || 'Payment was unsuccessful. Please check your payment details.'
+        setError(msg)
+        auth?.setToast?.({ type: 'error', title: 'Payment failed', message: msg })
         setBusy(false)
       })
 
       checkout.open()
     } catch (e) {
-      setError(e.message || getError(e))
-    } finally {
+      const msg = e?.response ? getError(e) : e?.message || getError(e)
+      setError(msg)
+      auth?.setToast?.({ type: 'error', title: 'Unable to open checkout', message: msg })
       setBusy(false)
     }
   }
@@ -5006,12 +5113,31 @@ export default function App() {
       </Routes>
 
       {auth.toast && (
-        <div className="toast" role="alert">
-          <CheckCircle2 size={18} />
-          <span>{auth.toast}</span>
-          <button onClick={() => auth.setToast('')} aria-label="Dismiss toast">
+        <div className={`toast toast-${auth.toast.type || 'success'}`} key={auth.toast.id} role="alert">
+          <div className="toast-icon-wrap">
+            {auth.toast.type === 'error' ? (
+              <AlertCircle size={17} />
+            ) : auth.toast.type === 'warning' ? (
+              <AlertTriangle size={17} />
+            ) : auth.toast.type === 'info' ? (
+              <Bell size={17} />
+            ) : (
+              <CheckCircle2 size={17} />
+            )}
+          </div>
+          <div className="toast-copy">
+            <strong>{auth.toast.title}</strong>
+            {auth.toast.message && <span>{auth.toast.message}</span>}
+          </div>
+          <button
+            type="button"
+            className="toast-close"
+            onClick={() => auth.setToast(null)}
+            aria-label="Dismiss toast"
+          >
             <X size={15} />
           </button>
+          <span className="toast-progress" aria-hidden="true" />
         </div>
       )}
     </>
