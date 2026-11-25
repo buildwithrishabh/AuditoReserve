@@ -602,6 +602,11 @@ function Landing({ auth }) {
   const q = useAuditoriums()
   const navigate = useNavigate()
 
+  const totalSeats = useMemo(() => {
+    if (!q.data?.length) return 0
+    return q.data.reduce((acc, v) => acc + (v.capacity || 0), 0)
+  }, [q.data])
+
   const steps = [
     {
       num: '01',
@@ -730,8 +735,16 @@ function Landing({ auth }) {
                 <Building2 size={18} />
               </div>
               <div className="metric-text">
-                <strong>{q.data?.length ? `${q.data.length} Campus Venues` : 'Campus Auditoriums'}</strong>
-                <span>Audited seating & AV equipment</span>
+                <strong>
+                  {q.data?.length
+                    ? `${q.data.length} Campus ${q.data.length === 1 ? 'Venue' : 'Venues'}`
+                    : 'Campus Auditoriums'}
+                </strong>
+                <span>
+                  {totalSeats > 0
+                    ? `${totalSeats.toLocaleString()}+ audited seats & AV`
+                    : 'Audited seating & AV equipment'}
+                </span>
               </div>
             </div>
 
@@ -783,8 +796,80 @@ function Landing({ auth }) {
             <LoadingCards count={3} />
           ) : q.isError ? (
             <PageState error={q.error} retry={q.refetch} />
+          ) : q.data?.length === 1 ? (
+            (() => {
+              const v = q.data[0]
+              const amenitiesList = Array.isArray(v.amenities) ? v.amenities.slice(0, 6) : []
+              return (
+                <div className="venue-spotlight-hero">
+                  <Link className="spotlight-media-wrap" to={`/auditoriums/${v._id}`}>
+                    <img
+                      className="spotlight-media-img"
+                      src={imageFor(v)}
+                      alt={v.name}
+                      loading="lazy"
+                    />
+                    <div className="spotlight-media-scrim" />
+                    <div className="spotlight-media-badges">
+                      <span className="spotlight-flagship-pill">
+                        <Sparkles size={12} /> Featured Venue
+                      </span>
+                      <span className="spotlight-capacity-pill">
+                        <Users size={12} /> {v.capacity} seats
+                      </span>
+                    </div>
+                    <div className="spotlight-live-tag">
+                      <span className="spotlight-live-dot" />
+                      <span>Live Calendar Available</span>
+                    </div>
+                  </Link>
+                  <div className="spotlight-content-wrap">
+                    <div className="spotlight-content-top">
+                      <span className="spotlight-eyebrow">CAMPUS AUDITORIUM</span>
+                      <Link to={`/auditoriums/${v._id}`} className="spotlight-title-link">
+                        <h3 className="spotlight-title">{v.name}</h3>
+                      </Link>
+                      {v.description && <p className="spotlight-desc">{v.description}</p>}
+                      {amenitiesList.length > 0 && (
+                        <div className="spotlight-amenities-grid">
+                          {amenitiesList.map((amenity) => (
+                            <div className="spotlight-amenity-item" key={amenity}>
+                              <Check size={14} strokeWidth={2.5} />
+                              <span>{amenity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="spotlight-foot-row">
+                      <div className="spotlight-rate-group">
+                        <span className="spotlight-rate-val">{money(v.basePrice)}</span>
+                        <span className="spotlight-rate-sub">per hour</span>
+                      </div>
+                      <div className="spotlight-action-buttons">
+                        <Link
+                          to={`/auditoriums/${v._id}#availability`}
+                          className="button button-secondary"
+                        >
+                          <CalendarDays size={14} />
+                          <span>Check calendar</span>
+                        </Link>
+                        <Link
+                          to={`/auditoriums/${v._id}`}
+                          className="button button-primary"
+                        >
+                          <span>View details</span>
+                          <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()
           ) : q.data?.length ? (
-            <div className="card-grid">
+            <div className={`card-grid ${q.data.length === 2 ? 'card-grid-2' : ''}`}>
               {q.data.slice(0, 3).map((v) => (
                 <AuditoriumCard item={v} key={v._id} />
               ))}
@@ -841,6 +926,12 @@ function Landing({ auth }) {
             <p>Explore campus auditoriums and verify availability for your upcoming dates in minutes.</p>
           </div>
           <div className="closing-cta-actions">
+            <Link
+              className="button button-cta-ghost"
+              to={auth?.user ? (auth.user.role === 'admin' ? '/admin' : '/student') : '/login'}
+            >
+              <span>{auth?.user ? 'Open workspace' : 'Sign in to book'}</span>
+            </Link>
             <Link className="button button-light" to="/auditoriums">
               <span>Explore auditoriums</span>
               <ArrowRight size={15} className="cta-btn-arrow" />
