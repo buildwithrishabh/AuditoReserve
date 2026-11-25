@@ -3242,87 +3242,72 @@ function BookPage({ auth }) {
           ),
           content: (
             <div className="booking-flow">
-              <section className="panel booking-form-panel">
-                <div className="panel-header">
-                  <div>
-                    <h2>Reservation Details</h2>
-                    <p>Select your auditorium, date, time window, and event purpose for administrative review.</p>
-                  </div>
-                  <span className="step-chip">
-                    Step 1 <span>of</span> 3
-                  </span>
-                </div>
-
-                <div className="progress-steps">
-                  <span className="current">
-                    <i>1</i> Details & Schedule
-                  </span>
-                  <span>
-                    <i>2</i> Administrative Review
-                  </span>
-                  <span>
-                    <i>3</i> Fee Payment & Confirmation
-                  </span>
-                </div>
-
-                <form
-                  className="form-stack"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    if (!isFormValid) return
-                    setError('')
-                    mutation.mutate()
-                  }}
-                >
-                  {/* 1. Auditorium Selection */}
-                  <div className="form-group booking-section-block">
-                    <div className="form-section-head">
-                      <span className="form-section-num">1</span>
-                      <span>Choose Auditorium</span>
+              <form
+                className="booking-steps-column"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (!isFormValid) return
+                  setError('')
+                  mutation.mutate()
+                }}
+              >
+                {/* Step Card 1: Auditorium Selection */}
+                <section className="panel booking-step-card">
+                  <div className="step-card-header">
+                    <span className="form-section-num">1</span>
+                    <div>
+                      <h3>Choose Auditorium</h3>
+                      <p>Select the campus venue you want to reserve.</p>
                     </div>
-                    <label className="form-label">
-                      Auditorium Venue
-                      <select
-                        className="input"
-                        value={form.auditoriumId}
-                        onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })}
-                        required
-                      >
-                        <option value="">Choose an auditorium venue</option>
-                        {(aq.data || []).map((v) => (
-                          <option key={v._id} value={v._id}>
-                            {v.name} · {v.capacity} seats · {money(v.basePrice)}/hr
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  </div>
 
-                    {venue && (
-                      <div className="venue-selected-card">
-                        <img src={imageFor(venue)} alt={venue.name} className="venue-selected-thumb" />
-                        <div className="venue-selected-info">
-                          <strong>{venue.name}</strong>
-                          <div className="venue-selected-meta">
-                            <span>
-                              <Users size={13} /> {venue.capacity} seats capacity
-                            </span>
-                            <span>•</span>
-                            <span>
-                              <Clock3 size={13} /> {money(venue.basePrice)} / hour
-                            </span>
-                          </div>
+                  <label className="form-label">
+                    Auditorium Venue
+                    <select
+                      className="input"
+                      value={form.auditoriumId}
+                      onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })}
+                      required
+                    >
+                      <option value="">Choose an auditorium venue</option>
+                      {(aq.data || []).map((v) => (
+                        <option key={v._id} value={v._id}>
+                          {v.name} · {v.capacity} seats · {money(v.basePrice)}/hr
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {venue && (
+                    <div className="venue-selected-card">
+                      <img src={imageFor(venue)} alt={venue.name} className="venue-selected-thumb" />
+                      <div className="venue-selected-info">
+                        <strong>{venue.name}</strong>
+                        <div className="venue-selected-meta">
+                          <span>
+                            <Users size={13} /> {venue.capacity} seats capacity
+                          </span>
+                          <span>•</span>
+                          <span>
+                            <Clock3 size={13} /> {money(venue.basePrice)} / hour
+                          </span>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+                </section>
+
+                {/* Step Card 2: Date & Schedule */}
+                <section className="panel booking-step-card">
+                  <div className="step-card-header">
+                    <span className="form-section-num">2</span>
+                    <div>
+                      <h3>Date & Time Schedule</h3>
+                      <p>Pick an available date and time window for your event.</p>
+                    </div>
                   </div>
 
-                  {/* 2. Date & Time Window */}
-                  <div className="form-group booking-section-block">
-                    <div className="form-section-head">
-                      <span className="form-section-num">2</span>
-                      <span>Date & Time Window</span>
-                    </div>
-
+                  <div className="date-picker-row">
                     <label className="form-label">
                       Event Date
                       <input
@@ -3334,178 +3319,133 @@ function BookPage({ auth }) {
                         required
                       />
                     </label>
-
-                    <div className="chip-row">
-                      <span className="chip-row-label">Quick date</span>
-                      <div className="quick-chip-group">
-                        <button
-                          type="button"
-                          className={`quick-chip ${form.bookingDate === todayStr ? 'active' : ''}`}
-                          onClick={() => setQuickDateOffset(0)}
-                        >
-                          Today
-                        </button>
-                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(1)}>
-                          Tomorrow
-                        </button>
-                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(2)}>
-                          In 2 days
-                        </button>
-                        <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(7)}>
-                          Next week
-                        </button>
-                      </div>
-                    </div>
-
-                    {form.auditoriumId && form.bookingDate && (
-                      <div className="day-slots-bar">
-                        {cal.isLoading ? (
-                          <span>Checking booked slots for {dateText(form.bookingDate)}…</span>
-                        ) : dayBookings.length > 0 ? (
-                          <>
-                            <span>Booked on {dateText(form.bookingDate)}:</span>
-                            {dayBookings.map((b, idx) => (
-                              <span className="booked-slot-chip" key={b._id || idx}>
-                                <Clock3 size={11} /> {b.startTime}–{b.endTime}
-                              </span>
-                            ))}
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
-                            <span>All time slots are currently open on {dateText(form.bookingDate)}.</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="time-row">
-                      <label className="form-label">
-                        Start Time
-                        <input
-                          className="input"
-                          type="time"
-                          value={form.startTime}
-                          onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                          required
-                        />
-                      </label>
-                      <label className="form-label">
-                        End Time
-                        <input
-                          className="input"
-                          type="time"
-                          value={form.endTime}
-                          onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                          required
-                        />
-                      </label>
-                    </div>
-
-                    {/* Inline time & conflict validation feedback */}
-                    {isTimeInvalid && (
-                      <div className="inline-feedback error">
-                        <AlertCircle size={13} /> Start time must be earlier than end time.
-                      </div>
-                    )}
-                    {isPastTimeToday && (
-                      <div className="inline-feedback warning">
-                        <AlertCircle size={13} /> Selected start time has already passed for today.
-                      </div>
-                    )}
-                    {conflictingBooking && (
-                      <div className="inline-feedback error">
-                        <AlertTriangle size={13} /> Time conflict: This venue already has a reservation from{' '}
-                        {conflictingBooking.startTime} to {conflictingBooking.endTime}. Please choose another window.
-                      </div>
-                    )}
-                    {!isTimeInvalid && !isPastTimeToday && !conflictingBooking && duration > 0 && (
-                      <div className="inline-feedback success">
-                        <Check size={13} /> Duration: {duration} hours ({money(venue ? Math.round(duration * venue.basePrice) : 0)})
-                      </div>
-                    )}
-
-                    <div className="chip-row">
-                      <span className="chip-row-label">Duration</span>
-                      <div className="quick-chip-group">
-                        {[1, 2, 3, 4, 8].map((h) => (
-                          <button
-                            key={h}
-                            type="button"
-                            className={`quick-chip ${duration === h ? 'active' : ''}`}
-                            onClick={() => setDurationHours(h)}
-                          >
-                            {h === 4 ? '4h (Half day)' : h === 8 ? '8h (Full day)' : `${h} hr${h > 1 ? 's' : ''}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="chip-row">
-                      <span className="chip-row-label">Popular slots</span>
-                      <div className="quick-chip-group">
-                        {QUICK_SLOTS.map((s) => (
-                          <button
-                            key={s.label}
-                            type="button"
-                            className={`quick-chip ${form.startTime === s.start && form.endTime === s.end ? 'active' : ''}`}
-                            onClick={() => setForm((prev) => ({ ...prev, startTime: s.start, endTime: s.end }))}
-                          >
-                            {s.label} ({s.start}–{s.end})
-                          </button>
-                        ))}
-                      </div>
+                    <div className="date-quick-pills">
+                      <button
+                        type="button"
+                        className={`quick-chip ${form.bookingDate === todayStr ? 'active' : ''}`}
+                        onClick={() => setQuickDateOffset(0)}
+                      >
+                        Today
+                      </button>
+                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(1)}>
+                        Tomorrow
+                      </button>
+                      <button type="button" className="quick-chip" onClick={() => setQuickDateOffset(7)}>
+                        Next week
+                      </button>
                     </div>
                   </div>
 
-                  {/* 3. Event Purpose (Valid Model Field) */}
-                  <div className="form-group booking-section-block last">
-                    <div className="form-section-head">
-                      <span className="form-section-num">3</span>
-                      <span>Event Purpose</span>
+                  {form.auditoriumId && form.bookingDate && (
+                    <div className="day-slots-bar">
+                      {cal.isLoading ? (
+                        <span>Checking booked slots for {dateText(form.bookingDate)}…</span>
+                      ) : dayBookings.length > 0 ? (
+                        <>
+                          <span>Booked on {dateText(form.bookingDate)}:</span>
+                          {dayBookings.map((b, idx) => (
+                            <span className="booked-slot-chip" key={b._id || idx}>
+                              <Clock3 size={11} /> {b.startTime}–{b.endTime}
+                            </span>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
+                          <span>All time slots are currently open on {dateText(form.bookingDate)}.</span>
+                        </>
+                      )}
                     </div>
+                  )}
 
-                    <div className="chip-row">
-                      <span className="chip-row-label">Templates</span>
-                      <div className="quick-chip-group">
-                        {[
-                          'Department Seminar on ',
-                          'Technical Workshop: ',
-                          'Guest Lecture by ',
-                          'Student Society Event: ',
-                        ].map((tpl) => (
-                          <button
-                            key={tpl}
-                            type="button"
-                            className="quick-chip"
-                            onClick={() => setForm((prev) => ({ ...prev, purpose: tpl }))}
-                          >
-                            {tpl.replace(/[: ]+$/, '')}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
+                  <div className="time-row">
                     <label className="form-label">
-                      Purpose Description
-                      <textarea
-                        className="input textarea"
-                        maxLength={500}
-                        rows={4}
-                        placeholder="State the purpose of this reservation (e.g., Annual Technical Symposium, Department Orientation, Guest Lecture by Prof. Sharma)..."
-                        value={form.purpose}
-                        onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+                      Start Time
+                      <input
+                        className="input"
+                        type="time"
+                        value={form.startTime}
+                        onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                         required
                       />
                     </label>
-                    <div className="textarea-meta-row">
-                      <span className="field-hint">
-                        {form.purpose.trim().length < 3
-                          ? 'Please provide a brief description of the event purpose (min 3 characters).'
-                          : 'Clear context facilitates timely administrative approval.'}
-                      </span>
-                      <span className="field-hint">{form.purpose.length}/500</span>
+                    <label className="form-label">
+                      End Time
+                      <input
+                        className="input"
+                        type="time"
+                        value={form.endTime}
+                        onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <div className="duration-segmented-row">
+                    {[1, 2, 3, 4, 8].map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        className={`duration-seg-btn ${duration === h ? 'active' : ''}`}
+                        onClick={() => setDurationHours(h)}
+                      >
+                        {h === 4 ? '4 hrs (Half day)' : h === 8 ? '8 hrs (Full day)' : `${h} hr${h > 1 ? 's' : ''}`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {isTimeInvalid && (
+                    <div className="inline-feedback error">
+                      <AlertCircle size={13} /> Start time must be earlier than end time.
                     </div>
+                  )}
+                  {isPastTimeToday && (
+                    <div className="inline-feedback warning">
+                      <AlertCircle size={13} /> Selected start time has already passed for today.
+                    </div>
+                  )}
+                  {conflictingBooking && (
+                    <div className="inline-feedback error">
+                      <AlertTriangle size={13} /> Time conflict: This venue already has a reservation from{' '}
+                      {conflictingBooking.startTime} to {conflictingBooking.endTime}. Please choose another window.
+                    </div>
+                  )}
+                  {!isTimeInvalid && !isPastTimeToday && !conflictingBooking && duration > 0 && (
+                    <div className="inline-feedback success">
+                      <Check size={13} /> Duration: {duration} hours ({money(venue ? Math.round(duration * venue.basePrice) : 0)})
+                    </div>
+                  )}
+                </section>
+
+                {/* Step Card 3: Event Purpose & Submit */}
+                <section className="panel booking-step-card">
+                  <div className="step-card-header">
+                    <span className="form-section-num">3</span>
+                    <div>
+                      <h3>Event Purpose</h3>
+                      <p>Briefly describe your event for administrative review.</p>
+                    </div>
+                  </div>
+
+                  <label className="form-label">
+                    Purpose Description
+                    <textarea
+                      className="input textarea"
+                      maxLength={500}
+                      rows={4}
+                      placeholder="e.g. Annual Technical Symposium, Department Orientation, or Guest Lecture by Prof. Sharma..."
+                      value={form.purpose}
+                      onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <div className="textarea-meta-row">
+                    <span className="field-hint">
+                      {form.purpose.trim().length < 3
+                        ? 'Minimum 3 characters required.'
+                        : 'Clear context helps speed up approval.'}
+                    </span>
+                    <span className="field-hint">{form.purpose.length}/500</span>
                   </div>
 
                   {error && (
@@ -3515,7 +3455,6 @@ function BookPage({ auth }) {
                     </div>
                   )}
 
-                  {/* 8. Submit Button */}
                   <button
                     className="button auth-submit"
                     disabled={mutation.isPending || !isFormValid}
@@ -3526,10 +3465,10 @@ function BookPage({ auth }) {
 
                   <p className="submission-note">
                     <ShieldCheck size={14} />
-                    <span>No advance payment is taken today. Invoicing is processed only after official campus administrative review.</span>
+                    <span>No advance payment is taken today. Invoicing is processed only after administrative approval.</span>
                   </p>
-                </form>
-              </section>
+                </section>
+              </form>
 
               {/* Live Sticky Summary Sidebar */}
               <aside className="booking-summary">
