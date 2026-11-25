@@ -3000,44 +3000,19 @@ function StudentDashboard({ user, auth }) {
                         <BookingTable
                           bookings={data.slice(0, 5)}
                           student
+                          onRowClick={(b) => setSelectedBooking(b)}
                           onAction={(b) => (
                             <div className="action-group" style={{ justifyContent: 'flex-end' }}>
                               <button
                                 className="table-action action-details"
-                                onClick={() => setSelectedBooking(b)}
-                                title="View reservation details"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedBooking(b)
+                                }}
+                                title="View reservation details & receipt"
                               >
                                 <Eye size={13} /> Details
                               </button>
-                              {b.status === 'pending' && (
-                                <button
-                                  className="table-action subtle action-decline"
-                                  onClick={() => setCancelTarget(b)}
-                                  title="Cancel booking request"
-                                >
-                                  <X size={13} /> Cancel
-                                </button>
-                              )}
-                              {b.status === 'approved' && (
-                                <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
-                                  <CreditCard size={13} /> Pay now
-                                </Link>
-                              )}
-                              {b.status === 'confirmed' && (
-                                <button
-                                  className="table-action action-paid"
-                                  onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
-                                  disabled={downloadingId === b._id}
-                                  title="Payment verified · Click to download receipt PDF"
-                                >
-                                  {downloadingId === b._id ? (
-                                    <RefreshCw size={12} className="spin" />
-                                  ) : (
-                                    <CheckCircle2 size={12} />
-                                  )}
-                                  <span>Paid</span>
-                                </button>
-                              )}
                             </div>
                           )}
                         />
@@ -3131,7 +3106,7 @@ function StudentDashboard({ user, auth }) {
   )
 }
 
-function BookingTable({ bookings, student = false, onAction }) {
+function BookingTable({ bookings, student = false, onAction, onRowClick }) {
   return (
     <div className="table-scroll">
       <table className="booking-table">
@@ -3147,12 +3122,16 @@ function BookingTable({ bookings, student = false, onAction }) {
         </thead>
         <tbody>
           {bookings.map((b) => (
-            <tr key={b._id}>
+            <tr
+              key={b._id}
+              onClick={onRowClick ? () => onRowClick(b) : undefined}
+              style={onRowClick ? { cursor: 'pointer' } : undefined}
+            >
               <td data-label="Auditorium">
                 <strong>{b.auditorium?.name || 'Auditorium'}</strong>
                 <span className="cell-sub">{b.purpose || 'Campus reservation'}</span>
               </td>
-              <td data-label="Date and time">
+              <td data-label="Date and time" style={{ whiteSpace: 'nowrap' }}>
                 <strong>{dateText(b.bookingDate)}</strong>
                 <span className="cell-sub">
                   {b.startTime} – {b.endTime}
@@ -3333,44 +3312,19 @@ function MyBookings({ auth }) {
                 <BookingTable
                   bookings={filteredBookings}
                   student
+                  onRowClick={(b) => setSelectedBooking(b)}
                   onAction={(b) => (
                     <div className="action-group" style={{ justifyContent: 'flex-end' }}>
                       <button
                         className="table-action action-details"
-                        onClick={() => setSelectedBooking(b)}
-                        title="View reservation details"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedBooking(b)
+                        }}
+                        title="View reservation details & receipt"
                       >
                         <Eye size={13} /> Details
                       </button>
-                      {b.status === 'approved' && (
-                        <Link className="table-action action-pay" to={`/student/payment/${b._id}`}>
-                          <CreditCard size={13} /> Pay now
-                        </Link>
-                      )}
-                      {b.status === 'confirmed' && (
-                        <button
-                          className="table-action action-paid"
-                          onClick={() => downloadBookingReceipt(b._id, (l) => setDownloadingId(l ? b._id : null), auth?.setToast)}
-                          disabled={downloadingId === b._id}
-                          title="Payment verified · Click to download receipt PDF"
-                        >
-                          {downloadingId === b._id ? (
-                            <RefreshCw size={12} className="spin" />
-                          ) : (
-                            <CheckCircle2 size={12} />
-                          )}
-                          <span>Paid</span>
-                        </button>
-                      )}
-                      {['pending', 'approved'].includes(b.status) && (
-                        <button
-                          className="table-action subtle"
-                          onClick={() => setCancelTarget(b)}
-                          title="Cancel reservation request"
-                        >
-                          Cancel
-                        </button>
-                      )}
                     </div>
                   )}
                 />
@@ -3419,7 +3373,10 @@ function BookPage({ auth }) {
   const qc = useQueryClient()
   const nav = useNavigate()
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`
 
   const [form, setForm] = useState({
     auditoriumId: auditoriumId || search.get('auditoriumId') || '',
@@ -3436,16 +3393,19 @@ function BookPage({ auth }) {
 
   // Date validation
   const isDateToday = form.bookingDate === todayStr
-  const currentHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(
-    new Date().getMinutes()
+  const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(
+    now.getMinutes()
   ).padStart(2, '0')}`
   const isPastTimeToday = isDateToday && form.startTime <= currentHHMM
 
-  // Quick Date Helpers
+  // Quick Date Helpers (local timezone safe)
   const setQuickDateOffset = (days) => {
     const d = new Date()
     d.setDate(d.getDate() + days)
-    setForm((prev) => ({ ...prev, bookingDate: d.toISOString().slice(0, 10) }))
+    const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`
+    setForm((prev) => ({ ...prev, bookingDate: str }))
   }
 
   // Quick Duration Helper
@@ -3453,7 +3413,7 @@ function BookPage({ auth }) {
     const [h, m] = form.startTime.split(':').map(Number)
     const totalMinutes = h * 60 + (m || 0) + hrs * 60
     const endH = Math.min(23, Math.floor(totalMinutes / 60))
-    const endM = totalMinutes % 60
+    const endM = totalMinutes >= 24 * 60 ? 59 : totalMinutes % 60
     const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
     setForm((prev) => ({ ...prev, endTime: endStr }))
   }
@@ -3473,22 +3433,26 @@ function BookPage({ auth }) {
     enabled: Boolean(form.auditoriumId && monthKey),
   })
 
-  // Detect conflicting existing booking on that day
-  const conflictingBooking = useMemo(() => {
-    if (!cal.data || !form.bookingDate || !form.startTime || !form.endTime) return null
-    return cal.data.find((b) => {
-      if (!b?.bookingDate || !b.startTime || !b.endTime) return false
-      const bDateStr = String(b.bookingDate).slice(0, 10)
-      if (bDateStr !== form.bookingDate) {
+  // Existing bookings on the selected day
+  const dayBookings = useMemo(() => {
+    if (!cal.data || !form.bookingDate) return []
+    return cal.data
+      .filter((b) => {
+        if (!b?.bookingDate || !b.startTime || !b.endTime) return false
         const d = new Date(b.bookingDate)
         const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
           d.getDate()
         ).padStart(2, '0')}`
-        if (dStr !== form.bookingDate) return false
-      }
-      return form.startTime < b.endTime && form.endTime > b.startTime
-    })
-  }, [cal.data, form.bookingDate, form.startTime, form.endTime])
+        return dStr === form.bookingDate || String(b.bookingDate).slice(0, 10) === form.bookingDate
+      })
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+  }, [cal.data, form.bookingDate])
+
+  // Detect conflicting existing booking on that day
+  const conflictingBooking = useMemo(() => {
+    if (!dayBookings.length || !form.startTime || !form.endTime) return null
+    return dayBookings.find((b) => form.startTime < b.endTime && form.endTime > b.startTime)
+  }, [dayBookings, form.startTime, form.endTime])
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -3525,16 +3489,21 @@ function BookPage({ auth }) {
         title="Request a booking"
         subtitle="NEW RESERVATION"
         children={{
+          actions: (
+            <Link className="button button-secondary" to={venue ? `/auditoriums/${venue._id}` : '/auditoriums'}>
+              <ArrowLeft size={14} /> {venue ? 'Back to venue' : 'Browse auditoriums'}
+            </Link>
+          ),
           content: (
             <div className="booking-flow">
               <section className="panel booking-form-panel">
                 <div className="panel-header">
                   <div>
                     <h2>Reservation Details</h2>
-                    <p>Provide schedule, attendee estimates, and equipment specifications for administrative review.</p>
+                    <p>Select your auditorium, date, time window, and event purpose for administrative review.</p>
                   </div>
                   <span className="step-chip">
-                    Step 1 <span>of</span> 2
+                    Step 1 <span>of</span> 3
                   </span>
                 </div>
 
@@ -3561,8 +3530,11 @@ function BookPage({ auth }) {
                 >
                   {/* 1. Auditorium Selection */}
                   <div className="form-group">
+                    <div className="form-section-head">
+                      <span className="form-section-num">1</span>
+                      <span>Choose Auditorium</span>
+                    </div>
                     <label className="form-label">
-                      <span>Auditorium Venue</span>
                       <select
                         className="input"
                         value={form.auditoriumId}
@@ -3597,8 +3569,12 @@ function BookPage({ auth }) {
                     )}
                   </div>
 
-                  {/* 2. Event Date with Quick Date Chips */}
+                  {/* 2. Event Date & Time */}
                   <div className="form-group">
+                    <div className="form-section-head">
+                      <span className="form-section-num">2</span>
+                      <span>Date & Time Window</span>
+                    </div>
                     <label className="form-label">
                       Event Date
                       <input
@@ -3629,6 +3605,28 @@ function BookPage({ auth }) {
                         Next week
                       </button>
                     </div>
+
+                    {form.auditoriumId && form.bookingDate && (
+                      <div className="day-slots-bar">
+                        {cal.isLoading ? (
+                          <span>Checking booked slots for {dateText(form.bookingDate)}…</span>
+                        ) : dayBookings.length > 0 ? (
+                          <>
+                            <span>Booked on {dateText(form.bookingDate)}:</span>
+                            {dayBookings.map((b, idx) => (
+                              <span className="booked-slot-chip" key={b._id || idx}>
+                                <Clock3 size={11} /> {b.startTime}–{b.endTime}
+                              </span>
+                            ))}
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />
+                            <span>All time slots are currently open on {dateText(form.bookingDate)}.</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* 3. Time Slots, Presets & Duration */}
@@ -3656,7 +3654,7 @@ function BookPage({ auth }) {
                       </label>
                     </div>
 
-                    {/* Inline time validation feedback */}
+                    {/* Inline time & conflict validation feedback */}
                     {isTimeInvalid && (
                       <div className="inline-feedback error">
                         <AlertCircle size={13} /> Start time must be earlier than end time.
@@ -3667,7 +3665,13 @@ function BookPage({ auth }) {
                         <AlertCircle size={13} /> Selected start time has already passed for today.
                       </div>
                     )}
-                    {!isTimeInvalid && !isPastTimeToday && duration > 0 && (
+                    {conflictingBooking && (
+                      <div className="inline-feedback error">
+                        <AlertTriangle size={13} /> Time conflict: This venue already has a reservation from{' '}
+                        {conflictingBooking.startTime} to {conflictingBooking.endTime}. Please choose another window.
+                      </div>
+                    )}
+                    {!isTimeInvalid && !isPastTimeToday && !conflictingBooking && duration > 0 && (
                       <div className="inline-feedback success">
                         <Check size={13} /> Duration: {duration} hours ({money(venue ? Math.round(duration * venue.basePrice) : 0)})
                       </div>
@@ -3706,8 +3710,29 @@ function BookPage({ auth }) {
 
                   {/* 4. Event Purpose (Valid Model Field) */}
                   <div className="form-group">
-                    <label className="form-label">
+                    <div className="form-section-head">
+                      <span className="form-section-num">3</span>
                       <span>Event Purpose</span>
+                    </div>
+                    <div className="quick-chip-group" style={{ marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick templates:</span>
+                      {[
+                        'Department Seminar on ',
+                        'Technical Workshop: ',
+                        'Guest Lecture by ',
+                        'Student Society Event: ',
+                      ].map((tpl) => (
+                        <button
+                          key={tpl}
+                          type="button"
+                          className="quick-chip"
+                          onClick={() => setForm((prev) => ({ ...prev, purpose: tpl }))}
+                        >
+                          {tpl.replace(/[: ]+$/, '')}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="form-label">
                       <textarea
                         className="input textarea"
                         maxLength={500}
@@ -3721,7 +3746,7 @@ function BookPage({ auth }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                       <span className="field-hint">
                         {form.purpose.trim().length < 3
-                          ? 'Please provide a brief description of the event purpose.'
+                          ? 'Please provide a brief description of the event purpose (min 3 characters).'
                           : 'Clear context facilitates timely administrative approval.'}
                       </span>
                       <span className="field-hint">{form.purpose.length}/500</span>
@@ -4201,6 +4226,7 @@ function PaymentPage({ auth }) {
 
 function Notifications({ auth }) {
   const qc = useQueryClient()
+  const [filter, setFilter] = useState('all')
   const q = useQuery({
     queryKey: ['notifications'],
     queryFn: async () =>
@@ -4223,6 +4249,29 @@ function Notifications({ auth }) {
     },
   })
 
+  const items = q.data || []
+  const unreadCount = items.filter((n) => !n.isRead).length
+  const readCount = items.length - unreadCount
+  const visibleItems = items.filter((n) => {
+    if (filter === 'unread') return !n.isRead
+    if (filter === 'read') return n.isRead
+    return true
+  })
+
+  const getNotifVisual = (title = '', message = '') => {
+    const text = `${title} ${message}`.toLowerCase()
+    if (text.includes('cancel') || text.includes('declin') || text.includes('reject') || text.includes('expir')) {
+      return { cls: 'notif-danger', Icon: AlertCircle }
+    }
+    if (text.includes('confirm') || text.includes('paid') || text.includes('receipt') || text.includes('approv')) {
+      return { cls: 'notif-success', Icon: CheckCircle2 }
+    }
+    if (text.includes('payment') || text.includes('deadline') || text.includes('pending')) {
+      return { cls: 'notif-warning', Icon: Clock3 }
+    }
+    return { cls: '', Icon: Bell }
+  }
+
   return (
     <RequireRole auth={auth}>
       <DashboardShell
@@ -4230,54 +4279,92 @@ function Notifications({ auth }) {
         title="Notifications"
         subtitle="UPDATES & ALERTS"
         children={{
+          actions: unreadCount > 0 ? (
+            <button
+              className="button button-secondary button-small"
+              disabled={mark.isPending}
+              onClick={() => mark.mutate()}
+            >
+              <Check size={14} /> Mark all read ({unreadCount})
+            </button>
+          ) : null,
           content: (
             <div className="panel">
               <div className="panel-header">
                 <div>
-                  <h2>Recent Notifications</h2>
+                  <div className="panel-title-with-badge">
+                    <h2>Recent Notifications</h2>
+                    {unreadCount > 0 && (
+                      <span className="count-chip">{unreadCount} unread</span>
+                    )}
+                  </div>
                   <p>Reservation updates, status notices, and payment receipts from campus admins.</p>
                 </div>
-                {q.data?.some((n) => !n.isRead) && (
-                  <button
-                    className="text-link"
-                    disabled={mark.isPending}
-                    onClick={() => mark.mutate()}
-                  >
-                    Mark all as read <Check size={14} />
-                  </button>
-                )}
               </div>
+
+              {items.length > 0 && (
+                <div className="tabs" style={{ marginBottom: '12px' }}>
+                  {[
+                    ['all', 'All updates', items.length],
+                    ['unread', 'Unread', unreadCount],
+                    ['read', 'Read', readCount],
+                  ].map(([key, label, count]) => (
+                    <button
+                      key={key}
+                      className={filter === key ? 'tab-active' : ''}
+                      onClick={() => setFilter(key)}
+                    >
+                      {label}
+                      {count > 0 && <span className="tab-count">{count}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {q.isLoading ? (
                 <LoadingRows />
               ) : q.isError ? (
                 <PageState error={q.error} retry={q.refetch} />
-              ) : q.data?.length ? (
+              ) : visibleItems.length ? (
                 <div className="notification-list">
-                  {q.data.map((n) => (
-                    <div className={`notification-row ${n.isRead ? 'read' : ''}`} key={n._id}>
-                      <div className="notification-symbol">
-                        <Bell size={16} />
+                  {visibleItems.map((n) => {
+                    const { cls, Icon } = getNotifVisual(n.title, n.message)
+                    return (
+                      <div className={`notification-row ${n.isRead ? 'read' : ''}`} key={n._id}>
+                        <div className={`notification-symbol ${cls}`}>
+                          <Icon size={16} />
+                        </div>
+                        <div className="notification-body">
+                          <div className="notification-title-line">
+                            {!n.isRead && <span className="notification-unread-dot" />}
+                            <strong>{n.title}</strong>
+                          </div>
+                          <p>{n.message}</p>
+                          <span>{timeAgo(n.createdAt)}</span>
+                        </div>
+                        <div className="notification-actions">
+                          {!n.isRead && (
+                            <button
+                              className="mark-read"
+                              disabled={mark.isPending}
+                              onClick={() => mark.mutate(n._id)}
+                            >
+                              Mark read
+                            </button>
+                          )}
+                          <button
+                            className="icon-button"
+                            disabled={del.isPending}
+                            onClick={() => del.mutate(n._id)}
+                            aria-label="Delete notification"
+                            title="Delete notification"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="notification-body">
-                        <strong>{n.title}</strong>
-                        <p>{n.message}</p>
-                        <span>{timeAgo(n.createdAt)}</span>
-                      </div>
-                      {!n.isRead && (
-                        <button className="mark-read" onClick={() => mark.mutate(n._id)}>
-                          Mark read
-                        </button>
-                      )}
-                      <button
-                        className="icon-button"
-                        onClick={() => del.mutate(n._id)}
-                        aria-label="Delete notification"
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="empty-panel">
@@ -4285,9 +4372,18 @@ function Notifications({ auth }) {
                     <Bell size={20} />
                   </div>
                   <div>
-                    <h3>You’re all caught up</h3>
-                    <p>New booking alerts and payment receipts will appear here.</p>
+                    <h3>{filter === 'unread' ? 'No unread notifications' : 'You’re all caught up'}</h3>
+                    <p>
+                      {filter === 'unread'
+                        ? 'All your campus booking alerts have been reviewed.'
+                        : 'New booking alerts and payment receipts will appear here.'}
+                    </p>
                   </div>
+                  {filter !== 'all' && (
+                    <button className="button button-secondary button-small" onClick={() => setFilter('all')}>
+                      View all notifications
+                    </button>
+                  )}
                 </div>
               )}
             </div>
